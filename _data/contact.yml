@@ -23,7 +23,7 @@
 
 - type: CV
   icon: 'fa-regular fa-file-lines'
-  url: 'assets/lib/cv.pdf'
+  url: '/assets/lib/cv.pdf'
 
 - type: rss
   icon: "fas fa-rss"
