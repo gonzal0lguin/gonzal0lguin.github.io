@@ -7,7 +7,10 @@ order: 4
 <!-- > Add Markdown syntax content to file `_tabs/about.md`{: .filepath } and it will show up on this page.
 {: .prompt-tip } -->
 
-Hi! I am a Chilean🇨🇱 robotics enthusiast and queseyo.
+<!-- ![alt text](/assets/img/headers/about.JPG) -->
+<img src="/assets/img/headers/about.JPG" alt="center" width="500"/>
 
-I'm currently enroled in the Master's program of Electrical Engineering at Universidad de Chile, and no se que mas pero algo mas.
+Hi! I'm Gonzalo, a Chilean🇨🇱 robotics enthusiast and hiking⛰️ lover.
+
+I'm currently enroled in the Master's program of Electrical Engineering at *Universidad de Chile*, with particular interest in autonomous navigation & perception, as well as Reinforment Learning in robotics.
 
