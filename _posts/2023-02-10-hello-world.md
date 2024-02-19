@@ -1,6 +1,6 @@
 ---
 title: Hello world
-date: 2024-02-10 03:22:09 -03
+date: 2023-02-10 03:22:09 -03
 author: Gonz
 categories: [Helloworld]
 tags: [hi]
@@ -9,7 +9,6 @@ tags: [hi]
 
 # Hello World!
 
-so nice to finally get it to work (la mufe xd)!!
 
 ```python
 def helloWorld():
@@ -18,5 +17,3 @@ def helloWorld():
 if __name__ == '__main__':
     helloWorld()
 ```
-
-consu te amo
