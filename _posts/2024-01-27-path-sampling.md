@@ -7,6 +7,8 @@ tags: [path, ROS]
 image:
     path: /assets/img/headers/path-sampling.png
 ---
+{% include_relative _includes/head.html %}
+
 
 This short project was created by a need to sample points from a classic global planner (such as NavFn) to unstack or give more accurate aypoints to a Reactive RL local planner. This implementation also serves purpose to other local planners that don't need the entirity of a complex global plan and can perform well within a certain range.
 
