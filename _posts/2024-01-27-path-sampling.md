@@ -23,9 +23,9 @@ For all the examples a detached node of navfn is used to obtain the global paths
 
 The first approach is quite simple, the obtained path length $L_p$ is calculated by summing the euclidean distance between consecutive waypoints as follows:
 
-$$
+$
 L_p = \sum_{i=1}^{N} \lVert P_{i} - P_{i-1}\rVert
-$$
+$
 
 Where $P$ is the path containing $N$ waypoints.
 
