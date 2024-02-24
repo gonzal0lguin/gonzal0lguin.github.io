@@ -9,7 +9,7 @@ image:
 ---
 {% include_relative _includes/head.html %}
 
-This short project was created by a need to sample points from a classic global planner (such as NavFn) to unstack or give more accurate aypoints to a Reactive RL local planner. This implementation also serves purpose to other local planners that don't need the entirity of a complex global plan and can perform well within a certain range.
+This short project was created by the need to sample points from a classic global planner (such as NavFn) to unstack or give more accurate waypoints to a Reactive RL local planner. This implementation also serves purpose to other local planners that don't need the entirity of a complex global plan and can perform well within a certain range.
 
 The idea in principle is to obtain the most significant waypoints of a long path, such as the maximum curvature point or the changes in direction, given that straight line segments normally are not a challenge to a planner. However, a uniform sampling approach is also provided given that it is the most simple solution. Two more approaches are explored, based on the maximum points of curvature and the peaks of the magnitude of the gradient, which in term are quite similar, but provide different results.
 
@@ -20,7 +20,7 @@ Full code implementation and usage instructions can be found in my github profil
 
 ## Uniform sampling
 
-For all the examples a detached node of navfn is used to obtain the global paths in a pre-mapped environment. The paths can be obtained using the service call to `/navfn/make_plan` with type `MakeNavPlan`.
+For all the examples, a detached node of navfn is used to obtain the global paths in a pre-mapped environment. The paths can be obtained using the service call to `/navfn/make_plan` with type `MakeNavPlan`.
 
 The first approach is quite simple, the obtained path length $L_p$ is calculated by summing the euclidean distance between consecutive waypoints as follows:
 
@@ -46,11 +46,11 @@ The described algorithm is presented bellow:
             ) 
             L_p += segment_l
             
-            if L_p >= self._waypoint_dst:
+            if L_p >= d_s:
                 waypoints.append(path[i])
-                L_p -= self._waypoint_dst
+                L_p -= d_s
 
-        if L_p < self._waypoint_dst and len(waypoints)>0:
+        if L_p < d_s and len(waypoints)>0:
             waypoints.pop()
         waypoints.append(path[-1])
 
@@ -64,24 +64,59 @@ The image below shows an example of usage on a simulated world in Gazebo, where 
 
 ## Curvature sampling
 
-[Savitzky-Golay filter](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html) and [find peaks](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html) and [argrelextrema](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.argrelextrema.html).
+Curvature is calculated from the _ equation (no me acuerdo de donde la saqué ni como se deriva).
 
 $$
 \kappa = \frac{\left\lvert \frac{dx}{dt}\left(\frac{d^2y}{dt^2}\right)^2-\frac{dy}{dt}\left(\frac{d^2x}{dt^2}\right)^2\right\rvert}{\left(\sqrt{\left(\frac{d^2x}{dt^2}\right)^2 + \left(\frac{d^2y}{dt^2}\right)^2}\right)^3}
 $$
 
+Since we only have set of $(x, y)$ points, derivatives are calculated using `numpy.gradient`. 
+
+While performing tests, I noticed that paths have lots of non-smooth segments wheen zooming in, meaning the curvature calculations have lots of ripple. To remediate this, I fisrt apply a [Savitzky-Golay filter](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html) to the input path to achieve better results. 
+
+For maximum peak detection, either [find peaks](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html) or [argrelextrema](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.argrelextrema.html) are used. After experimentation, `find_peaks` provided better performance due to its hiegher degree of adjustment, but this also implies more parameters to tune.
+
 ## Graditent sampling
 
+The previous method, even with a filtered input, does not always perform as expected. This method uses the $\mathcal{L_1}$ norm of the gradient for peak finding, given that the first derivative is less noisy than the second derivative used for obtaining $\kappa$.
+
+The $\mathcal{L_1}$ norm can be calculated as:
 
 $$
 \lVert P\rVert_{\mathcal{L1}} =  \left|\frac{dx}{dt}\right| + \left|\frac{dy}{dt}\right|
 $$
 
+The following snippet shows the process of obtaining the norm and sampling the points of interest. Notice that I still use the Savitzky-Golay filter on the input path.
 
+```python
+def sample_curve_from_gradient(self, path, th):
+
+    x_smooth = savgol_filter(path[:, 0], 51, 3)
+    y_smooth = savgol_filter(path[:, 1], 51, 3)
+
+    # Calculate the gradient in x and y directions
+    dx = np.gradient(x_smooth)
+    dy = np.gradient(y_smooth)
+
+    # Calculate the L1 norm of the gradient
+    gradient_magnitude = np.abs(dx) + np.abs(dy)
+    # shift curve to positive y-axis for find_peaks
+    gradient_magnitude = gradient_magnitude - np.min(gradient_magnitude)
+
+    peaks, _ = find_peaks(gradient_magnitude, height, distance)
+
+    return path[peaks]
+```
+
+An example path is presented bellow, with its corresponding $\mathcal{L_1}$ norm. The red dots represent the sampled points.
 
 <img src="/assets/img/posts/path-sampling/curve_sample.png" alt="center" width="700"/>
 
 
+The following image shows an example in Gazebo, with the green line being the original path and the red dots the sampled points.
+
 <img src="/assets/img/posts/path-sampling/curve-example.png" alt="center" width="700"/>
 
 ## Combined sampling
+
+TBD...
