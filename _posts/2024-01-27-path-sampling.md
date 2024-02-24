@@ -20,18 +20,18 @@ Full code implementation and usage instructions can be found in my github profil
 
 ## Uniform sampling
 
-For all the examples a detached node of navfn is used to obtain the global paths in a pre-mapped environment. The paths can be obtained using the service call to `/navfn/make_plan` as a `NavFN/MakePlan` srv.
+For all the examples a detached node of navfn is used to obtain the global paths in a pre-mapped environment. The paths can be obtained using the service call to `/navfn/make_plan` with type `MakeNavPlan`.
 
 The first approach is quite simple, the obtained path length $L_p$ is calculated by summing the euclidean distance between consecutive waypoints as follows:
 
-$
+$$
 L_p = \sum_{i=1}^{N} \lVert P_{i} - P_{i-1}\rVert
-$
+$$
 
 Where $P$ is the path containing $N$ waypoints.
 
 
-When the distance $L_p$ becomes equal to the sampling distance $d_s$ (passed as a parameter), then the corresponding waypoint is saved. The process is reapeted until the end of the path, where the last point is always saved (given that is the goal).
+When the distance $L_p$ becomes equal to the sampling distance $d_s$ (passed as a parameter), then the corresponding waypoint is saved. The process is reapeted until the end of the path, where the last point is always saved (given that it is the goal).
 
 The described algorithm is presented bellow:
 
@@ -64,12 +64,20 @@ The image below shows an example of usage on a simulated world in Gazebo, where 
 
 ## Curvature sampling
 
+[Savitzky-Golay filter](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html) and [find peaks](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html) and [argrelextrema](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.argrelextrema.html).
+
+$$
+\kappa = \frac{\left\lvert \frac{dx}{dt}\left(\frac{d^2y}{dt^2}\right)^2-\frac{dy}{dt}\left(\frac{d^2x}{dt^2}\right)^2\right\rvert}{\left(\sqrt{\left(\frac{d^2x}{dt^2}\right)^2 + \left(\frac{d^2y}{dt^2}\right)^2}\right)^3}
+$$
+
 ## Graditent sampling
 
 
 $$
-P_{mag} =  \left|\frac{dx}{dt}\right| + \left|\frac{dy}{dt}\right|
+\lVert P\rVert_{\mathcal{L1}} =  \left|\frac{dx}{dt}\right| + \left|\frac{dy}{dt}\right|
 $$
+
+
 
 <img src="/assets/img/posts/path-sampling/curve_sample.png" alt="center" width="700"/>
 
