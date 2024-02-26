@@ -38,7 +38,7 @@ This is the final evaluation of the course *Advanced Image Procesing* of the Ele
 
 Original           |      Segmented        |  Flattened     
 :-------------------------:|:-------------------------:|:-------------------------:
-![](/assets/img/posts/2d-mapping/img_00010.png)  |  ![](/assets/img/posts/2d-mapping/img_00010_seg.png) | ![](/assets/img/posts/2d-mapping/img_00010_flat.png)
+<img src="/assets/img/posts/2d-mapping/img_00010.png" width="33%">  |  <img src="/assets/img/posts/2d-mapping/img_00010_seg.png" width="33%"> | <img src="/assets/img/posts/2d-mapping/img_00010_flat.png" width="33%">
 
 ## U-Net
 
