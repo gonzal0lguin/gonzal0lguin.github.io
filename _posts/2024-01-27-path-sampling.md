@@ -36,25 +36,27 @@ When the distance $L_p$ becomes equal to the sampling distance $d_s$ (passed as 
 The described algorithm is presented bellow:
 
 ```python
-    def sample_plan_uniform(self, path: np.ndarray):
-        L_p = 0
-        waypoints = []
-        for i in range(1, len(path)):
-            segment_l = self.calculate_segment_lenght(
-                path[i-1],
-                path[i]
-            ) 
-            L_p += segment_l
-            
-            if L_p >= d_s:
-                waypoints.append(path[i])
-                L_p -= d_s
+from scipy.signal import savgoal_filter, find_peaks
+...
+def sample_plan_uniform(self, path: np.ndarray):
+    L_p = 0
+    waypoints = []
+    for i in range(1, len(path)):
+        segment_l = self.calculate_segment_lenght(
+            path[i-1],
+            path[i]
+        ) 
+        L_p += segment_l
+        
+        if L_p >= d_s:
+            waypoints.append(path[i])
+            L_p -= d_s
 
-        if L_p < d_s and len(waypoints)>0:
-            waypoints.pop()
-        waypoints.append(path[-1])
+    if L_p < d_s and len(waypoints)>0:
+        waypoints.pop()
+    waypoints.append(path[-1])
 
-        return waypoints
+    return waypoints
 ```
 
 The image below shows an example of usage on a simulated world in Gazebo, where the full path is in green and the sampled waypoints are the red dots.
@@ -83,12 +85,14 @@ The previous method, even with a filtered input, does not always perform as expe
 The $\mathcal{L_1}$ norm can be calculated as:
 
 $$
-\lVert P\rVert_{\mathcal{L1}} =  \left|\frac{dx}{dt}\right| + \left|\frac{dy}{dt}\right|
+\lVert \nabla P\rVert_{\mathcal{L_1}} =  \left|\frac{dx}{dt}\right| + \left|\frac{dy}{dt}\right|
 $$
 
 The following snippet shows the process of obtaining the norm and sampling the points of interest. Notice that I still use the Savitzky-Golay filter on the input path.
 
 ```python
+from scipy.signal import savgoal_filter, find_peaks
+...
 def sample_curve_from_gradient(self, path, th):
 
     x_smooth = savgol_filter(path[:, 0], 51, 3)
@@ -101,7 +105,7 @@ def sample_curve_from_gradient(self, path, th):
     # Calculate the L1 norm of the gradient
     gradient_magnitude = np.abs(dx) + np.abs(dy)
     # shift curve to positive y-axis for find_peaks
-    gradient_magnitude = gradient_magnitude - np.min(gradient_magnitude)
+    gradient_magnitude -= np.min(gradient_magnitude)
 
     peaks, _ = find_peaks(gradient_magnitude, height, distance)
 
@@ -119,4 +123,4 @@ The following image shows an example in Gazebo, with the green line being the or
 
 ## Combined sampling
 
-TBD...
+TBD... :)
