@@ -30,15 +30,20 @@ This is the final evaluation of the course *Advanced Image Procesing* of the Ele
 
 ## Custom worlds
 
+Circuit            |      Small city        |  Test city      
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/circuit.png)  |  ![](/assets/img/posts/2d-mapping/small_city.png) | ![](/assets/img/posts/2d-mapping/test_city.png)
 
 
 ### Gazebo
 
 ### Obtaining the dataset
 
-Original           |      Segmented        |  Flattened     
+
+Original            |      Segmented        |  Flattened     
 :-------------------------:|:-------------------------:|:-------------------------:
-<img src="/assets/img/posts/2d-mapping/img_00010.png" alt="center" width="33%">  |  <img src="/assets/img/posts/2d-mapping/img_00010_seg.png" alt="center" width="33%"> | <img src="/assets/img/posts/2d-mapping/img_00010_flat.png" alt="center" width="33%">
+![](/assets/img/posts/2d-mapping/img_00010.png)  |  ![](/assets/img/posts/2d-mapping/img_00010_seg.png) | ![](/assets/img/posts/2d-mapping/img_00010_flat.png)
+
 
 ## U-Net
 
@@ -102,11 +107,15 @@ The fundamental part of map generation involves performing a perspective transfo
 
 To obtain the transformation matrix, a square of $1[m^2]$ is placed on the ground 4 meters in front of the robot, as shown in Figure (4a). Using an OpenCV Harris detector, the coordinates of the 4 corners are obtained, which can be used to obtain the transformation through getPerspectiveTransform. Then, the result is applied to the original image, changing the dimensions from (640x480) to (480x480). Figure (4b) shows the image with the transformed perspective.
 
---- figura aca
+Calibration image            |      Transformed perspective        |
+:-------------------------:|:-------------------------:|
+![](/assets/img/posts/2d-mapping/perspective_calibration.png)  |  ![](/assets/img/posts/2d-mapping/warpedcalibration.png) 
 
 Using the known size of the calibration square and the new dimensions of the image, a resolution of 80 pixels per meter is calculated. This indicates that the field of view of the camera after the transformation is from $6[m^2]$ at a distance of $3.25[m]$ from the center of the robot (base_link). Figure (5) presents the calibration, including the origin of the robot and the actual dimensions.
 
---- figura aca
+Perspective from the base_link            |
+:-------------------------:|
+![](/assets/img/posts/2d-mapping/calaxes.png)  | 
 
 
 ## Occupancy grid mapping
@@ -114,7 +123,15 @@ Using the known size of the calibration square and the new dimensions of the ima
 ### "Local Mapping"
 
 
+BEV            |      Occ grid        |  Prob. Occ grid     
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/bevocc1.png)  |  ![](/assets/img/posts/2d-mapping/bevocc2.png) | ![](/assets/img/posts/2d-mapping/bevocc3.png)
+
 ### "Global Mapping"
+
+Local Map $(X_L, Y_L)$ within a global map $(X_G, Y_G)$          |
+:-------------------------:|
+![](/assets/img/posts/2d-mapping/algorithm.png)  | 
 
 ```c++
 void updateMap(std::vector<int8_t> &map, const std::vector<int8_t> &sensor_data, const std::vector<int> &position, double yaw)

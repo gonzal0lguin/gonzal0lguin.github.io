@@ -8,7 +8,10 @@ order: 1
 {: .prompt-tip } -->
 
 <!-- ![alt text](/assets/img/headers/about.JPG) -->
-<img src="/assets/img/headers/about.JPG" alt="center" width="500"/>
+
+|<img src="/assets/img/headers/about.JPG" alt="center" width="500"/>|
+:---------------------:
+| *Alto los Leones seen from Parque Andino Juncal, Los Andes, Chile.* |
 
 Hi! I'm Gonzalo, a Chilean🇨🇱 robotics enthusiast and hiking⛰️ lover.
 
