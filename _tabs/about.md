@@ -15,5 +15,5 @@ order: 1
 
 Hi! I'm Gonzalo, a Chilean🇨🇱 robotics enthusiast and hiking⛰️ lover.
 
-I'm currently enroled in the Master's program of Electrical Engineering at *Universidad de Chile*, with particular interest in autonomous navigation & perception, as well as Reinforment Learning in robotics.
+I'm currently enrolled in the Master's program of Electrical Engineering at *Universidad de Chile*, with particular interest in autonomous navigation & perception, as well as Reinforment Learning in robotics.
 
