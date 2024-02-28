@@ -7,11 +7,14 @@ order: 1
 <!-- > Add Markdown syntax content to file `_tabs/about.md`{: .filepath } and it will show up on this page.
 {: .prompt-tip } -->
 
-<!-- ![alt text](/assets/img/headers/about.JPG) -->
 
-<img src="/assets/img/headers/about.JPG" alt="center" width="500"/>|
-:---------------------:
- *Alto los Leones (5380m) seen from Parque Andino Juncal, Los Andes, Chile.* 
+<img src="/assets/img/headers/about.JPG" alt="center" width="500"/>
+
+<p style="text-align: center;">
+<i>Alto los Leones (5380m) seen from Parque Andino Juncal, Los Andes, Chile.</i>
+</p>
+
+---
 
 Hi! I'm Gonzalo, a Chilean🇨🇱 robotics enthusiast and hiking⛰️ lover.
 

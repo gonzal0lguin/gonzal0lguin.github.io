@@ -182,3 +182,24 @@ void updateMap(std::vector<int8_t> &map, const std::vector<int8_t> &sensor_data,
 
 ## Results
 
+Sample predictions and overlap in the validation set.          |
+:-------------------------:|
+![](/assets/img/posts/2d-mapping/unetval.png)  |
+
+
+
+Gazebo            |      RViz (with laser scan)        |       Occ grid
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/local_grid_gz.png)  |  ![](/assets/img/posts/2d-mapping/local_grid_viz.png) | ![](/assets/img/posts/2d-mapping/local_grid.png)
+
+
+Gazebo View            |      Occupancy map        |
+:-------------------------:|:-------------------------:|
+![](/assets/img/posts/2d-mapping/circuit-gz.png)  |  ![](/assets/img/posts/2d-mapping/circuit-occ.png)
+![](/assets/img/posts/2d-mapping/small_city_gz.png)  |  ![](/assets/img/posts/2d-mapping/small_city_occ.png) 
+![](/assets/img/posts/2d-mapping/test_city_gz.png)  |  ![](/assets/img/posts/2d-mapping/test_city_occ.png) 
+
+
+Circuit            |      Small city        |       Test city
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/circuit_sem.png)  |  ![](/assets/img/posts/2d-mapping/small_city_sem.png) | ![](/assets/img/posts/2d-mapping/test_city_sem.png)
