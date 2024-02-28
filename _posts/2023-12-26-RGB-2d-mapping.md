@@ -129,14 +129,12 @@ BEV            |      Occ grid        |  Prob. Occ grid
 ### "Global Mapping"
 
 $$
-\begin{align}
-&R = \sqrt{(x_l -W/2)^2+(dx+L-y_l)^2}\\
-&\phi = \arctan(dx+L-y_l, x_l-W/2)\\
-&r_x = [R\cos(\theta-\phi)]\\
-&r_y = [R\sin(\theta-\phi)]\\
-&x_g = X_R + r_x\\
-&y_g = Y_R - r_y\\
-\end{align}
+R = \sqrt{(x_l -W/2)^2+(dx+L-y_l)^2}\\
+\phi = \arctan(dx+L-y_l, x_l-W/2)\\
+r_x = [R\cos(\theta-\phi)]\\
+r_y = [R\sin(\theta-\phi)]\\
+x_g = X_R + r_x\\
+y_g = Y_R - r_y\\
 $$
 
 Local Map $(X_L, Y_L)$ within a global map $(X_G, Y_G)$          |
