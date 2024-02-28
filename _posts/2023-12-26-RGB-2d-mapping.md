@@ -7,6 +7,7 @@ tags: [ROS, mapping]
 image:
     path: /assets/img/headers/2dmapping.png
 ---
+{% include_relative _includes/head.html %}
 
 # Monocular 2d semantic mapping
 
@@ -113,21 +114,30 @@ Calibration image            |      Transformed perspective        |
 
 Using the known size of the calibration square and the new dimensions of the image, a resolution of 80 pixels per meter is calculated. This indicates that the field of view of the camera after the transformation is from $6[m^2]$ at a distance of $3.25[m]$ from the center of the robot (base_link). Figure (5) presents the calibration, including the origin of the robot and the actual dimensions.
 
-Perspective from the base_link            |
+|           Perspective from the `base_link`            |
 :-------------------------:|
-![](/assets/img/posts/2d-mapping/calaxes.png)  | 
-
+| ![](/assets/img/posts/2d-mapping/calaxes.png) |
 
 ## Occupancy grid mapping
 
 ### "Local Mapping"
-
 
 BEV            |      Occ grid        |  Prob. Occ grid     
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](/assets/img/posts/2d-mapping/bevocc1.png)  |  ![](/assets/img/posts/2d-mapping/bevocc2.png) | ![](/assets/img/posts/2d-mapping/bevocc3.png)
 
 ### "Global Mapping"
+
+$$
+\begin{align}
+&R = \sqrt{(x_l -W/2)^2+(dx+L-y_l)^2}\\
+&\phi = \arctan(dx+L-y_l, x_l-W/2)\\
+&r_x = [R\cos(\theta-\phi)]\\
+&r_y = [R\sin(\theta-\phi)]\\
+&x_g = X_R + r_x\\
+&y_g = Y_R - r_y\\
+\end{align}
+$$
 
 Local Map $(X_L, Y_L)$ within a global map $(X_G, Y_G)$          |
 :-------------------------:|
@@ -170,3 +180,27 @@ void updateMap(std::vector<int8_t> &map, const std::vector<int8_t> &sensor_data,
 ```
 
 ## Semantic mapping
+
+## Results
+
+Sample predictions and overlap in the validation set.          |
+:-------------------------:|
+![](/assets/img/posts/2d-mapping/unetval.png)  |
+
+
+
+Gazebo            |      RViz (with laser scan)        |       Occ grid
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/local_grid_gz.png)  |  ![](/assets/img/posts/2d-mapping/local_grid_viz.png) | ![](/assets/img/posts/2d-mapping/local_grid.png)
+
+
+Gazebo View            |      Occupancy map        |
+:-------------------------:|:-------------------------:|
+![](/assets/img/posts/2d-mapping/circuit-gz.png)  |  ![](/assets/img/posts/2d-mapping/circuit-occ.png)
+![](/assets/img/posts/2d-mapping/small_city_gz.png)  |  ![](/assets/img/posts/2d-mapping/small_city_occ.png) 
+![](/assets/img/posts/2d-mapping/test_city_gz.png)  |  ![](/assets/img/posts/2d-mapping/test_city_occ.png) 
+
+
+Circuit            |      Small city        |       Test city
+:-------------------------:|:-------------------------:|:-------------------------:
+![](/assets/img/posts/2d-mapping/circuit_sem.png)  |  ![](/assets/img/posts/2d-mapping/small_city_sem.png) | ![](/assets/img/posts/2d-mapping/test_city_sem.png)
