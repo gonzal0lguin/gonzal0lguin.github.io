@@ -20,3 +20,5 @@ Hi! I'm Gonzalo, a Chilean🇨🇱 robotics enthusiast and hiking⛰️ lover.
 
 I'm currently enrolled in the Master's program of Electrical Engineering at *Universidad de Chile*, with particular interest in autonomous navigation & perception, as well as Reinforment Learning in robotics.
 
+I work at the [Robotics Lab at UChile](https://uchile-robotics.github.io/index.html), where we develop new projects every semester on navigation, interaction, manipulation and simulation, with the goal to compete at the RoboCup@Home!
+

@@ -66,7 +66,7 @@ The image below shows an example of usage on a simulated world in Gazebo, where 
 
 ## Curvature sampling
 
-Curvature is calculated from the _ equation (no me acuerdo de donde la saqué ni como se deriva).
+Curvature is calculated from the equiation below, in terms of the parametric representation $(x(t), y(t))$.
 
 $$
 \kappa = \frac{\left\lvert \frac{dx}{dt}\left(\frac{d^2y}{dt^2}\right)^2-\frac{dy}{dt}\left(\frac{d^2x}{dt^2}\right)^2\right\rvert}{\left(\sqrt{\left(\frac{d^2x}{dt^2}\right)^2 + \left(\frac{d^2y}{dt^2}\right)^2}\right)^3}
