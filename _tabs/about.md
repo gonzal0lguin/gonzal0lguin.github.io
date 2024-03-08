@@ -22,3 +22,9 @@ I'm currently enrolled in the Master's program of Electrical Engineering at *Uni
 
 I work at the [Robotics Lab at UChile](https://uchile-robotics.github.io/index.html), where we develop new projects every semester on navigation, interaction, manipulation and simulation, with the goal to compete at the RoboCup@Home!
 
+
+<img src="/assets/img/headers/cayutue.jpg" alt="center" width="500"/>
+
+<p style="text-align: center;">
+<i>Cayutué lake, with Puntiagudo volcano on the background. Los Lagos, Chile.</i>
+</p>
