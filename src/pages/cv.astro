@@ -1,0 +1,53 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import TimeLineElement from "../components/cv/TimeLine.astro";
+---
+
+<BaseLayout title="Resume" sideBarActiveItemID="cv">
+  <div class="mb-5">
+    <div class="text-3xl w-full font-bold">Profile</div>
+  </div>
+
+  <div class="mb-10 text-justify">
+    Hi! I'm Gonzalo, a Chilean 🇨🇱 robotics enthusiast and hiking ⛰️ lover.
+    <br/><br/>
+    I'm currently enrolled in the Master's program of Electrical Engineering at Universidad de Chile, with particular interest in autonomous navigation & perception, as well as Reinforcement Learning in robotics.
+  </div>
+
+  <div class="mb-5">
+    <div class="text-3xl w-full font-bold">Education</div>
+  </div>
+
+  <div class="time-line-container grid gap-4 mb-10">
+    <TimeLineElement
+      title="Master's in Electrical Engineering"
+      subtitle="Current at Universidad de Chile, Santiago, Chile"
+    />
+  </div>
+
+  <div class="mb-5">
+    <div class="text-3xl w-full font-bold">Experience</div>
+  </div>
+
+  <div class="time-line-container mb-10">
+    <TimeLineElement
+      title="Researcher"
+      subtitle="at Robotics Lab UChile"
+    >
+      Developing new projects every semester on navigation, interaction, manipulation and simulation, with the goal to compete at the RoboCup@Home!
+    </TimeLineElement>
+  </div>
+
+  <div class="mb-5">
+    <div class="text-3xl w-full font-bold">Skills</div>
+  </div>
+
+  <ul class="list-disc md:columns-5 columns-2 mx-6">
+    <li>ROS / ROS2</li>
+    <li>Robotics</li>
+    <li>Python</li>
+    <li>C++</li>
+    <li>Reinforcement Learning</li>
+    <li>Computer Vision</li>
+  </ul>
+</BaseLayout>

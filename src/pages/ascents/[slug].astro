@@ -1,0 +1,33 @@
+---
+import { CollectionEntry, getCollection } from "astro:content";
+import { AscentsSchema } from "../../content/config";
+import AscentLayout from "../../layouts/AscentLayout.astro";
+
+export async function getStaticPaths() {
+  const itemEntries = await getCollection("ascents");
+  return itemEntries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<"ascents">;
+}
+
+const { entry } = Astro.props;
+const item: AscentsSchema = entry.data;
+const { Content } = await entry.render();
+---
+
+<AscentLayout
+  title={item.title}
+  description={item.description}
+  heroImage={item.heroImage}
+  pubDate={item.pubDate}
+  badge={item.badge}
+  mountain={item.mountain}
+  elevation={item.elevation}
+>
+  <Content />
+</AscentLayout>
