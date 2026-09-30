@@ -1,0 +1,84 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import HorizontalCard from "../../../components/HorizontalCard.astro";
+import { getCollection } from "astro:content";
+import createSlug from "../../../lib/createSlug"
+
+export async function getStaticPaths({ paginate }) {
+  const all_posts = await getCollection("projects");
+  
+  // Define the valid categories based on URL slugs
+  const categoryMap = {
+    "academic-projects": "Academic projects",
+    "hobby-projects": "Hobby projects",
+    "personal": "Personal"
+  };
+
+  return Object.keys(categoryMap).flatMap((slug) => {
+    const categoryName = categoryMap[slug];
+    const filtered_posts = all_posts.filter((post) => post.data.category === categoryName);
+    filtered_posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+    return paginate(filtered_posts, {
+      params: { category: slug },
+      pageSize: 10,
+      props: { categoryName }
+    });
+  });
+}
+
+const { page, categoryName } = Astro.props;
+const { category } = Astro.params;
+---
+
+<BaseLayout title={categoryName} sideBarActiveItemID="projects">
+  <div class="mb-5">
+    <div class="text-3xl w-full font-bold">{categoryName}</div>
+  </div>
+
+  {
+    page.data.length === 0 ? (
+      <div class="bg-base-200 border-l-4 border-secondary w-full p-4 min-w-full">
+        <p class="font-bold">Sorry!</p>
+        <p>There are no projects to show in this category yet. Check back later!</p>
+      </div>
+    ) : (
+      <ul>
+        {page.data.map((post) => (
+          <>
+            <HorizontalCard
+              title={post.data.title}
+              img={post.data.heroImage}
+              desc={post.data.description}
+              url={"/projects/" + createSlug(post.data.title, post.slug)}
+              target="_self"
+              badge={post.data.badge}
+              tags={post.data.tags}
+            />
+            <div class="divider my-0" />
+          </>
+        ))}
+      </ul>
+    )
+  }
+
+  <div class="flex justify-between">
+    {
+      page.url.prev ? (
+        <a href={page.url.prev} class="btn btn-ghost my-10 mx-5">
+          Recent projects
+        </a>
+      ) : (
+        <div />
+      )
+    }
+    {
+      page.url.next ? (
+        <a href={page.url.next} class="btn btn-ghost my-10 mx-5">
+          Older projects
+        </a>
+      ) : (
+        <div />
+      )
+    }
+  </div>
+</BaseLayout>

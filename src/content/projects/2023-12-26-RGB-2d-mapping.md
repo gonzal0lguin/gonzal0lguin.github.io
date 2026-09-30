@@ -1,5 +1,6 @@
 ---
 title: Monocular 2D semantic mapping
+category: "Academic projects"
 description: "A robotics project."
 pubDate: 2023-12-26 17:22:09 -03
 author: Gonz

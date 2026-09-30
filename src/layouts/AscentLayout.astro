@@ -14,6 +14,7 @@ const {
   badge,
   mountain,
   elevation,
+  tags,
 } = Astro.props;
 
 dayjs.extend(localizedFormat);
@@ -36,10 +37,19 @@ import { Image } from "astro:assets";
         </h1>
         <div class="flex place-content-between items-center text-sm mb-4">
           <div class="grow md:grow-0">
-            <span class="mr-4"><strong>Mountain:</strong> {mountain}</span>
-            <span class="mr-4"><strong>Elevation:</strong> {elevation} m</span>
+            { mountain && <span class="mr-4"><strong>Mountain:</strong> {mountain}</span> }
+            { elevation && elevation > 0 && <span class="mr-4"><strong>Elevation:</strong> {elevation} m</span> }
             <span><strong>Date:</strong> {displayDate}</span>
           </div>
+        </div>
+        <div>
+          {
+            tags && tags.map((tag) => (
+              <a href={`/ascents/tag/${tag}`} class="badge badge-outline mr-2 no-underline">
+                {tag}
+              </a>
+            ))
+          }
         </div>
       </div>
       <div class="divider my-2"></div>

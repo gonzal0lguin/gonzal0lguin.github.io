@@ -1,5 +1,6 @@
 ---
 title: Curvature based path sampling
+category: "Academic projects"
 description: "A robotics project."
 pubDate: 2024-01-27 17:22:09 -03
 author: Gonz

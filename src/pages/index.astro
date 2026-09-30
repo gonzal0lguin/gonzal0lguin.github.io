@@ -4,6 +4,9 @@ import HorizontalCard from "../components/HorizontalCard.astro";
 import { getCollection } from "astro:content";
 import createSlug from "../lib/createSlug"
 
+const blog = (await getCollection("blog")).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const last_blog = blog.slice(0, 3);
+
 const posts = (await getCollection("projects")).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const last_posts = posts.slice(0, 3);
 
@@ -29,6 +32,27 @@ const last_ascents = ascents.slice(0, 3);
       </a>
     </div>
   </div>
+
+  <div>
+    <div class="text-3xl w-full font-bold mb-5 mt-10">Latest News</div>
+  </div>
+
+  {
+    last_blog.map((post) => (
+      <>
+        <HorizontalCard
+          title={post.data.title}
+          img={post.data.heroImage}
+          desc={post.data.description}
+          url={"/blog/" + createSlug(post.data.title, post.slug)}
+          target="_self"
+          badge={post.data.badge}
+          tags={post.data.tags}
+        />
+        <div class="divider my-0" />
+      </>
+    ))
+  }
 
   <div>
     <div class="text-3xl w-full font-bold mb-5 mt-10">Latest Projects</div>
@@ -64,6 +88,7 @@ const last_ascents = ascents.slice(0, 3);
           url={"/ascents/" + item.slug}
           target="_self"
           badge={item.data.badge}
+          tags={item.data.tags}
         />
         <div class="divider my-0" />
       </>
