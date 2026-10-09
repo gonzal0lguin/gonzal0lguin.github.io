@@ -1,0 +1,72 @@
+---
+import HorizontalCard from "./HorizontalCard.astro";
+import { getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+import type { LocalizedEntry } from "../i18n/content";
+
+export interface Props {
+  items: LocalizedEntry<"projects" | "ascents" | "blog">[];
+  /** Language-neutral base path of the entries, e.g. "/ascents". */
+  basePath: string;
+  emptyMessage?: string;
+  /** Pagination links from Astro's `paginate()`, if any. */
+  prevUrl?: string;
+  nextUrl?: string;
+}
+
+const { items, basePath, emptyMessage, prevUrl, nextUrl } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+{
+  items.length === 0 ? (
+    <div class="bg-base-200 border-l-4 border-secondary w-full p-4 min-w-full">
+      <p class="font-bold">{t("list.sorry")}</p>
+      <p>{emptyMessage ?? t("list.empty")}</p>
+    </div>
+  ) : (
+    <ul>
+      {items.map(({ key, entry }) => (
+        <li>
+          <HorizontalCard
+            title={entry.data.title}
+            img={entry.data.heroImage}
+            desc={entry.data.description}
+            url={localizePath(lang, `${basePath}/${key}`)}
+            badge={entry.data.badge}
+            tags={entry.data.tags}
+            tagBaseUrl={localizePath(lang, `${basePath}/tag`)}
+          />
+          <div class="divider my-0" />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+{
+  (prevUrl || nextUrl) && (
+    <div class="flex justify-between">
+      {prevUrl ? (
+        <a href={prevUrl} class="btn btn-ghost my-10 mx-5">
+          <svg class="h-6 w-6 fill-current md:h-8 md:w-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" />
+          </svg>
+          {t("list.newer")}
+        </a>
+      ) : (
+        <div />
+      )}
+      {nextUrl ? (
+        <a href={nextUrl} class="btn btn-ghost my-10 mx-5">
+          {t("list.older")}
+          <svg class="h-6 w-6 fill-current md:h-8 md:w-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
+          </svg>
+        </a>
+      ) : (
+        <div />
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,17 @@
+---
+translationHash: "3fd206b3627f4495"
+title: GonzoBot
+category: "hobby-projects"
+description: "A robotics project."
+pubDate: 2023-02-10 17:22:09 -03
+author: Gonzalo Olguin
+categories: [Robotics, ROS]
+tags: [hardware, software]
+heroImage: /assets/img/headers/gonzo-bot.png
+---
+
+
+# GonzoBot project
+
+This post serves as documentation of my custom differential robot, 3D-printed and open source!
+

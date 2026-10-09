@@ -1,0 +1,317 @@
+---
+// Interactive GPS route for a mountaineering entry: map colored by grade/elevation/heart rate,
+// elevation profile linked to the map, route replay, stats and a day-by-day breakdown.
+// The GPX file is analyzed at build time (src/lib/gpx.ts); the browser only gets the result.
+import { loadRoute } from "../lib/gpx";
+import {
+  formatClock,
+  formatDateRange,
+  formatDay,
+  formatDistance,
+  formatDuration,
+  formatElevation,
+  formatPercent,
+} from "../lib/route-format";
+import { getLangFromUrl, languages, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  /** Public path of the .gpx file, e.g. "/assets/tracks/san-gabriel.gpx" */
+  file: string;
+  title?: string;
+  /** IANA timezone used to show clock times */
+  timezone?: string;
+}
+
+const { file, title, timezone = "America/Santiago" } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const route = loadRoute(file);
+const { stats, days, camps } = route;
+
+const primaryStats = [
+  { label: t("route.distance"), value: formatDistance(stats.distance, locale), icon: "distance" },
+  stats.gain != null && { label: t("route.gain"), value: `+${formatElevation(stats.gain, locale)}`, icon: "up" },
+  stats.maxEle != null && { label: t("route.maxEle"), value: formatElevation(stats.maxEle, locale), icon: "peak" },
+  stats.movingTime != null
+    ? { label: t("route.moving"), value: formatDuration(stats.movingTime), icon: "time" }
+    : stats.estimatedTime != null && { label: t("route.estimate"), value: formatDuration(stats.estimatedTime), icon: "time" },
+].filter(Boolean) as { label: string; value: string; icon: string }[];
+
+const secondaryStats = [
+  stats.loss != null && { label: t("route.loss"), value: `−${formatElevation(stats.loss, locale)}` },
+  stats.minEle != null && { label: t("route.minEle"), value: formatElevation(stats.minEle, locale) },
+  stats.totalTime != null && { label: t("route.total"), value: formatDuration(stats.totalTime) },
+  stats.avgHr != null &&
+    stats.maxHr != null && {
+      label: t("route.heartRate"),
+      value: `${t("route.heartRateValue", { avg: stats.avgHr, max: stats.maxHr })} ${t("route.bpm")}`,
+    },
+  stats.maxGrade != null && { label: t("route.maxGrade"), value: formatPercent(stats.maxGrade, locale) },
+  stats.movingTime != null &&
+    stats.estimatedTime != null && { label: t("route.estimate"), value: formatDuration(stats.estimatedTime), hint: t("route.estimateHint") },
+].filter(Boolean) as { label: string; value: string; hint?: string }[];
+
+const dateRange =
+  route.startTime != null && stats.totalTime != null
+    ? formatDateRange(route.startTime, route.startTime + stats.totalTime, locale, timezone)
+    : null;
+
+// Everything the map script needs, including translated labels.
+const payload = {
+  ...route,
+  file,
+  locale,
+  timezone,
+  labels: {
+    day: t("route.day"),
+    camp: t("route.camp"),
+    summit: t("route.summit"),
+    start: t("route.start"),
+    finish: t("route.finish"),
+    startFinish: t("route.startFinish"),
+    bpm: t("route.bpm"),
+    play: t("route.play"),
+    pause: t("route.pause"),
+    topo: t("route.layer.topo"),
+    satellite: t("route.layer.satellite"),
+    streets: t("route.layer.streets"),
+    zoomHint: t("route.zoomHint"),
+  },
+};
+
+const modes = [
+  { id: "grade", label: t("route.mode.grade") },
+  route.hasElevation && { id: "elevation", label: t("route.mode.elevation") },
+  route.hasHeartRate && { id: "hr", label: t("route.mode.hr") },
+].filter(Boolean) as { id: string; label: string }[];
+
+const icons: Record<string, string> = {
+  distance: "M3 17l6-6 4 4 8-8M14 7h7v7",
+  up: "M12 19V5M5 12l7-7 7 7",
+  peak: "M3 20l6.5-11 4 6.5 2.5-4L21 20z",
+  time: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
+};
+---
+
+<section class="route-map not-prose my-8 overflow-hidden rounded-2xl bg-base-200 text-base-content shadow-xl" data-route-map>
+  <header class="flex flex-wrap items-end justify-between gap-3 px-5 pt-5 pb-4">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+        {t("route.kicker")}{dateRange && <span class="text-base-content/60"> · {dateRange}</span>}
+      </p>
+      <h2 class="text-2xl font-bold leading-tight">{title ?? route.name}</h2>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <span class="badge badge-outline">{t(`route.shape.${stats.shape}`)}</span>
+      {days.length > 1 && <span class="badge badge-outline">{t("route.days", { n: days.length })}</span>}
+    </div>
+  </header>
+
+  <dl class="grid grid-cols-2 gap-px bg-base-300 sm:grid-cols-4">
+    {
+      primaryStats.map((stat) => (
+        <div class="bg-base-200 px-4 py-4 sm:px-5">
+          <dt class="flex items-center gap-1.5 text-xs uppercase tracking-wide text-base-content/60">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d={icons[stat.icon]} />
+            </svg>
+            {stat.label}
+          </dt>
+          <dd class="mt-1 whitespace-nowrap text-xl font-bold tabular-nums sm:text-2xl">{stat.value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <div class="route-map__stage relative">
+    <div class="route-map__map h-[26rem] w-full bg-base-300" data-map></div>
+
+    <div class="pointer-events-none absolute inset-x-3 top-3 z-[500] flex items-start justify-between gap-2">
+      <div class="pointer-events-auto join rounded-lg bg-base-100/90 shadow backdrop-blur" role="group" aria-label={t("route.colorBy")}>
+        {
+          modes.map((mode, i) => (
+            <button
+              type="button"
+              class:list={["btn btn-xs join-item border-0", i === 0 ? "btn-primary" : "btn-ghost"]}
+              data-mode={mode.id}
+              aria-pressed={i === 0 ? "true" : "false"}
+            >
+              {mode.label}
+            </button>
+          ))
+        }
+      </div>
+      <div class="pointer-events-auto flex gap-1">
+        <button type="button" class="btn btn-square btn-sm bg-base-100/90 shadow backdrop-blur" data-recenter title={t("route.recenter")} aria-label={t("route.recenter")}>
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+        </button>
+        <button type="button" class="btn btn-square btn-sm bg-base-100/90 shadow backdrop-blur" data-fullscreen title={t("route.fullscreen")} aria-label={t("route.fullscreen")}>
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="route-map__readout pointer-events-none absolute bottom-[4.5rem] left-1/2 z-[500] w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-base-100/90 px-4 py-1.5 text-center text-xs sm:bottom-8 sm:text-sm font-medium tabular-nums shadow-lg backdrop-blur" data-readout hidden></div>
+
+    <div class="pointer-events-none absolute bottom-8 left-3 z-[500] rounded-lg bg-base-100/90 px-3 py-2 text-[0.7rem] shadow backdrop-blur" data-legend>
+      <div class="route-map__legend-bar h-1.5 w-32 rounded-full" data-legend-bar></div>
+      <div class="mt-1 flex justify-between tabular-nums text-base-content/70"><span data-legend-min></span><span data-legend-max></span></div>
+    </div>
+  </div>
+
+  {
+    route.hasElevation && (
+      <div class="flex items-stretch gap-3 px-3 pt-3 sm:px-5">
+        <button type="button" class="btn btn-circle btn-primary btn-sm mt-6 shrink-0" data-play title={t("route.play")} aria-label={t("route.play")}>
+          <svg class="route-map__icon-play h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          <svg class="route-map__icon-pause h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg>
+        </button>
+        <figure class="min-w-0 flex-1" aria-label={t("route.profile")}>
+          <div class="route-map__profile h-44 w-full touch-none select-none" data-profile></div>
+        </figure>
+      </div>
+    )
+  }
+
+  {
+    secondaryStats.length > 0 && (
+      <dl class="flex flex-wrap gap-x-6 gap-y-2 px-5 pt-4 text-sm">
+        {secondaryStats.map((stat) => (
+          <div class="flex items-baseline gap-2" title={stat.hint}>
+            <dt class="text-base-content/60">
+              {stat.label}
+              {stat.hint && <span class="ml-0.5 cursor-help text-base-content/40">ⓘ</span>}
+            </dt>
+            <dd class="font-semibold tabular-nums">{stat.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
+  {
+    days.length > 1 && (
+      <ol class="mt-5 flex flex-col gap-0 border-t border-base-300 px-5 py-4 sm:flex-row sm:items-stretch">
+        {days.map((day, i) => (
+          <>
+            <li class="flex-1 rounded-xl bg-base-100/60 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+                {t("route.day", { n: i + 1 })} · {formatDay(day.start, locale, timezone)}
+              </p>
+              <p class="mt-1 text-lg font-semibold tabular-nums">
+                {formatClock(day.start, locale, timezone)} → {formatClock(day.end, locale, timezone)}
+              </p>
+              <p class="mt-1 text-sm tabular-nums text-base-content/70">
+                {formatDistance(day.distance, locale)}
+                {day.gain != null && ` · +${formatElevation(day.gain, locale)}`}
+                {day.loss != null && ` · −${formatElevation(day.loss, locale)}`}
+                {` · ${formatDuration(day.movingTime)} ${t("route.moving").toLowerCase()}`}
+              </p>
+            </li>
+            {i < days.length - 1 && camps[i] && (
+              <li class="flex items-center justify-center gap-2 px-3 py-3 text-sm text-base-content/70 sm:flex-col sm:py-0 sm:text-center">
+                <svg class="h-6 w-6 text-[#7c3aed]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M2 20h20M4 20 12 5l8 15M12 5l2-2M12 5l-2-2M9.5 20l2.5-5 2.5 5" />
+                </svg>
+                <span>
+                  <span class="font-semibold text-base-content">{t("route.camp")}</span>
+                  {camps[i].ele != null && <> · {formatElevation(camps[i].ele as number, locale)}</>}
+                  <br class="hidden sm:block" />
+                  <span class="sm:text-xs"> {t("route.campRest", { time: formatDuration(days[i + 1].start - day.end) })}</span>
+                </span>
+              </li>
+            )}
+          </>
+        ))}
+      </ol>
+    )
+  }
+
+  <footer class="flex flex-wrap items-center justify-between gap-2 px-5 pb-5 pt-3 text-xs text-base-content/60">
+    <span>{t("route.zoomHint")}</span>
+    <a href={file} download class="btn btn-outline btn-sm">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+      {t("route.download")}
+    </a>
+  </footer>
+
+  <script type="application/json" data-route-data set:html={JSON.stringify(payload).replace(/</g, "\\u003c")} />
+</section>
+
+<script>
+  // Runs on the first load and after every view-transition navigation. The map code (and
+  // Leaflet) is only downloaded when the page actually has a route.
+  document.addEventListener("astro:page-load", async () => {
+    if (!document.querySelector("[data-route-map]")) return;
+    const { initRouteMaps } = await import("../scripts/route-map");
+    initRouteMaps();
+  });
+</script>
+
+<style is:global>
+  .route-map:fullscreen {
+    overflow-y: auto;
+  }
+  .route-map:fullscreen .route-map__map {
+    height: 70vh;
+  }
+  .route-map .route-map__icon-pause,
+  .route-map[data-playing] .route-map__icon-play {
+    display: none;
+  }
+  .route-map[data-playing] .route-map__icon-pause {
+    display: block;
+  }
+  .route-map .leaflet-container {
+    font: inherit;
+  }
+  .route-map .leaflet-control-layers,
+  .route-map .leaflet-bar {
+    border: 0;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  }
+  .route-map .leaflet-top {
+    top: 2.75rem;
+  }
+  .route-map .leaflet-control-attribution {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .route-map .leaflet-bottom.leaflet-right .leaflet-control-scale {
+    margin-bottom: 1.25rem;
+  }
+  .route-pin {
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 5px rgb(0 0 0 / 0.45);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .route-km {
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.92);
+    color: #111;
+    font-size: 9px;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  }
+  .route-label {
+    background: rgb(17 17 17 / 0.82);
+    color: #fff;
+    border: 0;
+    border-radius: 0.375rem;
+    box-shadow: none;
+    font-weight: 600;
+  }
+  .route-label::before {
+    display: none;
+  }
+</style>

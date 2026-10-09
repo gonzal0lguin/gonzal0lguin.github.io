@@ -1,0 +1,16 @@
+---
+import type { InferGetStaticPropsType } from "astro";
+import PostLayout from "../../../layouts/PostLayout.astro";
+import { entryStaticPaths } from "../../../lib/paths";
+
+export function getStaticPaths() {
+  return entryStaticPaths("projects");
+}
+
+const { item } = Astro.props as InferGetStaticPropsType<typeof getStaticPaths>;
+const { Content } = await item.entry.render();
+---
+
+<PostLayout {...item.entry.data} tagBasePath="/projects/tag" sideBarActiveItemID="projects" fallback={item.fallback}>
+  <Content />
+</PostLayout>

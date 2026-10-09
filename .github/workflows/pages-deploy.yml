@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # lets the translate step commit generated English content
   pages: write
   id-token: write
 
@@ -25,6 +25,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Optional. Add an ANTHROPIC_API_KEY repository secret to translate new or changed
+      # Spanish content into English on every push (see README). Without it, the step is skipped.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
       - name: Checkout
@@ -47,6 +51,23 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Translate new or changed content to English
+        if: env.ANTHROPIC_API_KEY != ''
+        run: npm run translate
+
+      - name: Commit translations
+        if: env.ANTHROPIC_API_KEY != ''
+        run: |
+          git add src/content
+          if git diff --cached --quiet; then
+            echo "No translation changes."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update English translations [skip ci]"
+            git push
+          fi
 
       - name: Build site
         run: npm run build

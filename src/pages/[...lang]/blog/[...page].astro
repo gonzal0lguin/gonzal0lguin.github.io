@@ -1,0 +1,21 @@
+---
+import type { GetStaticPathsOptions } from "astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import EntryList from "../../../components/EntryList.astro";
+import { listStaticPaths } from "../../../lib/paths";
+import { getLangFromUrl, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  return listStaticPaths("blog", paginate);
+}
+
+const { page } = Astro.props;
+const t = useTranslations(getLangFromUrl(Astro.url));
+---
+
+<BaseLayout title={t("news.title")} sideBarActiveItemID="blog">
+  <div class="mb-5">
+    <h1 class="text-3xl w-full font-bold">{t("news.title")}</h1>
+  </div>
+  <EntryList items={page.data} basePath="/blog" emptyMessage={t("news.empty")} prevUrl={page.url.prev} nextUrl={page.url.next} />
+</BaseLayout>

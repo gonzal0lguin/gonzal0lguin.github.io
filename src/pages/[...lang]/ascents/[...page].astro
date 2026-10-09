@@ -1,0 +1,105 @@
+---
+import type { GetStaticPathsOptions } from "astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import EntryList from "../../../components/EntryList.astro";
+import { getLocalizedCollection } from "../../../i18n/content";
+import { listStaticPaths } from "../../../lib/paths";
+import { loadRoute } from "../../../lib/gpx";
+import { formatDistance, formatElevation } from "../../../lib/route-format";
+import { getLangFromUrl, languages, localizePath, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  return listStaticPaths("ascents", paginate);
+}
+
+const { page } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Stats for all ascents; distance and elevation gain come from the entries with a GPS route.
+const allAscents = await getLocalizedCollection("ascents", lang);
+const totalMountains = allAscents.length;
+const withRoutes = allAscents.flatMap(({ key, entry }) => (entry.data.route ? [{ key, entry, route: loadRoute(entry.data.route) }] : []));
+const totalDistance = withRoutes.reduce((acc, { route }) => acc + route.stats.distance, 0);
+const totalGain = withRoutes.reduce((acc, { route }) => acc + (route.stats.gain ?? 0), 0);
+const routesNote = withRoutes.length === 1 ? t("ascents.statRoute") : t("ascents.statRoutes", { n: withRoutes.length });
+
+// Map markers (at the summit when there's a route) and simplified route lines
+const markers = allAscents.flatMap(({ key, entry }) => {
+  const summit = entry.data.route ? loadRoute(entry.data.route).summit : null;
+  const lat = summit?.lat ?? entry.data.latitude;
+  const lng = summit?.lon ?? entry.data.longitude;
+  if (lat == null || lng == null) return [];
+  return [{ title: entry.data.title, url: localizePath(lang, `/ascents/${key}`), lat, lng, img: entry.data.heroImage || "/assets/img/headers/about.JPG" }];
+});
+const routeLines = withRoutes.map(({ key, route }) => ({
+  url: localizePath(lang, `/ascents/${key}`),
+  latlngs: route.points.filter((_, i, all) => i % Math.ceil(all.length / 250) === 0 || i === all.length - 1).map((p) => [p[0], p[1]]),
+}));
+const overview = { markers, routeLines, viewLabel: t("ascents.viewEntry") };
+---
+
+<BaseLayout title={t("nav.mountaineering")} sideBarActiveItemID="ascents">
+  <div class="mb-5">
+    <h1 class="text-3xl w-full font-bold">{t("ascents.title")}</h1>
+  </div>
+
+  <!-- Hero and Stats section only show on the first page -->
+  {page.currentPage === 1 && (
+    <div class="mb-10 text-justify">
+      <img src="/assets/img/headers/about.JPG" class="w-full max-h-[350px] object-cover rounded-xl mb-6 shadow-md" alt="" />
+      <p class="text-lg mb-8">{t("ascents.intro")}</p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+
+        <!-- Stats Column -->
+        <div class="stats stats-vertical shadow-xl bg-base-200 w-full">
+          <div class="stat">
+            <div class="stat-figure text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <div class="stat-title">{t("ascents.statSummits")}</div>
+            <div class="stat-value text-primary">{totalMountains}</div>
+            <div class="stat-desc">{t("ascents.statSummitsDesc")}</div>
+          </div>
+
+          <div class="stat">
+            <div class="stat-figure text-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </div>
+            <div class="stat-title">{t("ascents.statVertical")}</div>
+            <div class="stat-value text-secondary">{formatElevation(totalGain, languages[lang].locale)}</div>
+            <div class="stat-desc">{routesNote}</div>
+          </div>
+
+          <div class="stat">
+            <div class="stat-figure text-accent">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg>
+            </div>
+            <div class="stat-title">{t("ascents.statDistance")}</div>
+            <div class="stat-value text-accent">{formatDistance(totalDistance, languages[lang].locale)}</div>
+            <div class="stat-desc">{routesNote}</div>
+          </div>
+        </div>
+
+        <!-- Map Column -->
+        <div class="w-full h-[400px] lg:h-full min-h-[300px] bg-base-200 rounded-xl overflow-hidden shadow-xl relative z-0">
+          <div id="ascents-map" class="w-full h-full absolute inset-0"></div>
+          <script type="application/json" id="ascents-map-data" set:html={JSON.stringify(overview).replace(/</g, "\\u003c")} />
+        </div>
+
+      </div>
+
+      <div class="divider my-10"></div>
+      <h2 class="text-2xl font-bold mb-5">{t("ascents.all")}</h2>
+    </div>
+  )}
+
+  <EntryList items={page.data} basePath="/ascents" prevUrl={page.url.prev} nextUrl={page.url.next} />
+
+  <script>
+    import { initAscentsOverviewMap } from "../../../scripts/ascents-map";
+
+    document.addEventListener("astro:page-load", initAscentsOverviewMap);
+  </script>
+</BaseLayout>

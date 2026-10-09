@@ -1,0 +1,16 @@
+---
+import type { InferGetStaticPropsType } from "astro";
+import AscentLayout from "../../../layouts/AscentLayout.astro";
+import { entryStaticPaths } from "../../../lib/paths";
+
+export function getStaticPaths() {
+  return entryStaticPaths("ascents");
+}
+
+const { item } = Astro.props as InferGetStaticPropsType<typeof getStaticPaths>;
+const { Content } = await item.entry.render();
+---
+
+<AscentLayout {...item.entry.data} fallback={item.fallback}>
+  <Content />
+</AscentLayout>

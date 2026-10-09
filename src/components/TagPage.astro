@@ -1,0 +1,25 @@
+---
+import type { Page } from "astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EntryList from "./EntryList.astro";
+import type { LocalizedEntry } from "../i18n/content";
+import { getLangFromUrl, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  page: Page<LocalizedEntry<"projects" | "ascents" | "blog">>;
+  tag: string;
+  basePath: string;
+  sideBarActiveItemID: string;
+}
+
+const { page, tag, basePath, sideBarActiveItemID } = Astro.props;
+const t = useTranslations(getLangFromUrl(Astro.url));
+const title = `${t("tag.title")}: ${tag}`;
+---
+
+<BaseLayout title={title} sideBarActiveItemID={sideBarActiveItemID}>
+  <div class="mb-5">
+    <h1 class="text-3xl w-full font-bold">{title}</h1>
+  </div>
+  <EntryList items={page.data} basePath={basePath} prevUrl={page.url.prev} nextUrl={page.url.next} />
+</BaseLayout>

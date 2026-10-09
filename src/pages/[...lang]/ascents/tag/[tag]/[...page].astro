@@ -1,0 +1,13 @@
+---
+import type { GetStaticPathsOptions } from "astro";
+import TagPage from "../../../../../components/TagPage.astro";
+import { tagStaticPaths } from "../../../../../lib/paths";
+
+export function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  return tagStaticPaths("ascents", paginate);
+}
+
+const { page, tag } = Astro.props;
+---
+
+<TagPage page={page} tag={tag} basePath="/ascents" sideBarActiveItemID="ascents" />

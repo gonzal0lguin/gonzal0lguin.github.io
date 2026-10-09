@@ -11,4 +11,3 @@ tags: ['Mountain']
 ---
 
 This is a placeholder for the San Gabriel binnacle.
-<RouteMap file="/assets/tracks/example.gpx" />

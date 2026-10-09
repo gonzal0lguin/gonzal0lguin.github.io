@@ -1,0 +1,50 @@
+---
+import { languages, getLangFromUrl, localizePath, stripLang, useTranslations, type Lang } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const neutralPath = stripLang(Astro.url.pathname);
+const langs = Object.keys(languages) as Lang[];
+---
+
+<div class="flex items-center gap-2">
+  <div class="join" role="group" aria-label={t("controls.language")}>
+    {
+      langs.map((code) => (
+        <a
+          href={localizePath(code, neutralPath)}
+          hreflang={code}
+          lang={code}
+          title={languages[code].label}
+          aria-label={languages[code].label}
+          aria-current={code === lang ? "true" : undefined}
+          class:list={["btn btn-sm join-item px-2", code === lang ? "btn-active" : "btn-ghost opacity-60 hover:opacity-100"]}
+        >
+          <img src={languages[code].flag} alt="" width="24" height="16" class="w-6 h-4 rounded-sm shadow-sm" />
+        </a>
+      ))
+    }
+  </div>
+  <button type="button" class="btn btn-sm btn-ghost btn-square" data-theme-toggle title={t("controls.theme")} aria-label={t("controls.theme")}>
+    <!-- Sun: shown in dark mode (click for light) -->
+    <svg class="theme-icon-sun w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+    <!-- Moon: shown in light mode (click for dark) -->
+    <svg class="theme-icon-moon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg>
+  </button>
+</div>
+
+<script>
+  import { DARK_THEME, LIGHT_THEME, THEME_STORAGE_KEY } from "../config";
+
+  // Delegated so it keeps working after view-transition page swaps replace the button.
+  document.addEventListener("click", (event) => {
+    const button = (event.target as Element | null)?.closest("[data-theme-toggle]");
+    if (!button) return;
+    const root = document.documentElement;
+    const next = root.dataset.theme === LIGHT_THEME ? DARK_THEME : LIGHT_THEME;
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {}
+  });
+</script>

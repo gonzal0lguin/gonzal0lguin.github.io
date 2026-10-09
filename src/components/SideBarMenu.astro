@@ -1,25 +1,36 @@
 ---
+import { getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+
 const { sideBarActiveItemID } = Astro.props;
 const activeClass = "bg-base-300"; // For primary color replace with `active` class
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const items = [
+  { id: "home", href: "/", label: t("nav.home") },
+  { id: "cv", href: "/cv", label: t("nav.cv") },
+  { id: "projects", href: "/projects", label: t("nav.projects") },
+  { id: "ascents", href: "/ascents", label: t("nav.mountaineering") },
+  { id: "blog", href: "/blog", label: t("nav.news") },
+];
 ---
 
 <ul class="menu grow shrink menu-md overflow-y-auto">
-    <li><a class="py-3 text-base" id="home" href="/">Home</a></li>
-    <li><a class="py-3 text-base" id="cv" href="/cv">CV</a></li>
-    <li><a class="py-3 text-base" id="projects" href="/projects">Projects</a></li>
-    <li><a class="py-3 text-base" id="ascents" href="/ascents">Ascents</a></li>
-    <li><a class="py-3 text-base" id="blog" href="/blog">News</a></li>
-    <li>
+  {
+    items.map((item) => (
+      <li>
         <a
-            class="py-3 text-base"
-            href="mailto:golguinm@gmail.com"
-            target="_blank"
-            referrerpolicy="no-referrer-when-downgrade">Contact</a
+          class:list={["py-3 text-base", { [activeClass]: item.id === sideBarActiveItemID }]}
+          id={item.id}
+          href={localizePath(lang, item.href)}
+          aria-current={item.id === sideBarActiveItemID ? "page" : undefined}
         >
-    </li>
+          {item.label}
+        </a>
+      </li>
+    ))
+  }
+  <li>
+    <a class="py-3 text-base" href="mailto:golguinm@gmail.com">{t("nav.contact")}</a>
+  </li>
 </ul>
-
-<script define:vars={{ sideBarActiveItemID: sideBarActiveItemID, activeClass: activeClass }}>
-const activeItemElem = document.getElementById(sideBarActiveItemID);
-activeItemElem && activeItemElem.classList.add(activeClass);
-</script>

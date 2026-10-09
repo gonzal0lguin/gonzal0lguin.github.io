@@ -1,0 +1,44 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { langStaticPaths } from "../../../lib/paths";
+import { PROJECT_CATEGORIES, PROJECT_CATEGORY_IMAGES } from "../../../lib/projects";
+import { getLangFromUrl, localizePath, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const categories = PROJECT_CATEGORIES.map((category) => ({
+  title: t(`projects.cat.${category}`),
+  desc: t(`projects.cat.${category}.desc`),
+  url: localizePath(lang, `/projects/${category}`),
+  img: PROJECT_CATEGORY_IMAGES[category],
+}));
+---
+
+<BaseLayout title={t("projects.title")} sideBarActiveItemID="projects">
+  <div class="mb-5">
+    <h1 class="text-3xl w-full font-bold">{t("projects.title")}</h1>
+  </div>
+
+  <div class="mb-10 text-justify">
+    <img src="/assets/img/headers/about.JPG" class="w-full max-h-[300px] object-cover rounded-xl mb-6 shadow-md" alt="" />
+    <p class="text-lg">{t("projects.intro")}</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {
+      categories.map((cat) => (
+        <a href={cat.url} class="card bg-base-100 shadow-xl image-full hover:scale-[102%] transition-all cursor-pointer">
+          <figure><img src={cat.img} alt="" class="object-cover" /></figure>
+          <div class="card-body justify-end bg-black bg-opacity-40 rounded-xl">
+            <h2 class="card-title text-white text-2xl">{cat.title}</h2>
+            <p class="text-gray-200 flex-grow-0">{cat.desc}</p>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>

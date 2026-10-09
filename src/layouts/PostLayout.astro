@@ -1,29 +1,35 @@
 ---
 import { type ProjectsSchema } from "../content/config";
 import BaseLayout from "./BaseLayout.astro";
-import dayjs from "dayjs";
-import localizedFormat from "dayjs/plugin/localizedFormat";
-
-export interface Props extends ProjectsSchema {}
-
-const { title, description, pubDate, updatedDate, heroImage, badge, tags = [] } = Astro.props;
-dayjs.extend(localizedFormat);
-const displayDate = dayjs(pubDate).format("ll")
+import UntranslatedNotice from "../components/UntranslatedNotice.astro";
 import { Image } from "astro:assets";
+import { formatDate, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props extends ProjectsSchema {
+  /** Language-neutral path of the collection's tag pages, e.g. "/projects/tag". */
+  tagBasePath: string;
+  sideBarActiveItemID?: string;
+  fallback?: boolean;
+}
+
+const { title, description, pubDate, updatedDate, heroImage, badge, tags = [], tagBasePath, sideBarActiveItemID, fallback } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
-<BaseLayout title={title} description={description} image={heroImage}, ogType="article">
+<BaseLayout title={title} description={description} image={heroImage} ogType="article" sideBarActiveItemID={sideBarActiveItemID}>
   <main class="md:flex md:justify-center">
-    <article class="prose prose-lg max-w-[750px] prose-img:mx-auto">
-      {heroImage && <Image width={750} height={422} format="webp" src={heroImage} alt={title} class="w-full mb-6" />}
+    <article class="prose prose-lg max-w-[750px] prose-img:mx-auto" lang={fallback ? "es" : undefined}>
+      {fallback && <UntranslatedNotice />}
+      {heroImage && <Image width={750} height={422} format="webp" src={heroImage} alt="" class="w-full mb-6" />}
       <h1 class="title my-2 text-4xl font-bold">{title}</h1>
-      {pubDate && <time>{displayDate}</time>}
+      {pubDate && <time datetime={pubDate.toISOString()}>{formatDate(pubDate, lang)}</time>}
       <br />
       {badge && <div class="badge badge-secondary my-1">{badge}</div>}
       {
         tags &&
           tags.map((tag) => (
-            <a href={`/blog/tag/${tag}`} class="badge badge-outline ml-2 no-underline">
+            <a href={localizePath(lang, `${tagBasePath}/${tag}`)} class="badge badge-outline ml-2 no-underline">
               {tag}
             </a>
           ))
@@ -31,8 +37,7 @@ import { Image } from "astro:assets";
       {
         updatedDate && (
           <div>
-            {" "}
-            Last updated on <time>{updatedDate}</time>{" "}
+            {t("post.updated")} <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate, lang)}</time>
           </div>
         )
       }

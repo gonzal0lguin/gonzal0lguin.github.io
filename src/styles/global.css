@@ -1,3 +1,16 @@
 .time-line-container>div:last-child .education__time>.education__line {
     display: none;
 }
+
+/* Theme toggle icon: sun while dark (switch to light), moon while light (switch to dark). */
+.theme-icon-moon {
+    display: none;
+}
+
+[data-theme="light"] .theme-icon-moon {
+    display: block;
+}
+
+[data-theme="light"] .theme-icon-sun {
+    display: none;
+}

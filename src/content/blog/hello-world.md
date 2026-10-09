@@ -1,11 +1,11 @@
 ---
-title: "Welcome to my new site!"
-description: "A quick update on my new website launch."
+title: "¡Bienvenidos a mi nuevo sitio!"
+description: "Una breve actualización sobre el lanzamiento de mi nuevo sitio web."
 pubDate: "2026-09-30"
-badge: "New"
+badge: "Nuevo"
 tags: ["Update"]
 ---
 
-Hello world! This section will be used for general updates, thoughts, paper releases, or upcoming expeditions that don't fit into a specific project or ascent.
+¡Hola mundo! Esta sección la usaré para novedades generales, reflexiones, publicaciones de papers o próximas expediciones que no calzan en un proyecto o una salida a la montaña en particular.
 
-Stay tuned for more!
+¡Atentos a lo que viene!

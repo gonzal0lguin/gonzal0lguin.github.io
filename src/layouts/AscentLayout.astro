@@ -1,33 +1,26 @@
 ---
 import { type AscentsSchema } from "../content/config";
 import BaseLayout from "./BaseLayout.astro";
-import dayjs from "dayjs";
-import localizedFormat from "dayjs/plugin/localizedFormat";
+import UntranslatedNotice from "../components/UntranslatedNotice.astro";
+import RouteMap from "../components/RouteMap.astro";
+import { formatDate, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
 
-export interface Props extends AscentsSchema {}
+export interface Props extends AscentsSchema {
+  fallback?: boolean;
+}
 
-const {
-  title,
-  description,
-  pubDate,
-  heroImage,
-  badge,
-  mountain,
-  elevation,
-  tags,
-} = Astro.props;
-
-dayjs.extend(localizedFormat);
-const displayDate = dayjs(pubDate).format("ll");
-import { Image } from "astro:assets";
+const { title, description, pubDate, heroImage, badge, mountain, elevation, tags, route, timezone, fallback } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
-<BaseLayout title={title} description={description} image={heroImage}>
+<BaseLayout title={title} description={description} image={heroImage} ogType="article" sideBarActiveItemID="ascents">
   <main class="md:flex md:justify-center">
-    <article class="prose prose-lg max-w-[750px] prose-img:mx-auto">
+    <article class="prose prose-lg max-w-[750px] prose-img:mx-auto" lang={fallback ? "es" : undefined}>
+      {fallback && <UntranslatedNotice />}
       {
         heroImage && (
-          <img src={heroImage} alt={title} class="w-full mb-6 rounded-xl" />
+          <img src={heroImage} alt="" class="w-full mb-6 rounded-xl" />
         )
       }
       <div class="">
@@ -37,15 +30,15 @@ import { Image } from "astro:assets";
         </h1>
         <div class="flex place-content-between items-center text-sm mb-4">
           <div class="grow md:grow-0">
-            { mountain && <span class="mr-4"><strong>Mountain:</strong> {mountain}</span> }
-            { elevation && elevation > 0 && <span class="mr-4"><strong>Elevation:</strong> {elevation} m</span> }
-            <span><strong>Date:</strong> {displayDate}</span>
+            { mountain && <span class="mr-4"><strong>{t("ascents.mountain")}:</strong> {mountain}</span> }
+            { elevation && elevation > 0 && <span class="mr-4"><strong>{t("ascents.elevation")}:</strong> {elevation.toLocaleString(lang)} m</span> }
+            <span><strong>{t("ascents.date")}:</strong> <time datetime={pubDate.toISOString()}>{formatDate(pubDate, lang)}</time></span>
           </div>
         </div>
         <div>
           {
             tags && tags.map((tag) => (
-              <a href={`/ascents/tag/${tag}`} class="badge badge-outline mr-2 no-underline">
+              <a href={localizePath(lang, `/ascents/tag/${tag}`)} class="badge badge-outline mr-2 no-underline">
                 {tag}
               </a>
             ))
@@ -53,6 +46,7 @@ import { Image } from "astro:assets";
         </div>
       </div>
       <div class="divider my-2"></div>
+      {route && <RouteMap file={route} title={mountain ?? title} timezone={timezone} />}
       <slot />
     </article>
   </main>

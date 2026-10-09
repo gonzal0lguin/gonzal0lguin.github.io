@@ -5,12 +5,16 @@ import Footer from "../components/Footer.astro";
 import SideBar from "../components/SideBar.astro";
 import { ViewTransitions } from "astro:transitions";
 
-import { SITE_TITLE, SITE_DESCRIPTION, TRANSITION_API } from "../config";
+import { TRANSITION_API, DARK_THEME, LIGHT_THEME, THEME_STORAGE_KEY } from "../config";
+import { getLangFromUrl, useTranslations } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 
 const {
   image,
-  title = SITE_TITLE,
-  description = SITE_DESCRIPTION,
+  title = t("site.title"),
+  description = t("site.description"),
   includeSidebar = true,
   sideBarActiveItemID,
   ogType,
@@ -18,17 +22,29 @@ const {
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dim">
+<html lang={lang} data-theme={DARK_THEME}>
   <head>
-    <BaseHead title={title} description={description} image={image} , ogType={ogType} />
+    <!-- Apply the saved theme before first paint, and again after every view-transition swap
+         (the swap replaces <html> attributes with the new page's defaults). -->
+    <script is:inline define:vars={{ DARK_THEME, LIGHT_THEME, THEME_STORAGE_KEY }}>
+      const applyTheme = () => {
+        let saved = null;
+        try {
+          saved = localStorage.getItem(THEME_STORAGE_KEY);
+        } catch {}
+        document.documentElement.dataset.theme = saved === LIGHT_THEME ? LIGHT_THEME : DARK_THEME;
+      };
+      applyTheme();
+      document.addEventListener("astro:after-swap", applyTheme);
+    </script>
+    <BaseHead title={title} description={description} image={image} ogType={ogType} />
     {TRANSITION_API && <ViewTransitions />}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsEw0984n8c1bE0aM3LhBWeRzEBh21XzG1hP2B8bM41eO0kYv1kR1rC1fS" crossorigin="anonymous">
   </head>
   <body>
     <div class="bg-base-100 drawer lg:drawer-open">
       <input id="my-drawer" type="checkbox" class="drawer-toggle" />
       <div class="drawer-content bg-base-100">
-        <Header title={SITE_TITLE} />
+        <Header />
         <div class="md:flex md:justify-center">
           <main class="p-6 pt-10 lg:max-w-[900px] max-w-[100vw]">
             <slot />

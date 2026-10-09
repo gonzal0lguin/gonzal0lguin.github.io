@@ -1,0 +1,35 @@
+---
+import type { GetStaticPathsOptions } from "astro";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import EntryList from "../../../../components/EntryList.astro";
+import { getLocalizedCollection } from "../../../../i18n/content";
+import { getLang, getLangFromUrl, langParams, useTranslations } from "../../../../i18n/ui";
+import { PROJECT_CATEGORIES } from "../../../../lib/projects";
+
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const perLang = await Promise.all(
+    langParams.map(async (lang) => {
+      const projects = await getLocalizedCollection("projects", getLang(lang));
+      return PROJECT_CATEGORIES.flatMap((category) =>
+        paginate(
+          projects.filter((item) => item.entry.data.category === category),
+          { params: { lang, category }, pageSize: 10 },
+        ),
+      );
+    }),
+  );
+  return perLang.flat();
+}
+
+const { page } = Astro.props;
+const { category } = Astro.params;
+const t = useTranslations(getLangFromUrl(Astro.url));
+const title = t(`projects.cat.${category}` as const);
+---
+
+<BaseLayout title={title} sideBarActiveItemID="projects">
+  <div class="mb-5">
+    <h1 class="text-3xl w-full font-bold">{title}</h1>
+  </div>
+  <EntryList items={page.data} basePath="/projects" emptyMessage={t("projects.empty")} prevUrl={page.url.prev} nextUrl={page.url.next} />
+</BaseLayout>
