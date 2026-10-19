@@ -106,15 +106,31 @@ tags: ["andes", "day-hike"]
 
 #### GPS routes
 
-Add a `route:` field pointing to a `.gpx` file in `public/` (e.g. export it from your watch, Strava or Garmin and save it in `public/assets/tracks/`). The entry then shows an interactive route card above the text. Without a `route`, nothing is shown.
+Add a `route:` field pointing to a `.gpx` file in `public/` (e.g. export it from your watch, Strava or Garmin and save it in `public/assets/lib/`). The entry then shows an interactive route card above the text. Without a `route`, nothing is shown.
 
-- Map with topographic, satellite and street layers. The line can be colored by **grade**, **elevation** or **heart rate** (when the file has it), and shows the start, the summit, camps and km markers.
-- Elevation profile linked to the map: hover either one to see distance, elevation, grade, time of day and heart rate at that point. ▶ replays the route.
-- Stats: distance, elevation gain/loss, highest/lowest point, moving and total time, heart rate, steepest grade, and a hiking-time estimate using DIN 33466 (the German Alpine Club's formula).
-- Multi-day trips: any pause longer than 3 hours starts a new day, and the place where it happened is marked as a camp, with a day-by-day breakdown.
-- A "Download GPX" button.
+If the route was recorded in several files (the watch was stopped and restarted), list them all. They are put in chronological order by their timestamps, whatever order you list them in, and analyzed as one route; the download button offers the stitched file (`/routes/<entry>.gpx`).
 
-The GPX file is analyzed when the site is built (`src/lib/gpx.ts`), so the browser only downloads a compact summary; the map code is only loaded on pages that have a route. Distance and elevation gain on the Mountaineering page are the totals of all entries with a route.
+```yaml
+route:
+  - "/assets/lib/punta-canaleta-17-10-2026_1.gpx"
+  - "/assets/lib/punta-canaleta-18-10-2026_1.gpx"
+```
+
+What the card shows:
+
+- Map with topographic, satellite and street layers, colored by **grade**, **elevation**, **speed**, **vertical speed** or **heart rate** (picked in the legend). Start, summit, camps, km markers and the file's waypoints (with icons by kind). Clicking any point of the route, or a marker, offers it in **Google Earth 3D** / **Google Maps 3D** and copies its coordinates.
+- **3D** button: the route on real terrain (MapLibre + free AWS terrain tiles, satellite or topo). ▶ replay flies the camera along the route. MapLibre is only downloaded when 3D is opened.
+- Elevation profile linked to the map. Drag across it to select a section: distance, gain/loss, average grade, moving and total time, vertical speed, speed and heart rate for that section.
+- Stats, multi-day breakdown (a pause over 3 hours starts a new day; the spot is marked as a camp) and a "Download GPX" button.
+- **Detailed analysis** (collapsed in posts): marked points, a summary (effort km, climbing/descent rate, pace vs. DIN 33466, time stopped, terrain share, oxygen at the high point, daylight), climbs and descents, splits, distance by grade, time by altitude, stops, heart rate zones, and a **planner** that estimates the timings at your pace and warns about finishing after dark.
+
+The GPX files are analyzed when the site is built (`src/lib/gpx.ts`, `src/lib/gpx-core.ts`), so the browser only downloads a compact summary; the map code is only loaded on pages that have a route. Distance and elevation gain on the Mountaineering page are the totals of all entries with a route.
+
+#### Route analyzer ("Procesar ruta")
+
+`/ascents/route-tool` gives visitors the same card for their own GPX files, processed entirely in the browser. Several files are stitched like above. In the tool, points can be **marked** (camp, summit, viewpoint, water, hut, crux, danger, parking, note) by clicking the map or the profile, dragged, edited and deleted; stops can be marked from the Stops tab. Marks are saved in the downloaded GPX as standard waypoints (`<sym>` for Garmin and most apps, `<type>` for this site), and remembered in the browser for the same files. A GPX exported from the tool can be used as a post's `route`, with its marks.
+
+The tool is a self-contained component (`src/components/RouteTool.astro`, `src/scripts/route-tool.ts`), ready to move to a future tools section.
 
 ### 3. Blog
 Located in `src/content/blog/`.
@@ -131,13 +147,109 @@ tags: ["personal", "update"]
 ---
 ```
 
-## Adding Images
+## Photos
 
-Store your images in the `public/assets/img/` directory.
-- Headers/Hero images generally go in `public/assets/img/headers/`
-- Post-specific images can go in `public/assets/img/posts/<post-name>/`
+### Where the files live
 
-When referencing an image in your markdown or frontmatter, use the absolute path starting from the public root, e.g., `/assets/img/headers/image.jpg`.
+Hero images and small illustrations live in the repo:
+
+- Headers/hero images in `public/assets/img/headers/`
+- Post illustrations in `public/assets/img/posts/<post-name>/`
+
+Referenced from frontmatter or Markdown with an absolute path from the public root, e.g. `/assets/img/headers/image.jpg`.
+
+**Photo-heavy posts should not go in git.** A trip report with 30 photos is ~100 MB, and every version of every photo stays in the repository history forever, which git clones (and GitHub Pages deploys) in full. The fix is to keep the photos in object storage with a CDN in front and reference them by URL. Posts never hardcode that URL: they use a path relative to the photo library, and a single setting says where the library is.
+
+```yaml
+# .env (local), or a repository variable in GitHub Actions
+PUBLIC_MEDIA_BASE_URL=https://photos.example.com
+```
+
+```markdown
+![Summit ridge](la-cruz/ridge.jpg)      ->  https://photos.example.com/la-cruz/ridge.jpg
+```
+
+Unset, it defaults to `/assets/img/posts`, so photos can be developed locally and moved later without touching a single post. Resolution happens in `src/lib/media.mjs`. These paths are left exactly as written: absolute paths (`/assets/...`), full URLs, and `./photo.jpg` (relative to the Markdown file, which Astro resolves and optimizes itself).
+
+Good options for the library, roughly in order of how well they fit this site:
+
+| Option | Notes |
+| --- | --- |
+| **Cloudflare R2** + custom domain | S3-compatible, free egress, ~$0.015/GB/month. Upload with `rclone` or `aws s3`. Best default. |
+| **Cloudinary** / **imgix** (free tier) | Same thing plus resizing and WebP/AVIF conversion from the URL — no need to downscale by hand. |
+| **Backblaze B2** + Cloudflare | Cheapest storage; free egress through Cloudflare. |
+| **A separate git repo** on a CDN (jsDelivr) | Free, no account; still a git repo, so history still grows. Fine up to a few hundred MB. |
+
+Google Drive and Dropbox are *not* suitable: their share links are not stable image URLs, they rate-limit hotlinking and they block hosting a site's assets.
+
+Whatever the host, downscale before uploading — a 6000 px phone photo is wasted on a 750 px column. ~1600 px wide at JPEG quality ~78 is a good compromise:
+
+```bash
+# needs imagemagick; sharp (already a dependency) works too
+mogrify -path out/ -resize 1600x1600\> -quality 78 *.jpg
+```
+
+### Photos in a post
+
+Three layouts, all plain Markdown — no imports, and they work the same in `.md` and `.mdx`.
+
+**A single photo.** A normal Markdown image. The quoted title, if present, becomes the caption:
+
+```markdown
+![Alt text](la-cruz/ridge.jpg "The last 200 m of the ridge")
+```
+
+**A grid.** `cols` is the number of columns (1-4, default 3) and `ratio` the shape of each cell (default `4/3`; use `ratio=auto` to keep each photo's own proportions). `caption` is optional and describes the whole group:
+
+```markdown
+:::gallery{cols=2 ratio=1/1 caption="The approach"}
+![Alt](la-cruz/about.jpg)
+![Alt](la-cruz/cayutue.jpg "A caption for this one")
+![Alt](la-cruz/profile.jpg)
+![Alt](la-cruz/summit.jpg)
+:::
+```
+
+On narrow screens 3- and 4-column grids fall back to 2 columns.
+
+**A carousel** — one photo at a time, swiped on a phone, dragged or stepped through with the arrows and dots on a desktop:
+
+```markdown
+:::carousel{ratio=3/2}
+![Alt](la-cruz/cayutue.jpg "1. Leaving the hut, 6:10 AM")
+![Alt](la-cruz/about.jpg "2. The endless scree")
+:::
+```
+
+Clicking any photo in a grid or carousel opens it full-screen, with the arrow keys and Escape doing what you would expect. Several loose images in a single paragraph (no blank line between them) also become a grid.
+
+#### Photos on the route map
+
+In a post with a `route`, photos whose location is known appear on the map as round thumbnails (with a **Fotos** button to hide them; the choice is remembered), as camera ticks on the profile, and get a small "show on map" button in the post. Clicking a thumbnail opens the photo and a link back to it in the post.
+
+The location comes from, in this order:
+
+1. **What you write after a `#` in the photo's path** (it wins over everything else):
+
+   ```markdown
+   ![Cumbre](la-cruz/summit.jpg#km=5.8)                 5.8 km along the route
+   ![Cumbre](la-cruz/summit.jpg#time=12:41)             on the route at that time of day (post timezone)
+   ![Cumbre](la-cruz/summit.jpg#time=2026-06-13T12:41)
+   ![Cumbre](la-cruz/summit.jpg#-33.7571,-70.1047)      coordinates (off the route is fine)
+   ![Cumbre](la-cruz/summit.jpg#off)                    never on the map
+   ```
+
+2. **The photo's EXIF GPS position**, or 3. **its EXIF capture time** matched against the route's timestamps, which places photos from cameras without GPS (keep the camera clock right).
+
+Resizing and most CDNs strip EXIF, so the EXIF data is read from the originals and saved in `src/data/photo-locations.json` (commit it). That happens automatically before `npm run dev` and `npm run build` for the photos in `public/assets/img/posts/`; to read originals kept elsewhere, laid out like the posts reference them, run:
+
+```sh
+npm run photos -- ~/Pictures/web-originals
+```
+
+Saved entries are kept when the files are moved away, so you can run it once, then resize and upload the photos anywhere.
+
+The syntax is handled by `src/plugins/remark-media.mjs` (markup), `src/styles/media.css` (styling) and `src/scripts/media.ts` (sliding and the lightbox). `src/content/ascents/la-cruz.md` uses all three layouts as a live example.
 
 ## Site Configuration
 

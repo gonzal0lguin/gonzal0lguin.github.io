@@ -7,6 +7,7 @@ elevation: 3658
 latitude: -41.1
 longitude: -72.5
 heroImage: "/assets/img/headers/about.JPG"
+#route: "/assets/lib/.gpx"
 tags: ['Mountain']
 ---
 

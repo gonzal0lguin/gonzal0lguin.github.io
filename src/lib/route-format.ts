@@ -33,3 +33,58 @@ export function formatDateRange(fromSeconds: number, toSeconds: number, locale: 
   const format = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone });
   return format.formatRange(fromSeconds * 1000, toSeconds * 1000);
 }
+
+/** Minutes per kilometer, e.g. "12:30 min/km" */
+export function formatPace(secondsPerKm: number) {
+  const total = Math.round(secondsPerKm);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")} min/km`;
+}
+
+export function formatSpeed(metersPerSecond: number, locale: string) {
+  return `${(metersPerSecond * 3.6).toLocaleString(locale, { maximumFractionDigits: 1 })} km/h`;
+}
+
+export function formatCoords(lat: number, lon: number) {
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+}
+
+// Free 3D views of any point: the camera looks at it from ~2.5 km away, tilted towards the horizon.
+
+/** Google Earth on the web, in 3D */
+export function googleEarthUrl(lat: number, lon: number, ele: number | null = null) {
+  return `https://earth.google.com/web/@${lat},${lon},${Math.round(ele ?? 0)}a,2500d,35y,0h,65t,0r`;
+}
+
+/** Google Maps with the satellite (globe) view, tilted */
+export function googleMaps3dUrl(lat: number, lon: number, ele: number | null = null) {
+  return `https://www.google.com/maps/@${lat},${lon},${Math.round((ele ?? 0) + 1800)}a,35y,0h,65t/data=!3m1!1e3`;
+}
+
+/** Unix seconds of a wall-clock time in `timezone`. */
+export function fromLocal(year: number, month: number, day: number, hour: number, minute: number, second: number, timezone: string) {
+  const asUtc = Date.UTC(year, month - 1, day, hour, minute, second) / 1000;
+  let guess = asUtc;
+  // The zone's offset at the guess, applied twice to settle across DST changes.
+  for (let k = 0; k < 2; k++) {
+    const p = localParts(guess, timezone);
+    const shown = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) / 1000;
+    guess += asUtc - shown;
+  }
+  return guess;
+}
+
+/** Calendar and clock parts of a moment in `timezone`. */
+export function localParts(unix: number, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(unix * 1000);
+  const get = (type: string) => Number(parts.find((x) => x.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute"), second: get("second") };
+}

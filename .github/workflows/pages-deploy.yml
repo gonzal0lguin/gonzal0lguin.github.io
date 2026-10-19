@@ -29,6 +29,9 @@ jobs:
       # Optional. Add an ANTHROPIC_API_KEY repository secret to translate new or changed
       # Spanish content into English on every push (see README). Without it, the step is skipped.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Optional. Add a PUBLIC_MEDIA_BASE_URL repository *variable* to serve post photos
+      # from a CDN / object store instead of the repo (see "Photos" in the README).
+      PUBLIC_MEDIA_BASE_URL: ${{ vars.PUBLIC_MEDIA_BASE_URL }}
 
     steps:
       - name: Checkout

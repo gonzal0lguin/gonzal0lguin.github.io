@@ -1,0 +1,406 @@
+/* Route card (src/lib/route-card.ts) and its Leaflet map (src/scripts/route-map.ts). */
+/* The card takes the width it's given: its wide parts (tab bar, tables) scroll inside it instead of
+   widening the page layout, which sizes flex items to their content. */
+.route-map {
+  contain: inline-size;
+}
+/* `hidden` must win over Tailwind display utilities like `flex` on the same element. */
+.route-map [hidden],
+.route-tool [hidden] {
+  display: none !important;
+}
+.route-map:fullscreen {
+  overflow-y: auto;
+}
+.route-map:fullscreen .route-map__map {
+  height: 70vh;
+}
+.route-map .route-map__icon-pause,
+.route-map[data-playing] .route-map__icon-play {
+  display: none;
+}
+.route-map[data-playing] .route-map__icon-pause {
+  display: block;
+}
+/* clip, not hidden: hidden boxes can still be scrolled sideways by focusing a field in a popup. */
+.route-map .leaflet-container {
+  overflow: clip;
+}
+.route-map .leaflet-container {
+  font: inherit;
+}
+.route-map .leaflet-control-layers,
+.route-map .leaflet-bar {
+  border: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+}
+.route-map .leaflet-top.leaflet-right {
+  top: 2.75rem;
+}
+.route-map .leaflet-control-attribution {
+  font-size: 10px;
+  line-height: 1.4;
+}
+.route-map .leaflet-control-scale {
+  pointer-events: none;
+}
+.route-map .leaflet-bottom.leaflet-right .leaflet-control-scale {
+  margin-bottom: 1.25rem;
+}
+.route-pin {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.route-km {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #111;
+  font-size: 9px;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+.route-label {
+  background: rgb(17 17 17 / 0.82);
+  color: #fff;
+  border: 0;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  font-weight: 600;
+}
+.route-label::before {
+  display: none;
+}
+
+/* Marking mode */
+.route-map__map--marking,
+.route-map__map--marking .leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+/* Analysis panel toggle */
+.route-map [data-analysis][data-open] .route-map__chevron {
+  transform: rotate(180deg);
+}
+
+/* Popups follow the site theme instead of Leaflet's white boxes. */
+.route-popup .leaflet-popup-content-wrapper,
+.route-popup .leaflet-popup-tip {
+  background: oklch(var(--b1));
+  color: oklch(var(--bc));
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.3);
+}
+.route-popup .leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+}
+.route-popup .leaflet-popup-content {
+  margin: 12px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.route-popup a.leaflet-popup-close-button {
+  color: oklch(var(--bc) / 0.6);
+}
+.route-popup__kind {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 !important;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: oklch(var(--bc) / 0.65);
+}
+.route-popup__kind::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--kind);
+}
+.route-popup__title {
+  margin: 0 0 0.25rem !important;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.route-popup__desc {
+  margin: 0.25rem 0 !important;
+  white-space: pre-line;
+}
+.route-popup__facts {
+  margin: 0.25rem 0 0 !important;
+  font-variant-numeric: tabular-nums;
+}
+.route-popup__coords {
+  margin: 0.125rem 0 0 !important;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: oklch(var(--bc) / 0.6);
+}
+.route-popup__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid oklch(var(--bc) / 0.1);
+}
+.route-popup__links a,
+.route-popup__links button {
+  color: oklch(var(--p));
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+.route-popup__links a:hover,
+.route-popup__links button:hover {
+  text-decoration: underline;
+}
+.route-popup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+.route-popup__photo img {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  cursor: zoom-in;
+}
+
+/* Waypoint editor */
+.route-editor__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.route-editor__kinds label {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+.route-editor__kinds label:has(input:checked) {
+  border-color: oklch(var(--bc));
+}
+.route-editor__kinds label:has(input:focus-visible) {
+  outline: 2px solid oklch(var(--p));
+}
+.route-editor__kinds span[style] {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--kind);
+  color: #fff;
+  transition: transform 0.12s;
+}
+.route-editor__kinds label:hover span[style] {
+  transform: scale(1.12);
+}
+.route-editor__kind-name {
+  margin: 0.25rem 0 0.5rem !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: oklch(var(--bc) / 0.7);
+}
+
+/* Photo markers on the maps */
+.route-photo {
+  display: block;
+  width: 38px;
+  height: 38px;
+  border: 2.5px solid #fff;
+  border-radius: 9999px;
+  background-color: #6b7280;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.5);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.route-photo:hover {
+  transform: scale(1.15);
+}
+
+/* "Show on map" button on the post's geolocated photos */
+.route-photo-figure {
+  position: relative;
+}
+.route-photo-pin {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 9999px;
+  background: rgb(17 17 17 / 0.62);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+.route-photo-pin span {
+  display: none;
+  padding-right: 0.25rem;
+}
+.route-photo-pin:hover,
+.route-photo-pin:focus-visible {
+  background: oklch(var(--p));
+  color: oklch(var(--pc));
+}
+.route-photo-pin:hover span,
+.route-photo-pin:focus-visible span {
+  display: inline;
+}
+
+/* 3D view */
+.route-3d__cursor {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #111827;
+  border-radius: 9999px;
+  background: #fff;
+}
+.route-map .maplibregl-popup-content {
+  background: oklch(var(--b1));
+  color: oklch(var(--bc));
+  font-weight: 600;
+  border-radius: 0.5rem;
+}
+.route-map .maplibregl-popup-tip {
+  border-top-color: oklch(var(--b1)) !important;
+  border-bottom-color: oklch(var(--b1)) !important;
+}
+.route-map .maplibregl-ctrl-top-left {
+  top: 2.75rem;
+}
+
+/* Analysis panel */
+.route-tabs {
+  scrollbar-width: none;
+}
+.route-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: oklch(var(--b1) / 0.6);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.route-row:hover,
+.route-row:focus-visible {
+  background: oklch(var(--b1));
+  outline: none;
+  box-shadow: inset 0 0 0 1px oklch(var(--p) / 0.5);
+}
+.route-row__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+.route-kind-dot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--kind);
+  color: #fff;
+}
+.route-table tbody tr {
+  cursor: pointer;
+}
+.route-table tbody tr:hover {
+  background: oklch(var(--b1));
+}
+.route-table td,
+.route-table th {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.route-inline-bar {
+  display: inline-block;
+  width: 2.5rem;
+  height: 0.375rem;
+  margin-right: 0.5rem;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(to right, oklch(var(--p)) var(--w), oklch(var(--bc) / 0.1) var(--w));
+  vertical-align: middle;
+}
+.route-grade-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.375rem;
+  border-radius: 9999px;
+  vertical-align: middle;
+}
+
+/* Bar lists: one series, label · bar · value at the tip */
+.route-bars {
+  display: grid;
+  gap: 0.375rem;
+}
+.route-bars li {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 9rem) 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+}
+.route-bars li:hover {
+  background: oklch(var(--b1) / 0.7);
+}
+.route-bars__label {
+  font-variant-numeric: tabular-nums;
+  color: oklch(var(--bc) / 0.75);
+  white-space: nowrap;
+}
+.route-bars__track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.route-bars__bar {
+  flex: none;
+  /* Proportional within the room left after the value at the tip */
+  width: max(2px, calc((100% - 7.5rem) * var(--v)));
+  height: 12px;
+  border-radius: 0 4px 4px 0;
+}
+.route-bars__value {
+  flex: none;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: oklch(var(--bc) / 0.7);
+  white-space: nowrap;
+}

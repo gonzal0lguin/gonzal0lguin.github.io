@@ -8,9 +8,10 @@ export function getStaticPaths() {
 }
 
 const { item } = Astro.props as InferGetStaticPropsType<typeof getStaticPaths>;
-const { Content } = await item.entry.render();
+// `photos`: the post's photos, collected by src/plugins/remark-media.mjs for the route map
+const { Content, remarkPluginFrontmatter } = await item.entry.render();
 ---
 
-<AscentLayout {...item.entry.data} fallback={item.fallback}>
+<AscentLayout {...item.entry.data} slug={item.key} photos={remarkPluginFrontmatter.photos} fallback={item.fallback}>
   <Content />
 </AscentLayout>

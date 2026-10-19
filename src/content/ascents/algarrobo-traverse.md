@@ -1,16 +1,17 @@
 ---
 title: "Travesía del Algarrobo"
 description: "Description for Algarrobo Traverse"
-pubDate: "2024-01-01"
+pubDate: "2025-10-11"
 mountain: "Algarrobo Traverse"
 elevation: 0
 latitude: -33.4
 longitude: -70.3
+route: "/assets/lib/travesia-algarrobo-11-10-2025.gpx"
 tags: ['Traverse']
 ---
 
 ## Descripción 
-Esta travesía comprime 3 cumbres conectadas del valle del Aconcagua: Guanaco, Algarrobo y Chivato. Las tres cumbres colindantes con la autopista los libertadores y la cuesta de chacabuco. En específico esta travesía comienza por la localidad de San Vicente a los pies del Guanco y termina en la cruz de la cuesta.
+Esta travesía comprime 3 cumbres conectadas del valle del Aconcagua: Guanaco, Algarrobo y Morro Blanco. Las tres cumbres colindantes con la autopista los libertadores y la cuesta de chacabuco. En específico esta travesía comienza por la localidad de San Vicente a los pies del Guanco y termina en la cruz de la cuesta.
 
 Recomiendo hacerla a fines de septiembre/inicios de octubre, ya que la ruta presenta una alta variedad de flora que hacen la hacen mucho más bella. También recomiendo esta fecha por las temperaturas.
 

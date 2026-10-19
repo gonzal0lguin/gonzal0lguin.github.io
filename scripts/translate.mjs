@@ -36,7 +36,8 @@ You will receive one Markdown or MDX file. Reply with the complete translated fi
 
 Rules:
 - Keep the YAML frontmatter block. Translate only the values of these keys: ${[...TRANSLATABLE_KEYS].join(", ")}. Copy every other frontmatter line unchanged.
-- Preserve the Markdown structure exactly: headings, lists, tables, links, images, raw HTML and MDX/JSX components. Translate the human-readable text inside them, including string attribute values such as title, subtitle and alt. Never translate component or attribute names, URLs, file paths, CSS or HTML class names.
+- Preserve the Markdown structure exactly: headings, lists, tables, links, images, raw HTML and MDX/JSX components.
+- Keep photo blocks (\`:::gallery{...}\` / \`:::carousel{...}\` ... \`:::\`) and their attributes exactly as they are, including the colons and the attribute names; translate only the \`caption\` text, the image alt text and the image titles inside them. Translate the human-readable text inside them, including string attribute values such as title, subtitle and alt. Never translate component or attribute names, URLs, file paths, CSS or HTML class names.
 - Leave code blocks, inline code and LaTeX math ($...$ and $$...$$) unchanged.
 - Keep proper nouns as written (people, mountains, places, institutions, course names such as "Cerro La Cruz" or "Universidad de Chile") unless there is a well-established English name.
 - Keep the author's personal, informal first-person voice. Keep drafting placeholders and notes-to-self (such as "blabla", "X km" or "(referencia a fotos)") in place, translating any words in them.

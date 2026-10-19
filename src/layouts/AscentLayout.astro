@@ -3,13 +3,19 @@ import { type AscentsSchema } from "../content/config";
 import BaseLayout from "./BaseLayout.astro";
 import UntranslatedNotice from "../components/UntranslatedNotice.astro";
 import RouteMap from "../components/RouteMap.astro";
+import { routeDownloadPath } from "../lib/gpx";
+import type { PostPhoto } from "../lib/photos";
 import { formatDate, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
 
 export interface Props extends AscentsSchema {
+  /** Entry key, e.g. "punta-canaleta" */
+  slug: string;
+  /** The post's photos, to show the ones with a known location on the route map */
+  photos?: PostPhoto[];
   fallback?: boolean;
 }
 
-const { title, description, pubDate, heroImage, badge, mountain, elevation, tags, route, timezone, fallback } = Astro.props;
+const { title, description, pubDate, heroImage, badge, mountain, elevation, tags, route, timezone, slug, photos, fallback } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 ---
@@ -46,7 +52,7 @@ const t = useTranslations(lang);
         </div>
       </div>
       <div class="divider my-2"></div>
-      {route && <RouteMap file={route} title={mountain ?? title} timezone={timezone} />}
+      {route && <RouteMap files={route} download={routeDownloadPath(route, slug)} photos={photos} title={mountain ?? title} timezone={timezone} />}
       <slot />
     </article>
   </main>

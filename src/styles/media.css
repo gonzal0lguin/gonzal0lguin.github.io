@@ -1,0 +1,253 @@
+/* Photos in posts: single figures, grids and carousels built by
+   src/plugins/remark-media.mjs. Plain CSS rather than Tailwind utilities, because this
+   markup is generated at build time and so is never seen by Tailwind's class scanner.
+   Colors come from the daisyUI theme variables, so both themes are covered. */
+
+figure.photo,
+div.photo-group,
+div.photo-grid {
+    margin: 2rem 0;
+}
+
+figure.photo img,
+.photo-grid img {
+    display: block;
+    width: 100%;
+    margin: 0;
+    border-radius: 0.75rem;
+    background: hsl(var(--b3));
+}
+
+/* A lone photo keeps its own proportions and never towers over the text. */
+figure.photo img {
+    width: auto;
+    max-width: 100%;
+    max-height: 78vh;
+    margin-inline: auto;
+}
+
+figure.photo figcaption,
+.photo-grid figcaption,
+.photo-group > .photo-group__caption {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    text-align: center;
+    font-style: normal;
+    color: hsl(var(--bc) / 0.6);
+}
+
+.photo-group > .photo-group__caption {
+    margin-top: 0.75rem;
+}
+
+[data-lightbox] img {
+    cursor: zoom-in;
+}
+
+/* ---------- grid ---------- */
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--photo-cols, 3), minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.photo-grid .photo-figure,
+.photo-carousel__track .photo-figure {
+    margin: 0;
+    min-width: 0;
+}
+
+/* Cells share one shape so the rows line up; `ratio=auto` leaves the variable unset,
+   which makes `aspect-ratio` fall back to each photo's own proportions. */
+.photo-grid img {
+    aspect-ratio: var(--photo-ratio);
+    object-fit: cover;
+}
+
+@media (max-width: 560px) {
+    .photo-grid {
+        gap: 0.5rem;
+    }
+
+    .photo-grid[data-cols="3"],
+    .photo-grid[data-cols="4"] {
+        --photo-cols: 2;
+    }
+}
+
+/* ---------- carousel ---------- */
+
+.photo-carousel__track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    border-radius: 0.75rem;
+}
+
+.photo-carousel__track::-webkit-scrollbar {
+    display: none;
+}
+
+.photo-carousel__track > .photo-figure {
+    scroll-snap-align: center;
+}
+
+.photo-carousel__track img {
+    display: block;
+    width: 100%;
+    margin: 0;
+    aspect-ratio: var(--photo-ratio);
+    object-fit: cover;
+    border-radius: 0.75rem;
+    background: hsl(var(--b3));
+}
+
+.photo-carousel__controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.625rem;
+}
+
+.photo-carousel__arrow {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    color: hsl(var(--bc) / 0.7);
+    background: hsl(var(--b2));
+    transition: color 0.15s, background-color 0.15s, opacity 0.15s;
+}
+
+.photo-carousel__arrow:hover:not(:disabled) {
+    color: hsl(var(--bc));
+    background: hsl(var(--b3));
+}
+
+.photo-carousel__arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.photo-carousel__dots {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.photo-carousel__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: hsl(var(--bc) / 0.25);
+    transition: background-color 0.15s, transform 0.15s;
+}
+
+.photo-carousel__dot[aria-current="true"] {
+    background: hsl(var(--bc) / 0.75);
+    transform: scale(1.25);
+}
+
+/* Without JS the track is still a scrollable row of photos; the controls would do nothing. */
+.photo-carousel:not([data-ready]) .photo-carousel__controls {
+    visibility: hidden;
+}
+
+/* ---------- lightbox ---------- */
+
+.photo-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 0.75rem;
+    padding: clamp(0.75rem, 3vw, 2.5rem);
+    background: hsl(var(--n) / 0.93);
+    backdrop-filter: blur(6px);
+}
+
+.photo-lightbox[hidden] {
+    display: none;
+}
+
+.photo-lightbox__stage {
+    display: grid;
+    place-items: center;
+    min-height: 0;
+}
+
+.photo-lightbox__stage img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 0.5rem;
+}
+
+.photo-lightbox__bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: hsl(var(--nc) / 0.85);
+    font-size: 0.8125rem;
+}
+
+.photo-lightbox__caption {
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+}
+
+.photo-lightbox__count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+}
+
+.photo-lightbox button {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border-radius: 9999px;
+    color: hsl(var(--nc));
+    background: hsl(var(--nc) / 0.12);
+    transition: background-color 0.15s, opacity 0.15s;
+}
+
+.photo-lightbox button:hover:not(:disabled) {
+    background: hsl(var(--nc) / 0.24);
+}
+
+.photo-lightbox button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.photo-lightbox__close {
+    position: absolute;
+    top: clamp(0.75rem, 3vw, 2.5rem);
+    right: clamp(0.75rem, 3vw, 2.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .photo-carousel__track {
+        scroll-behavior: auto;
+    }
+}
+
+/* Slides are positioned against the carousel, which is how the script converts a slide
+   into a scroll offset. */
+.photo-carousel {
+    position: relative;
+}

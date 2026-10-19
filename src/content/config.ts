@@ -29,8 +29,9 @@ const ascentsSchema = z.object({
     elevation: z.number().optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    // GPS track shown as an interactive map: public path of a .gpx file, e.g. "/assets/tracks/union.gpx"
-    route: z.string().optional(),
+    // GPS track shown as an interactive map: public path of a .gpx file, e.g. "/assets/lib/union.gpx",
+    // or a list of them when the route was recorded in several parts (they're stitched into one)
+    route: z.union([z.string(), z.array(z.string()).nonempty()]).optional(),
     // IANA timezone for the route's clock times (default America/Santiago)
     timezone: z.string().optional(),
     heroImage: z.string().optional(),

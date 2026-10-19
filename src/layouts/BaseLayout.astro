@@ -54,5 +54,15 @@ const {
       </div>
       {includeSidebar && <SideBar sideBarActiveItemID={sideBarActiveItemID} />}
     </div>
+
+    <script>
+      // Carousels and the gallery lightbox, on the first load and after every
+      // view-transition navigation. Only downloaded on pages that have photos.
+      document.addEventListener("astro:page-load", async () => {
+        if (!document.querySelector("[data-carousel], [data-lightbox]")) return;
+        const { initMedia } = await import("../scripts/media");
+        initMedia();
+      });
+    </script>
   </body>
 </html>

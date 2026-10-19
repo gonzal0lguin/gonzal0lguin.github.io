@@ -1,0 +1,20 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../components/AscentsHeader.astro";
+import RouteTool from "../../../components/RouteTool.astro";
+import { langStaticPaths } from "../../../lib/paths";
+import { getLang, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+---
+
+<BaseLayout title={t("tools.route.title")} description={t("tools.route.description")} sideBarActiveItemID="ascents">
+  <AscentsHeader active="route-tool" />
+  <p class="mb-8 max-w-3xl text-lg">{t("tools.route.intro")}</p>
+  <RouteTool />
+</BaseLayout>

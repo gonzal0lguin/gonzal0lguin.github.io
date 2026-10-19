@@ -2,6 +2,7 @@
 import type { GetStaticPathsOptions } from "astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import EntryList from "../../../components/EntryList.astro";
+import AscentsHeader from "../../../components/AscentsHeader.astro";
 import { getLocalizedCollection } from "../../../i18n/content";
 import { listStaticPaths } from "../../../lib/paths";
 import { loadRoute } from "../../../lib/gpx";
@@ -40,9 +41,7 @@ const overview = { markers, routeLines, viewLabel: t("ascents.viewEntry") };
 ---
 
 <BaseLayout title={t("nav.mountaineering")} sideBarActiveItemID="ascents">
-  <div class="mb-5">
-    <h1 class="text-3xl w-full font-bold">{t("ascents.title")}</h1>
-  </div>
+  <AscentsHeader active="log" />
 
   <!-- Hero and Stats section only show on the first page -->
   {page.currentPage === 1 && (
