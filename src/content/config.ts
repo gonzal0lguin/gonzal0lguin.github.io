@@ -1,4 +1,5 @@
 import { z, defineCollection } from "astro:content";
+import { WAYPOINT_KIND_IDS, type WaypointKind } from "../lib/waypoint-kinds";
 
 const tags = z.array(z.string()).refine(items => new Set(items).size === items.length, {
     message: 'tags must be unique',
@@ -32,6 +33,18 @@ const ascentsSchema = z.object({
     // GPS track shown as an interactive map: public path of a .gpx file, e.g. "/assets/lib/union.gpx",
     // or a list of them when the route was recorded in several parts (they're stitched into one)
     route: z.union([z.string(), z.array(z.string()).nonempty()]).optional(),
+    // Points to mark on the route map besides the GPX file's own waypoints, anywhere, e.g. a
+    // summit that wasn't reached (then the route's highest point shows as "high point"):
+    //   - { name: "Cerro Plomo", kind: summit, lat: -33.2385, lon: -70.2156, ele: 5424, note: "..." }
+    // kind: camp, summit, view, water, hut, crux, danger, parking or note (default)
+    waypoints: z.array(z.object({
+        name: z.string(),
+        lat: z.number().min(-90).max(90),
+        lon: z.number().min(-180).max(180),
+        kind: z.enum(WAYPOINT_KIND_IDS as [WaypointKind, ...WaypointKind[]]).default("note"),
+        ele: z.number().optional(),
+        note: z.string().optional(),
+    })).optional(),
     // IANA timezone for the route's clock times (default America/Santiago)
     timezone: z.string().optional(),
     heroImage: z.string().optional(),

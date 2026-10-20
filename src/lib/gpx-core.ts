@@ -152,7 +152,20 @@ function decode(text: string) {
 
 // --- Analysis
 
-function haversine(a: RawPoint, b: RawPoint) {
+/**
+ * How the route's highest point is shown. It's the summit, unless a summit is marked elsewhere
+ * (one that wasn't reached, or a separate peak): then it's just the high point. If a marked
+ * summit sits on it, the marked one is shown instead.
+ */
+export function highPointRole(summit: RouteMarker | null, waypoints: Waypoint[]): "summit" | "highPoint" | null {
+  if (!summit) return null;
+  const marked = waypoints.filter((w) => w.kind === "summit");
+  if (marked.some((w) => haversine(w, summit) < 200)) return null;
+  return marked.length ? "highPoint" : "summit";
+}
+
+/** Meters between two points */
+export function haversine(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
   const R = 6371008.8;
   const toRad = Math.PI / 180;
   const dLat = (b.lat - a.lat) * toRad;

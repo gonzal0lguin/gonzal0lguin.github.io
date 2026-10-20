@@ -156,6 +156,7 @@ export function createPanels(container: HTMLElement, api: RouteMapApi) {
   const ENDS = {
     start: { color: "#16a34a", icon: '<path d="M5 21V4m0 0h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>' },
     finish: { color: "#111827", icon: '<path d="M5 21V4h14v9H5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>' },
+    highPoint: { color: "#78716c", icon: WAYPOINT_KINDS.summit.icon },
   };
   const icon = (kind: WaypointKind | keyof typeof ENDS, size = 22) => {
     const { color, icon: svg } = kind in ENDS ? ENDS[kind as keyof typeof ENDS] : WAYPOINT_KINDS[kind as WaypointKind];
@@ -189,7 +190,7 @@ export function createPanels(container: HTMLElement, api: RouteMapApi) {
       const rows: string[] = [];
       const fixed = [
         { kind: "start" as const, label: data.stats.shape === "one-way" ? t("route.start") : t("route.startFinish"), i: 0 },
-        ...(data.summit ? [{ kind: "summit" as WaypointKind, label: t("route.summit"), i: nearest(data.summit.lat, data.summit.lon) }] : []),
+        ...highPoints(),
         ...data.camps.map((camp) => ({ kind: "camp" as WaypointKind, label: t("route.camp"), i: nearest(camp.lat, camp.lon) })),
         ...(data.stats.shape === "one-way" ? [{ kind: "finish" as const, label: t("route.finish"), i: points.length - 1 }] : []),
       ];
@@ -197,12 +198,14 @@ export function createPanels(container: HTMLElement, api: RouteMapApi) {
         ...fixed.map((f) => ({ d: points[f.i][DIST], html: pointRow(icon(f.kind), f.label, t("route.points.auto"), f.i, points[f.i][LAT], points[f.i][LON], points[f.i][ELE], `data-focus="${f.i}"`, "") })),
         ...api.waypoints().map((w, k) => {
           const i = api.waypointIndex(w);
+          const away = i == null ? ` · ${t("route.offRoute", { d: formatDistance(api.distanceToRoute(w), locale) })}` : "";
           return {
-            d: i != null ? points[i][DIST] : Infinity,
+            // Off the route: listed next to the closest point of the route.
+            d: points[i ?? nearest(w.lat, w.lon)][DIST],
             html: pointRow(
               icon(w.kind),
               w.name,
-              t(`route.kind.${w.kind}`) + (w.desc ? ` — ${w.desc}` : ""),
+              t(`route.kind.${w.kind}`) + away + (w.desc ? ` — ${w.desc}` : ""),
               i,
               w.lat,
               w.lon,
@@ -439,12 +442,12 @@ export function createPanels(container: HTMLElement, api: RouteMapApi) {
     const dayLabel = (time: number) => (localParts(time, timezone).day !== d ? `${formatDay(time, locale, timezone)} ` : "");
 
     const checkpoints = [
-      { name: t("route.start"), kind: "start" as WaypointKind | "start" | "finish", i: 0 },
+      { name: t("route.start"), kind: "start" as WaypointKind | "start" | "finish" | "highPoint", i: 0 },
       ...api.waypoints().flatMap((w) => {
         const i = api.waypointIndex(w);
         return i != null ? [{ name: w.name, kind: w.kind, i }] : [];
       }),
-      ...(data.summit ? [{ name: t("route.summit"), kind: "summit" as WaypointKind, i: nearest(data.summit.lat, data.summit.lon) }] : []),
+      ...highPoints().map((h) => ({ name: h.label, kind: h.kind, i: h.i })),
       ...climbs.filter((c) => c.direction === "up").map((c, k) => ({ name: t("route.plan.climbTop", { n: k + 1 }), kind: "crux" as WaypointKind, i: c.to })),
       { name: t("route.finish"), kind: "finish" as const, i: points.length - 1 },
     ]
@@ -486,6 +489,12 @@ export function createPanels(container: HTMLElement, api: RouteMapApi) {
 
   function campTime() {
     return data.days.slice(1).reduce((acc, day, k) => acc + (day.start - data.days[k].end), 0);
+  }
+
+  /** The route's high point as the map shows it: none when a marked summit sits on it. */
+  function highPoints() {
+    const top = api.highPoint();
+    return top ? [{ kind: top.kind as WaypointKind | "highPoint", label: top.label, i: top.i }] : [];
   }
 
   function nearest(lat: number, lon: number) {

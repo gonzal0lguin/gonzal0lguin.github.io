@@ -3,7 +3,7 @@
 // elevation profile linked to the map, route replay, stats and a day-by-day breakdown.
 // The GPX file(s) are analyzed at build time (src/lib/gpx.ts); the browser only gets the result.
 // The markup comes from src/lib/route-card.ts, which the route tool also uses in the browser.
-import { loadRoute, routeFileList, type RouteFiles } from "../lib/gpx";
+import { loadRoute, routeFileList, withPostWaypoints, type PostWaypoint, type RouteFiles } from "../lib/gpx";
 import { renderRouteCard } from "../lib/route-card";
 import { placePhotos, type PostPhoto } from "../lib/photos";
 import { getLangFromUrl } from "../i18n/ui";
@@ -11,8 +11,12 @@ import { getLangFromUrl } from "../i18n/ui";
 export interface Props {
   /** Public path of the .gpx file, or of each part of a route recorded in several files */
   files: RouteFiles;
+  /** Points marked in the post's frontmatter, besides the file's own waypoints */
+  waypoints?: PostWaypoint[];
   /** URL offered by the download button; defaults to the (first) file */
   download?: string;
+  /** URL of the route as KML (src/pages/[...lang]/routes/[slug].kml.ts), for "Open in Google Earth" */
+  kml?: string;
   title?: string;
   /** IANA timezone used to show clock times */
   timezone?: string;
@@ -20,13 +24,15 @@ export interface Props {
   photos?: PostPhoto[];
 }
 
-const { files, download = routeFileList(files)[0], title, timezone = "America/Santiago", photos } = Astro.props;
-const route = loadRoute(files);
+const { files, waypoints, download = routeFileList(files)[0], kml, title, timezone = "America/Santiago", photos } = Astro.props;
+const route = withPostWaypoints(loadRoute(files), waypoints);
 const html = renderRouteCard(route, {
   lang: getLangFromUrl(Astro.url),
   title,
   timezone,
   download,
+  kml,
+  kmlName: kml?.split("/").pop(),
   photos: placePhotos(photos, route, timezone),
 });
 ---

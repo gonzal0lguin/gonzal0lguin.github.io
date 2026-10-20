@@ -7,7 +7,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/route-map.css";
-import type { RouteData, RoutePoint, Waypoint } from "../lib/gpx-core";
+import { highPointRole, type RouteData, type RoutePoint, type Waypoint } from "../lib/gpx-core";
 import type { RoutePhoto } from "../lib/photos";
 import { sectionStats, speedSeries, verticalSpeedSeries } from "../lib/route-analysis";
 import {
@@ -94,6 +94,10 @@ export interface RouteMapApi {
   waypoints: () => Waypoint[];
   /** Route point nearest to a waypoint, if it is on (or near) the route */
   waypointIndex: (w: { lat: number; lon: number }) => number | null;
+  /** Meters from a point to the nearest point of the route */
+  distanceToRoute: (w: { lat: number; lon: number }) => number;
+  /** The route's highest point as it's shown: summit, just the high point, or hidden */
+  highPoint: () => { label: string; kind: "summit" | "highPoint"; i: number } | null;
   setCursor: (i: number) => void;
   hideCursor: () => void;
   select: (from: number, to: number, zoom?: boolean) => void;
@@ -290,12 +294,6 @@ function createRouteMap(root: HTMLElement) {
       .addTo(map);
   fixedMarker([first[LAT], first[LON]], pin(ICONS.flag, "#16a34a"), returnsToStart ? t("route.startFinish") : t("route.start"), 0, 500);
   if (!returnsToStart) fixedMarker([last[LAT], last[LON]], pin(ICONS.finish, "#111827"), t("route.finish"), points.length - 1, 500);
-  if (data.summit) {
-    const text = `${t("route.summit")} · ${formatElevation(data.summit.ele ?? 0, locale)}`;
-    const marker = fixedMarker([data.summit.lat, data.summit.lon], pin(WAYPOINT_KINDS.summit.icon, WAYPOINT_KINDS.summit.color, 30), text, nearestIndex(data.summit.lat, data.summit.lon).i, 1000);
-    // Always-visible label on wide maps; on phones it would cover the controls, so show it on tap.
-    if (mapEl.clientWidth >= 560) marker.unbindTooltip().bindTooltip(text, { direction: "right", offset: [16, 0], className: "route-label", permanent: true });
-  }
   data.camps.forEach((camp) => {
     const text = `${t("route.camp")}${camp.ele != null ? ` · ${formatElevation(camp.ele, locale)}` : ""}`;
     fixedMarker([camp.lat, camp.lon], pin(WAYPOINT_KINDS.camp.icon, WAYPOINT_KINDS.camp.color, 28), text, nearestIndex(camp.lat, camp.lon).i, 800);
@@ -314,13 +312,39 @@ function createRouteMap(root: HTMLElement) {
   const waypointLayer = L.layerGroup().addTo(map);
   let waypointMarkers: L.Marker[] = [];
 
+  // The highest point is the summit, unless a summit is marked elsewhere (one not reached).
+  const HIGH_POINT_COLOR = "#78716c";
+  const summitIndex = data.summit ? nearestIndex(data.summit.lat, data.summit.lon).i : 0;
+  const highPoint = () => {
+    const kind = highPointRole(data.summit, waypoints);
+    if (!kind || !data.summit) return null;
+    const label = kind === "summit" ? t("route.summit") : t("route.highPoint");
+    return { kind, label, i: summitIndex, title: `${label} · ${formatElevation(data.summit.ele ?? 0, locale)}`, color: kind === "summit" ? WAYPOINT_KINDS.summit.color : HIGH_POINT_COLOR };
+  };
+  /** Marked points plus the high point, for the 3D view */
+  const pins3d = () => {
+    const top = highPoint();
+    return [...waypoints, ...(top && data.summit ? [{ lat: data.summit.lat, lon: data.summit.lon, kind: "summit" as const, name: top.title, color: top.color }] : [])];
+  };
+  const drawHighPoint = () => {
+    const top = highPoint();
+    if (!top || !data.summit) return;
+    const marker = L.marker([data.summit.lat, data.summit.lon], { icon: pin(WAYPOINT_KINDS.summit.icon, top.color, 30), zIndexOffset: 1000 })
+      .bindPopup(() => `<p class="route-popup__title">${esc(top.title)}</p>${pointDetails(data.summit!.lat, data.summit!.lon, data.summit!.ele, top.i)}`, popupOptions)
+      .addTo(waypointLayer);
+    // Always-visible label on wide maps; on phones it would cover the controls, so show it on tap.
+    const wide = mapEl.clientWidth >= 560;
+    marker.bindTooltip(top.title, wide ? { direction: "right", offset: [16, 0], className: "route-label", permanent: true } : { direction: "top", offset: [0, -14], className: "route-label" });
+  };
+
   const kindLabel = (kind: WaypointKind) => t(`route.kind.${kind}`);
 
   const waypointPopup = (index: number) => {
     const w = waypoints[index];
     const i = waypointIndex(w);
+    const away = i == null ? ` · ${t("route.offRoute", { d: formatDistance(nearestIndex(w.lat, w.lon).meters, locale) })}` : "";
     return `
-      <p class="route-popup__kind" style="--kind:${WAYPOINT_KINDS[w.kind].color}">${esc(kindLabel(w.kind))}</p>
+      <p class="route-popup__kind" style="--kind:${WAYPOINT_KINDS[w.kind].color}">${esc(kindLabel(w.kind) + away)}</p>
       <p class="route-popup__title">${esc(w.name)}</p>
       ${w.desc ? `<p class="route-popup__desc">${esc(w.desc)}</p>` : ""}
       ${pointDetails(w.lat, w.lon, w.ele ?? (i != null ? points[i][ELE] : null), i)}
@@ -352,6 +376,10 @@ function createRouteMap(root: HTMLElement) {
         <p class="route-editor__kind-name" data-kind-name>${esc(kindLabel(w.kind))}</p>
         <input name="name" class="input input-bordered input-sm w-full" maxlength="80" value="${esc(w.name)}" placeholder="${esc(t("route.name"))}" aria-label="${esc(t("route.name"))}" />
         <textarea name="desc" class="textarea textarea-bordered textarea-sm mt-2 w-full" rows="2" maxlength="500" placeholder="${esc(t("route.notePlaceholder"))}" aria-label="${esc(t("route.notePlaceholder"))}">${esc(w.desc ?? "")}</textarea>
+        <label class="route-editor__coords">
+          <span>${esc(t("route.coords"))}</span>
+          <input name="coords" class="input input-bordered input-xs w-full font-mono" value="${formatCoords(w.lat, w.lon)}" pattern="${COORDS_PATTERN}" title="${esc(t("route.coordsHint"))}" inputmode="decimal" autocomplete="off" spellcheck="false" />
+        </label>
         <div class="route-popup__actions">
           <button type="button" class="btn btn-ghost btn-xs text-error" data-action="delete-wp" data-index="${index}">${esc(t("route.delete"))}</button>
           <button type="submit" class="btn btn-primary btn-xs">${esc(t("route.save"))}</button>
@@ -361,6 +389,7 @@ function createRouteMap(root: HTMLElement) {
 
   const drawWaypoints = () => {
     waypointLayer.clearLayers();
+    drawHighPoint();
     waypointMarkers = waypoints.map((w, index) => {
       const marker = L.marker([w.lat, w.lon], {
         icon: pin(WAYPOINT_KINDS[w.kind].icon, WAYPOINT_KINDS[w.kind].color, 26),
@@ -383,7 +412,7 @@ function createRouteMap(root: HTMLElement) {
       });
       return marker;
     });
-    view3d?.setWaypoints(waypoints);
+    view3d?.setWaypoints(pins3d());
   };
 
   const waypointsChanged = () => {
@@ -426,6 +455,18 @@ function createRouteMap(root: HTMLElement) {
 
   // Popup buttons and the waypoint editor (event delegation: popups are created on demand).
   root.addEventListener("click", (event) => {
+    // The whole route in Google Earth: the link downloads the KML; open Earth to import it.
+    const earth = (event.target as HTMLElement).closest<HTMLAnchorElement>("[data-open-earth]");
+    if (earth) {
+      window.open("https://earth.google.com/web/", "_blank", "noopener");
+      const help = $("[data-earth-help]");
+      if (help) {
+        const file = earth.getAttribute("download") || earth.pathname.split("/").pop() || "";
+        help.innerHTML = t("route.earthHelp", { file: esc(file) });
+        help.hidden = false;
+      }
+      return;
+    }
     const button = (event.target as HTMLElement).closest<HTMLElement>("[data-action]");
     if (!button) return;
     const index = Number(button.dataset.index);
@@ -461,9 +502,26 @@ function createRouteMap(root: HTMLElement) {
     const fields = new FormData(form);
     const kind = (fields.get("kind") as WaypointKind) || waypoints[index].kind;
     const desc = String(fields.get("desc") ?? "").trim();
-    waypoints[index] = { ...waypoints[index], kind, name: String(fields.get("name") ?? "").trim() || kindLabel(kind), desc: desc || undefined };
+    const before = waypoints[index];
+    waypoints[index] = { ...before, kind, name: String(fields.get("name") ?? "").trim() || kindLabel(kind), desc: desc || undefined };
+    // Typed (or pasted) coordinates move the point there, on the route or anywhere else.
+    const typed = parseCoords(String(fields.get("coords") ?? ""));
+    const moved = typed && formatCoords(typed[0], typed[1]) !== formatCoords(before.lat, before.lon);
+    if (typed && moved) {
+      const near = nearestIndex(typed[0], typed[1]);
+      waypoints[index] = {
+        ...waypoints[index],
+        lat: typed[0],
+        lon: typed[1],
+        ele: near.meters < 60 ? points[near.i][ELE] : null,
+        time: near.meters < 30 ? timeAt(near.i) : null,
+      };
+    }
     map.closePopup();
     waypointsChanged();
+    if (moved && !map.getBounds().pad(-0.1).contains([waypoints[index].lat, waypoints[index].lon])) {
+      map.fitBounds(L.latLngBounds([...latlngs, L.latLng(waypoints[index].lat, waypoints[index].lon)]), { padding: [30, 30] });
+    }
   });
 
   // --- Photos
@@ -933,9 +991,8 @@ function createRouteMap(root: HTMLElement) {
         view3d = create3dView(container3d, {
           points,
           colors: colors(),
-          waypoints,
+          waypoints: pins3d(),
           fixed: [
-            ...(data.summit ? [{ lat: data.summit.lat, lon: data.summit.lon, kind: "summit" as const, title: `${t("route.summit")} · ${formatElevation(data.summit.ele ?? 0, locale)}` }] : []),
             ...data.camps.map((camp) => ({ lat: camp.lat, lon: camp.lon, kind: "camp" as const, title: t("route.camp") })),
           ],
           photos: photosOn ? data.photos : [],
@@ -1008,6 +1065,11 @@ function createRouteMap(root: HTMLElement) {
     t,
     waypoints: () => waypoints,
     waypointIndex,
+    distanceToRoute: (w) => nearestIndex(w.lat, w.lon).meters,
+    highPoint: () => {
+      const top = highPoint();
+      return top && { label: top.label, kind: top.kind, i: top.i };
+    },
     setCursor,
     hideCursor: () => !playing && hideCursor(),
     select: (from, to, zoom) => {
@@ -1163,4 +1225,15 @@ function mix(a: string, b: string, t: number) {
   const pb = parseInt(b.slice(1), 16);
   const channel = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
   return `#${((1 << 24) | (channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).slice(1)}`;
+}
+
+// "-33.12345, -70.12345" (also with a space or a semicolon between them)
+const COORDS_PATTERN = String.raw`\s*-?\d{1,2}(\.\d+)?\s*[,; ]\s*-?\d{1,3}(\.\d+)?\s*`;
+
+function parseCoords(text: string): [number, number] | null {
+  const match = text.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if (!match) return null;
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? [lat, lon] : null;
 }

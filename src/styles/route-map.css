@@ -219,6 +219,21 @@
   color: oklch(var(--bc) / 0.7);
 }
 
+.route-editor__coords {
+  display: block;
+  margin-top: 0.5rem;
+}
+.route-editor__coords span {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: oklch(var(--bc) / 0.6);
+}
+.route-editor__coords input:invalid {
+  border-color: oklch(var(--er));
+}
+
 /* Photo markers on the maps */
 .route-photo {
   display: block;

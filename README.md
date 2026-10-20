@@ -116,10 +116,20 @@ route:
   - "/assets/lib/punta-canaleta-18-10-2026_1.gpx"
 ```
 
+To mark points that aren't in the GPX file, anywhere on the map, add `waypoints:` (`kind`: camp, summit, view, water, hut, crux, danger, parking or note, the default; `ele` and `note` are optional). A summit you didn't reach is the typical case: once a summit is marked away from the route, the route's own highest point shows as **High point** instead of Summit.
+
+```yaml
+waypoints:
+  - { name: "Cerro Plomo", kind: summit, lat: -33.2385, lon: -70.2156, ele: 5424, note: "We turned back at 5,100 m" }
+```
+
+They appear on the map, in 3D, in the analysis and in the downloaded GPX (which is then generated at `/routes/<entry>.gpx`).
+
 What the card shows:
 
-- Map with topographic, satellite and street layers, colored by **grade**, **elevation**, **speed**, **vertical speed** or **heart rate** (picked in the legend). Start, summit, camps, km markers and the file's waypoints (with icons by kind). Clicking any point of the route, or a marker, offers it in **Google Earth 3D** / **Google Maps 3D** and copies its coordinates.
+- Map with topographic, satellite and street layers, colored by **grade**, **elevation**, **speed**, **vertical speed** or **heart rate** (picked in the legend). Start, summit, camps, km markers and the file's waypoints (with icons by kind). Clicking any point of the route, or a marker, opens it in **Google Earth 3D** / **Google Maps 3D** with a pin on it, and copies its coordinates.
 - **3D** button: the route on real terrain (MapLibre + free AWS terrain tiles, satellite or topo). ▶ replay flies the camera along the route. MapLibre is only downloaded when 3D is opened.
+- **Open in Google Earth**: downloads the route as KML (`/routes/<entry>.kml`, built by `src/lib/kml.ts`: the track draped on the terrain, a line per day, the points and the post's located photos) and opens Google Earth on the web, where it's imported with *Projects → New project → Import KML file from computer*. Google Earth has no way to load a file from a link, so this is as direct as it gets; Google Earth Pro and the phone app open the file directly.
 - Elevation profile linked to the map. Drag across it to select a section: distance, gain/loss, average grade, moving and total time, vertical speed, speed and heart rate for that section.
 - Stats, multi-day breakdown (a pause over 3 hours starts a new day; the spot is marked as a camp) and a "Download GPX" button.
 - **Detailed analysis** (collapsed in posts): marked points, a summary (effort km, climbing/descent rate, pace vs. DIN 33466, time stopped, terrain share, oxygen at the high point, daylight), climbs and descents, splits, distance by grade, time by altitude, stops, heart rate zones, and a **planner** that estimates the timings at your pace and warns about finishing after dark.
@@ -128,7 +138,7 @@ The GPX files are analyzed when the site is built (`src/lib/gpx.ts`, `src/lib/gp
 
 #### Route analyzer ("Procesar ruta")
 
-`/ascents/route-tool` gives visitors the same card for their own GPX files, processed entirely in the browser. Several files are stitched like above. In the tool, points can be **marked** (camp, summit, viewpoint, water, hut, crux, danger, parking, note) by clicking the map or the profile, dragged, edited and deleted; stops can be marked from the Stops tab. Marks are saved in the downloaded GPX as standard waypoints (`<sym>` for Garmin and most apps, `<type>` for this site), and remembered in the browser for the same files. A GPX exported from the tool can be used as a post's `route`, with its marks.
+`/ascents/route-tool` gives visitors the same card for their own GPX files, processed entirely in the browser. Several files are stitched like above. In the tool, points can be **marked** (camp, summit, viewpoint, water, hut, crux, danger, parking, note) by clicking the map or the profile, dragged, edited and deleted, and placed anywhere by typing their coordinates in the editor; stops can be marked from the Stops tab. Marks are saved in the downloaded GPX as standard waypoints (`<sym>` for Garmin and most apps, `<type>` for this site), and remembered in the browser for the same files. A GPX exported from the tool can be used as a post's `route`, with its marks.
 
 The tool is a self-contained component (`src/components/RouteTool.astro`, `src/scripts/route-tool.ts`), ready to move to a future tools section.
 

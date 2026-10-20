@@ -15,7 +15,7 @@ export interface Props extends AscentsSchema {
   fallback?: boolean;
 }
 
-const { title, description, pubDate, heroImage, badge, mountain, elevation, tags, route, timezone, slug, photos, fallback } = Astro.props;
+const { title, description, pubDate, heroImage, badge, mountain, elevation, tags, route, waypoints, timezone, slug, photos, fallback } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 ---
@@ -52,7 +52,19 @@ const t = useTranslations(lang);
         </div>
       </div>
       <div class="divider my-2"></div>
-      {route && <RouteMap files={route} download={routeDownloadPath(route, slug)} photos={photos} title={mountain ?? title} timezone={timezone} />}
+      {
+        route && (
+          <RouteMap
+            files={route}
+            waypoints={waypoints}
+            download={routeDownloadPath(route, slug, waypoints)}
+            kml={localizePath(lang, `/routes/${slug}.kml`)}
+            photos={photos}
+            title={mountain ?? title}
+            timezone={timezone}
+          />
+        )
+      }
       <slot />
     </article>
   </main>

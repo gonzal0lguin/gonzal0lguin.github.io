@@ -48,16 +48,19 @@ export function formatCoords(lat: number, lon: number) {
   return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 }
 
-// Free 3D views of any point: the camera looks at it from ~2.5 km away, tilted towards the horizon.
+// Free 3D views of any point, with a pin on it: the camera looks at it from ~2.5 km away,
+// tilted towards the horizon.
 
-/** Google Earth on the web, in 3D */
+/** Google Earth on the web, in 3D; searching the coordinates drops a pin on them */
 export function googleEarthUrl(lat: number, lon: number, ele: number | null = null) {
-  return `https://earth.google.com/web/@${lat},${lon},${Math.round(ele ?? 0)}a,2500d,35y,0h,65t,0r`;
+  const at = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+  return `https://earth.google.com/web/search/${at}/@${at},${Math.round(ele ?? 0)}a,2500d,35y,0h,65t,0r`;
 }
 
-/** Google Maps with the satellite (globe) view, tilted */
+/** Google Maps with the satellite (globe) view, tilted, and the point as a dropped pin */
 export function googleMaps3dUrl(lat: number, lon: number, ele: number | null = null) {
-  return `https://www.google.com/maps/@${lat},${lon},${Math.round((ele ?? 0) + 1800)}a,35y,0h,65t/data=!3m1!1e3`;
+  const at = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+  return `https://www.google.com/maps/place/${at}/@${at},${Math.round((ele ?? 0) + 1800)}a,35y,0h,65t/data=!3m1!1e3`;
 }
 
 /** Unix seconds of a wall-clock time in `timezone`. */

@@ -24,6 +24,9 @@ export interface RouteCardOptions {
   download: string;
   /** File name for the download; the URL's own name when omitted */
   downloadName?: string;
+  /** URL of the route as KML, to open it whole in Google Earth */
+  kml?: string;
+  kmlName?: string;
   /** Post photos placed on the route */
   photos?: RoutePhoto[];
   /** Route tool: points can be marked, and the analysis starts open */
@@ -42,7 +45,7 @@ const esc = (value: unknown) =>
 
 export function renderRouteCard(
   route: RouteData,
-  { lang, title, timezone = "America/Santiago", download, downloadName, photos = [], editable = false }: RouteCardOptions,
+  { lang, title, timezone = "America/Santiago", download, downloadName, kml, kmlName, photos = [], editable = false }: RouteCardOptions,
 ) {
   const t = useTranslations(lang);
   const locale = languages[lang].locale;
@@ -252,10 +255,21 @@ export function renderRouteCard(
   const footer = `
   <footer class="flex flex-wrap items-center justify-between gap-2 px-5 pb-5 pt-3 text-xs text-base-content/60">
     <span>${esc(t("route.zoomHint"))}</span>
-    <a href="${esc(download)}" download${downloadName ? `="${esc(downloadName)}"` : ""} class="btn btn-outline btn-sm">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
-      ${esc(t("route.download"))}
-    </a>
+    <span class="flex flex-wrap gap-2">
+      ${
+        kml
+          ? `<a href="${esc(kml)}" download${kmlName ? `="${esc(kmlName)}"` : ""} class="btn btn-outline btn-sm" data-open-earth title="${esc(t("route.openRouteEarthHint"))}">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"></path></svg>
+        ${esc(t("route.openRouteEarth"))}
+      </a>`
+          : ""
+      }
+      <a href="${esc(download)}" download${downloadName ? `="${esc(downloadName)}"` : ""} class="btn btn-outline btn-sm">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+        ${esc(t("route.download"))}
+      </a>
+    </span>
+    <p class="w-full rounded-xl bg-primary/10 px-4 py-3 text-sm text-base-content" data-earth-help hidden></p>
   </footer>`;
 
   const data = `<script type="application/json" data-route-data>${JSON.stringify(payload).replace(/</g, "\\u003c")}</script>`;

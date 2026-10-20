@@ -36,7 +36,7 @@ A few things worth knowing:
 - **Days and camps**: any pause longer than 3 hours counts as a night. The tool splits the route into days and marks where you camped.
 - **The ▶︎ button** replays the route from start to finish.
 - **Layers**: topographic, satellite or streets, from the layers button.
-- Click any point on the route to see its coordinates and open it in **Google Earth 3D** or **Google Maps 3D**.
+- Click any point on the route to see its coordinates and open it in **Google Earth 3D** or **Google Maps 3D**, with a pin on that spot.
 
 ### 3. Analyze a section
 
@@ -48,7 +48,9 @@ Drag the mouse (or your finger) across the profile to select a section. You get 
 
 This is the part I cared about most. Press **Mark** and click the map or the profile to drop a point. If you click on the route, the point sticks to it; if you click off it (say, a viewpoint across the valley), it stays exactly where you clicked.
 
-Each point has a kind (camp, summit, viewpoint, water, hut, crux, danger, parking or note), a name and an optional note. Points can be dragged, edited and deleted.
+Each point has a kind (camp, summit, viewpoint, water, hut, crux, danger, parking or note), a name and an optional note. Points can be dragged, edited and deleted, and you can type or paste their coordinates to put one in an exact spot.
+
+This is handy for the summit you didn't reach: mark it where it is, and the highest point of your track shows as **High point** instead of the summit, while the summit shows how far it was from your route.
 
 ![Point editor on the map with the kinds of point](route-tool/marks-en.jpg "Marking a crux, with a note")
 
@@ -59,6 +61,8 @@ You can also mark points from the **Stops** tab: it lists every stop longer than
 ### 5. See the terrain in 3D
 
 The **3D** button shows the route on the real terrain, with satellite imagery or a topographic map. You can tilt and rotate the view, and with ▶︎ the camera flies along the route. It's the best way I've found to understand where a route really goes in a tight valley.
+
+If you'd rather use Google Earth, the **Open in Google Earth** button downloads the whole route as KML (a line for each day and all the points) and opens Google Earth in another tab. Import it there from *Projects → New project → Import KML file from computer*; in Google Earth Pro or the phone app, just open the file.
 
 ![3D view of the route on satellite imagery and terrain](route-tool/3d-en.jpg "The same route in 3D, with the marked points")
 

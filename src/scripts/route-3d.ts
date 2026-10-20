@@ -14,7 +14,7 @@ export interface View3D {
   /** Camera follows the route at point i, looking ahead (route replay) */
   follow(i: number): void;
   stopFollow(): void;
-  setWaypoints(waypoints: Waypoint[]): void;
+  setWaypoints(waypoints: (Waypoint & { color?: string })[]): void;
   setPhotos(photos: RoutePhoto[]): void;
   setSelection(from: number | null, to?: number): void;
   flyTo(lat: number, lon: number): void;
@@ -27,7 +27,7 @@ export interface View3D {
 interface Options {
   points: RoutePoint[];
   colors: string[];
-  waypoints: Waypoint[];
+  waypoints: (Waypoint & { color?: string })[];
   /** Always-shown pins: summit, camps */
   fixed: { lat: number; lon: number; kind: keyof typeof WAYPOINT_KINDS; title: string }[];
   photos: RoutePhoto[];
@@ -39,6 +39,9 @@ interface Options {
 const LAT = 0, LON = 1, DIST = 3;
 const TERRAIN_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 const EXAGGERATION = 1.2;
+// Closer than this the imagery is just blur; and the camera keeps this far above the ground.
+const MAX_ZOOM = 17;
+const MIN_CLEARANCE_M = 150;
 
 export function create3dView(container: HTMLElement, options: Options): View3D {
   const { points, labels } = options;
@@ -58,7 +61,8 @@ export function create3dView(container: HTMLElement, options: Options): View3D {
       bounds,
       fitBoundsOptions: { padding: { top: 70, bottom: 90, left: 40, right: 40 } },
       pitch: 55,
-      maxPitch: 80,
+      maxPitch: 75,
+      maxZoom: MAX_ZOOM,
       attributionControl: false,
       style: {
         version: 8,
@@ -161,10 +165,10 @@ export function create3dView(container: HTMLElement, options: Options): View3D {
   // Markers
   let waypointMarkers: maplibregl.Marker[] = [];
   let photoMarkers: maplibregl.Marker[] = [];
-  const pinMarker = (w: { lat: number; lon: number; kind: keyof typeof WAYPOINT_KINDS }, title: string, size = 26) => {
+  const pinMarker = (w: { lat: number; lon: number; kind: keyof typeof WAYPOINT_KINDS; color?: string }, title: string, size = 26) => {
     const el = document.createElement("div");
     el.className = "route-pin";
-    el.style.cssText = `width:${size}px;height:${size}px;background:${WAYPOINT_KINDS[w.kind].color}`;
+    el.style.cssText = `width:${size}px;height:${size}px;background:${w.color ?? WAYPOINT_KINDS[w.kind].color}`;
     el.innerHTML = `<svg viewBox="0 0 24 24" width="${size * 0.55}" height="${size * 0.55}">${WAYPOINT_KINDS[w.kind].icon}</svg>`;
     el.title = title;
     return new maplibregl.Marker({ element: el })
@@ -172,10 +176,10 @@ export function create3dView(container: HTMLElement, options: Options): View3D {
       .setPopup(new maplibregl.Popup({ offset: size / 2 + 4, closeButton: false }).setText(title))
       .addTo(map);
   };
-  options.fixed.forEach((f) => pinMarker(f, f.title, f.kind === "summit" ? 30 : 28));
-  const setWaypoints = (waypoints: Waypoint[]) => {
+  options.fixed.forEach((f) => pinMarker(f, f.title, 28));
+  const setWaypoints = (waypoints: (Waypoint & { color?: string })[]) => {
     waypointMarkers.forEach((m) => m.remove());
-    waypointMarkers = waypoints.map((w) => pinMarker(w, w.name));
+    waypointMarkers = waypoints.map((w) => pinMarker(w, w.name, w.kind === "summit" ? 30 : 26));
   };
   const setPhotos = (photos: RoutePhoto[]) => {
     photoMarkers.forEach((m) => m.remove());
@@ -191,6 +195,47 @@ export function create3dView(container: HTMLElement, options: Options): View3D {
   };
   setWaypoints(options.waypoints);
   setPhotos(options.photos);
+
+  // Keep the camera above the ground. Zooming towards a slope, or tilting low near a ridge, can
+  // put it inside the mountain; there MapLibre's wheel zoom breaks (it can't find the point under
+  // the cursor) and every gesture feels stuck. So: zooming in stops when the camera nears the
+  // ground, after each move it backs out until it clears the terrain, and if the wheel handler
+  // breaks anyway it's reset.
+  let unburying = false;
+  const clearance = () => {
+    const { terrain, transform } = map as unknown as {
+      terrain?: { getElevationForLngLatZoom(lngLat: maplibregl.LngLat, zoom: number): number };
+      transform: { tileZoom: number; getCameraPosition(): { lngLat: maplibregl.LngLat; altitude: number } };
+    };
+    if (!terrain) return Infinity;
+    const camera = transform.getCameraPosition();
+    return camera.altitude - terrain.getElevationForLngLatZoom(camera.lngLat, transform.tileZoom);
+  };
+  map.on("move", () => {
+    if (following || unburying) return;
+    if (clearance() < MIN_CLEARANCE_M / 2 && map.getZoom() < map.getMaxZoom()) map.setMaxZoom(map.getZoom());
+  });
+  map.on("moveend", () => {
+    if (following || unburying) return;
+    map.setMaxZoom(MAX_ZOOM);
+    if (clearance() >= MIN_CLEARANCE_M) return;
+    unburying = true;
+    const from = { zoom: map.getZoom(), pitch: map.getPitch() };
+    const to = { ...from };
+    // Mostly back out; flatten the view only when it's tilted a lot.
+    for (let k = 0; k < 80 && clearance() < MIN_CLEARANCE_M; k++) {
+      to.zoom -= 0.1;
+      if (to.pitch > 60) to.pitch -= 1;
+      map.jumpTo(to);
+    }
+    map.jumpTo(from);
+    unburying = false;
+    map.easeTo({ ...to, duration: 500 });
+  });
+  const recoverWheel = (event: ErrorEvent) => {
+    if (/Invalid LngLat/.test(event.message)) (map.scrollZoom as unknown as { reset(): void }).reset();
+  };
+  window.addEventListener("error", recoverWheel);
 
   // Following the route during replay: look ~400 m ahead, turning smoothly.
   let following = false;
@@ -235,7 +280,10 @@ export function create3dView(container: HTMLElement, options: Options): View3D {
       });
     },
     resize: () => map.resize(),
-    destroy: () => map.remove(),
+    destroy: () => {
+      window.removeEventListener("error", recoverWheel);
+      map.remove();
+    },
   };
 }
 

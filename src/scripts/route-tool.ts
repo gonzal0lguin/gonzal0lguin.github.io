@@ -2,6 +2,7 @@
 // order, analyzes the result with the same code as the posts and renders the same route card.
 
 import { analyzeTrack, parseGpx, stitchTracks, toGpx, type GpxTrack, type Waypoint } from "../lib/gpx-core";
+import { toKml } from "../lib/kml";
 import { renderRouteCard } from "../lib/route-card";
 import { formatClock, formatDay } from "../lib/route-format";
 import { getLang, languages, useTranslations } from "../i18n/ui";
@@ -41,10 +42,12 @@ export function initRouteTool() {
   let parts: Part[] = [];
   let nextId = 0;
   let downloadUrl: string | null = null;
+  let kmlUrl: string | null = null;
 
   const revokeDownload = () => {
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
-    downloadUrl = null;
+    if (kmlUrl) URL.revokeObjectURL(kmlUrl);
+    downloadUrl = kmlUrl = null;
   };
   teardown = revokeDownload;
 
@@ -89,24 +92,35 @@ export function initRouteTool() {
         const downloadName = single ? parts[0].file.name : `${slugify(title)}.gpx`;
         // One untouched file is offered back as is; otherwise a GPX with the stitched track and the marks.
         const setDownload = (blob: Blob) => {
-          revokeDownload();
+          if (downloadUrl) URL.revokeObjectURL(downloadUrl);
           downloadUrl = URL.createObjectURL(blob);
           return downloadUrl;
         };
         const generated = () => new Blob([toGpx(track)], { type: "application/gpx+xml" });
+        // The whole route for Google Earth, with the current marks.
+        const setKml = () => {
+          if (kmlUrl) URL.revokeObjectURL(kmlUrl);
+          const kml = toKml({ ...route, waypoints: track.waypoints }, { lang, title });
+          kmlUrl = URL.createObjectURL(new Blob([kml], { type: "application/vnd.google-earth.kml+xml" }));
+          return kmlUrl;
+        };
         result.innerHTML = renderRouteCard(route, {
           lang,
           title,
           timezone,
           download: setDownload(single && !saved ? parts[0].file : generated()),
           downloadName,
+          kml: setKml(),
+          kmlName: downloadName.replace(/\.gpx$/i, "") + ".kml",
           editable: true,
         });
         result.querySelector("[data-route-map]")?.addEventListener("route:waypoints", (event) => {
           track.waypoints = (event as CustomEvent<Waypoint[]>).detail;
           saveMarks(key, track.waypoints);
-          const link = result.querySelector<HTMLAnchorElement>("a[download]");
+          const link = result.querySelector<HTMLAnchorElement>("a[download]:not([data-open-earth])");
           if (link) link.href = setDownload(generated());
+          const earth = result.querySelector<HTMLAnchorElement>("[data-open-earth]");
+          if (earth) earth.href = setKml();
         });
         initRouteMaps();
         shown = true;

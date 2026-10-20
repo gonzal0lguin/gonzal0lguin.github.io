@@ -36,7 +36,7 @@ Algunas cosas que conviene saber:
 - **Días y campamentos**: cualquier pausa de más de 3 horas se toma como una noche. La herramienta separa la ruta en días y marca dónde acampaste.
 - **El botón ▶︎** recorre la ruta de principio a fin.
 - **Capas**: topográfica, satélite o calles, en el botón de capas.
-- Haz clic en cualquier punto de la ruta para ver sus coordenadas y abrirlo en **Google Earth 3D** o **Google Maps 3D**.
+- Haz clic en cualquier punto de la ruta para ver sus coordenadas y abrirlo en **Google Earth 3D** o **Google Maps 3D**, con un pin en ese punto.
 
 ### 3. Analiza un tramo
 
@@ -48,7 +48,9 @@ Arrastra el mouse (o el dedo) sobre el perfil para seleccionar un tramo. Ves su 
 
 Este es el uso que más me interesaba. Presiona **Marcar** y haz clic en el mapa o en el perfil para dejar un punto. Si haces clic sobre la ruta, el punto se pega a ella; si haces clic fuera (por ejemplo, un mirador al otro lado del valle), queda exactamente donde hiciste clic.
 
-Cada punto tiene un tipo (campamento, cumbre, mirador, agua, refugio, paso clave, peligro, estacionamiento o nota), un nombre y una nota opcional. Se pueden arrastrar, editar y borrar.
+Cada punto tiene un tipo (campamento, cumbre, mirador, agua, refugio, paso clave, peligro, estacionamiento o nota), un nombre y una nota opcional. Se pueden arrastrar, editar y borrar, y también puedes escribir o pegar sus coordenadas para dejarlo en un lugar exacto.
+
+Sirve, por ejemplo, para la cumbre a la que no llegaste: márcala donde está y el punto más alto de tu track aparece como **Punto más alto** en vez de cumbre, y la cumbre muestra a qué distancia quedó de tu ruta.
 
 ![Editor de puntos sobre el mapa con los tipos de punto](route-tool/marks.jpg "Marcando un paso clave con su nota")
 
@@ -59,6 +61,8 @@ También puedes marcar desde la pestaña **Paradas**: muestra todas las detencio
 ### 5. Mira el terreno en 3D
 
 El botón **3D** muestra la ruta sobre el relieve real, con imagen satelital o mapa topográfico. Puedes inclinar y girar la vista, y con ▶︎ la cámara vuela siguiendo la ruta. Es la mejor forma que encontré de entender por dónde va realmente una ruta en un valle cerrado.
+
+Y si prefieres Google Earth, el botón **Abrir en Google Earth** descarga la ruta completa como KML (con la línea de cada día y todos los puntos) y abre Google Earth en otra pestaña. Ahí se importa desde *Proyectos → Nuevo proyecto → Importar archivo KML desde el computador*; en Google Earth Pro o en la app del celular basta con abrir el archivo.
 
 ![Vista 3D de la ruta sobre imagen satelital y relieve](route-tool/3d.jpg "La misma ruta en 3D, con los puntos marcados")
 
