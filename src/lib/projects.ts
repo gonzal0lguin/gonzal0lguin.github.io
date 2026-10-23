@@ -4,7 +4,7 @@ export const PROJECT_CATEGORIES = ["academic-projects", "hobby-projects", "perso
 export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number];
 
 export const PROJECT_CATEGORY_IMAGES: Record<ProjectCategory, string> = {
-  "academic-projects": "/assets/img/headers/about.JPG",
-  "hobby-projects": "/assets/img/headers/about.JPG",
-  personal: "/assets/img/headers/about.JPG",
+  "academic-projects": "/assets/img/posts/sem-navae/park-run.png",
+  "hobby-projects": "/assets/img/posts/route-tool/3d-en.jpg",
+  personal: "/assets/img/headers/cayutue.jpg",
 };
