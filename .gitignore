@@ -20,3 +20,5 @@ pnpm-debug.log*
 
 # Astro
 .astro/
+# editor backups and trash (the /edit tool, see editing.md)
+.editor-local/

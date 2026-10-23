@@ -20,7 +20,7 @@ tags: ['Mountain']
 ## Aproximación
 Hicimos el intento por la ruta normal, esta vez fuimos Rafa, Muster y yo, sin chupi. El sendero comienza desde los predios de don Orlando,
     quien cobra 10mil pesos por el estacionamiento. EL sendero, luego de cruzar por primera vez el estero, te hace ganar altura rapidamente por una ladera oeste con muchos ... nombre del arbol ...
-    poco a poco se avanza hasta que finalmente se logra ver el cerro Morado, llegando a la quebrada de ... . Acá, se atraviesan varios humedales con mucha vegetacion y es una de las partes mas bonitas del sendero del primer dia.
+poco a poco se avanza hasta que finalmente se logra ver el cerro Morado, llegando a la quebrada de ... . Acá, se atraviesan varios humedales con mucha vegetacion y es una de las partes mas bonitas del sendero del primer dia.
     LLegando al final de la quebrada comienza un acarreo de unos 150mts, hasta llegar a una explanada donde nosotros nos pusimos las btoas rigidas ya que la nieve comenzaba aca.
 
 ## Cumbre

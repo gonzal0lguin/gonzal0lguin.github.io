@@ -7,6 +7,7 @@ import remarkMath from 'remark-math';
 import remarkMedia from './src/plugins/remark-media.mjs';
 import { loadEnv } from 'vite';
 import rehypeKatex from 'rehype-katex';
+import editor from './editor/vite-plugin.mjs';
 
 // Photos referenced by a relative path in posts are resolved against this base URL, so the
 // photo library can live outside the repo (see src/lib/media.mjs and the README).
@@ -24,7 +25,12 @@ export default defineConfig({
       i18n: { defaultLocale: 'es', locales: { es: 'es-CL', en: 'en-GB' } },
     }),
   ],
-  markdown: {
+  vite: {
+    // The editor at /edit: a development-only tool (see editing.md). The plugin declares
+    // `apply: "serve"`, so it does nothing during a build.
+    plugins: [editor()],
+  },
+    markdown: {
     remarkPlugins: [remarkMath, remarkDirective, [remarkMedia, { baseUrl: PUBLIC_MEDIA_BASE_URL }]],
     rehypePlugins: [rehypeKatex],
   },

@@ -1,0 +1,34 @@
+---
+// The developer editor, at http://localhost:4321/edit — and nowhere else.
+//
+// `getStaticPaths` returns nothing unless the dev server is running, so `npm run build`
+// generates no page for this route: it is not in dist/, not in the sitemap and not on the
+// deployed site. Its API (editor/vite-plugin.mjs) is likewise dev-only.
+//
+// See editing.md for what the editor can do.
+import { DARK_THEME } from "../../config";
+
+export function getStaticPaths() {
+  if (!import.meta.env.DEV) return [];
+  return [{ params: { path: undefined } }];
+}
+---
+
+<!doctype html>
+<html lang="es" data-theme={DARK_THEME}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Editor del sitio</title>
+  </head>
+  <body>
+    <div class="ed-app" id="ed-app"></div>
+    <!-- `is:inline` and a dynamic import on purpose: Astro does not follow them, so the
+         editor's code and CSS stay out of the production bundle. In dev the path is
+         resolved by Vite like any other module. -->
+    <script is:inline>
+      import("/src/editor/boot.ts").then(({ boot }) => boot(document.getElementById("ed-app")));
+    </script>
+  </body>
+</html>

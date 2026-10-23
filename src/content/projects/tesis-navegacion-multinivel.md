@@ -39,7 +39,7 @@ Todo esto como el nivel **superior** de una arquitectura de dos niveles: el infe
 
 ## La arquitectura
 
-![Diagrama general de la solución al problema de navegación global](sem-navae/global-systemn.png "El planificador global completo: generación (CVAE) arriba, selección (VLM) abajo, y el planificador local como consumidor final")
+![](tesis-navegacion-multinivel/global-system.png)
 
 El planificador global se divide en dos etapas secuenciales:
 
@@ -118,7 +118,7 @@ $$
 \mathbf{y}' = K[I_3|0]\,\mathbf{y}_c
 $$
 
-![Proyección de una trayectoria al plano de la imagen](sem-nave/camera-projection.png "Del sistema del robot al plano imagen, donde vive el mapa de costos")
+![Proyección de una trayectoria al plano de la imagen](tesis-navegacion-multinivel/camera-projection.png#off "Del sistema del robot al plano imagen, donde vive el mapa de costos")
 
 Y el costo es la suma descontada de los costos en cada *waypoint* proyectado:
 

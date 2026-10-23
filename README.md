@@ -62,6 +62,12 @@ Each generated English file records a `translationHash` of the Spanish file it c
 
 ## Managing Content
 
+Everything below can also be done from a browser: `npm run dev` and open
+**[localhost:4321/edit](http://localhost:4321/edit)**, a development-only editor for this
+repository's own content — entries as editable blocks, drag & drop photos with their layout and
+their place on the route map, the GPX routes in the route tool, plus checks and commits.
+It is never part of a build or of the deployed site. See **[editing.md](editing.md)**.
+
 This site uses Astro's Content Collections to manage structured markdown content. There are three main collections: **Projects**, **Ascents**, and **Blog**.
 
 ### 1. Projects
