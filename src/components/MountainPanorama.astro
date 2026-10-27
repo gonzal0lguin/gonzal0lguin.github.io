@@ -1,0 +1,471 @@
+---
+// The whole horizon as seen from the top of the hill, drawn the way a panorama artist would:
+// 360° from left to right at true proportions — one degree across is one degree up — with
+// the ridges that stand in front of one another, the named summits on them, and my own
+// routes where they're in view. A second tab opens the same view in 3D (scripts/panorama-3d.ts).
+//
+// The drawing is terrain, not data: eight depth bands (each the skyline of everything within
+// a distance) shaded from near to far like haze, plus the silhouette edges where one ridge
+// passes in front of another. All of it comes from scripts/terrain.mjs, which casts 7,200
+// sight lines over the Copernicus 30 m elevation model. Colour is saved for the summits:
+// solid when the model clears them, hollow when they land within 0.06° of the ground in front
+// (inside the model's own error), and a dashed ghost when a nearer ridge hides them.
+import { PANORAMA, PEAKS, ROUTES, VIEW_STATS, VIEWPOINT, type Peak } from "../data/hill";
+import "../styles/inventory.css";
+import { languages, getLangFromUrl, localizePath, useTranslations, type UIKey } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+// ---------------------------------------------------------------------------- geometry
+
+/** viewBox units per degree, on both axes: no vertical exaggeration. */
+const PX = 32;
+const WIDTH = 360 * PX;
+/** Strip of the 360° repeated on each side, so north has no seam (the script wraps the scroll). */
+const OVERLAP = 120 * PX;
+const A_TOP = VIEW_STATS.highestSkyline;
+const A_MIN = -1.5;
+const LABEL_ROOM = 236;
+const RULER = 34;
+const y = (angle: number) => LABEL_ROOM + (A_TOP - angle) * PX;
+const HEIGHT = Math.round(y(A_MIN) + RULER);
+const x = (azimuth: number) => azimuth * PX;
+const f1 = (value: number) => Math.round(value * 10) / 10;
+
+const path = (points: number[][]) => points.map(([az, a], i) => `${i ? "L" : "M"}${f1(x(az))} ${f1(y(a))}`).join("");
+const fill = (points: number[][]) => `${path(points)}L${WIDTH} ${HEIGHT}L0 ${HEIGHT}Z`;
+
+/** The skyline angle at a bearing, from the full-resolution polyline. */
+const skylineAt = (() => {
+  const line = PANORAMA.skyline;
+  return (azimuth: number) => {
+    const az = ((azimuth % 360) + 360) % 360;
+    const i = line.findIndex(([a]) => a >= az);
+    if (i <= 0) return line[0][1];
+    const [a0, v0] = line[i - 1];
+    const [a1, v1] = line[i];
+    return v0 + ((v1 - v0) * (az - a0)) / (a1 - a0 || 1);
+  };
+})();
+const skylineMax = (from: number, to: number) => {
+  let max = -90;
+  for (let az = from; az <= to; az += 0.05) max = Math.max(max, skylineAt(az));
+  return max;
+};
+
+// Depth bands, far first so the nearer ones are painted over them.
+const BANDS = PANORAMA.bands
+  .map((km, i) => ({ km, points: PANORAMA.bandSkylines[i], share: i / (PANORAMA.bands.length - 1) }))
+  .reverse();
+
+/** Silhouette edges, heavier and darker the nearer the ridge. */
+const ridgeClass = (distance: number) =>
+  distance < 4000 ? "near" : distance < 12000 ? "mid" : distance < 30000 ? "far" : "farthest";
+
+// ---------------------------------------------------------------------------- summits
+
+const COMPASS = {
+  es: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
+  en: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
+};
+const compass = (azimuth: number) => COMPASS[lang][Math.round(azimuth / 22.5) % 16];
+
+const slug = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+
+/** Without the "Cerro" every other name starts with, so labels stay short. */
+const short = (name: string) => name.replace(/^(Cerro|Volcán) /, "");
+const height = (peak: Peak) => peak.ele ?? peak.model;
+const ascentUrl = (peak: Peak) => (peak.ascent ? localizePath(lang, `/ascents/${peak.ascent.slug}/`) : null);
+const km = (distance: number) => number(distance, distance < 10 ? 1 : 0);
+
+// What goes on the drawing: everything in view, plus the hidden summits the post talks about.
+const drawn = PEAKS.filter((peak) => peak.status !== "hidden" || peak.named);
+const priority = (peak: Peak) =>
+  (peak.named ? 100_000 : 0) +
+  (peak.ascent ? 50_000 : 0) +
+  (peak.status === "hidden" ? -60_000 : 0) +
+  (peak.skyline ? 3_000 : 0) +
+  height(peak);
+
+// Labels sit on top of the local skyline and climb in rows of 27 units until they fit, best
+// summits first. Whatever doesn't fit keeps its dot and its tooltip.
+type Placed = Peak & { id: string; dotY: number; labelX: number; labelY: number | null; half: number };
+const boxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+const ROW = 27;
+const placed: Placed[] = drawn
+  .map((peak) => ({ peak, score: priority(peak) }))
+  .sort((a, b) => b.score - a.score)
+  .map(({ peak }) => {
+    const name = short(peak.name) + (peak.ascent ? " ↗\uFE0E" : "");
+    const meta = `${number(height(peak))} m · ${km(peak.distance)} km`;
+    const half = Math.max(name.length * 7, meta.length * 5.7) / 2 + 4;
+    const at = x(peak.azimuth);
+    const ground = Math.max(skylineMax(peak.azimuth - half / PX, peak.azimuth + half / PX), peak.angle);
+    let labelY: number | null = null;
+    for (let row = 0; row < 8; row++) {
+      const top = y(ground) - 30 - row * ROW;
+      if (top < 14) break;
+      const box = { x0: at - half, x1: at + half, y0: top - 12, y1: top + 14 };
+      if (!boxes.some((b) => b.x0 < box.x1 && box.x0 < b.x1 && b.y0 < box.y1 && box.y0 < b.y1)) {
+        boxes.push(box);
+        labelY = top;
+        break;
+      }
+    }
+    return { ...peak, id: slug(`${peak.name}-${peak.osm}`), dotY: y(peak.angle), labelX: at, labelY, half };
+  })
+  .sort((a, b) => a.azimuth - b.azimuth);
+
+// Hidden summits with a visible flank: the bit of the mountain that does show.
+const flanks = placed.filter((peak) => peak.flank);
+
+// My routes, where the hilltop can see them.
+const routes = ROUTES.filter((route) => route.visibleShare > 0);
+
+const inView = PEAKS.filter((peak) => peak.status !== "hidden");
+const tableRows = PEAKS.filter((peak) => peak.status !== "hidden" || peak.named).sort((a, b) => a.distance - b.distance);
+const aconcagua = PEAKS.find((peak) => peak.name === "Cerro Aconcagua" && peak.named);
+
+const STATUS_GLYPH: Record<Peak["status"], string> = { visible: "✓", borderline: "~", hidden: "✕" };
+const statusLabel = (status: Peak["status"]) => t(`cerro.panorama.${status}` as UIKey);
+
+// For the 3D view: just what it needs to place labels and the camera.
+const viewData = {
+  viewpoint: VIEWPOINT,
+  mesh: PANORAMA.mesh,
+  peaks: placed.map((peak) => ({
+    id: peak.id,
+    name: peak.name,
+    short: short(peak.name),
+    ele: height(peak),
+    model: peak.model,
+    azimuth: peak.azimuth,
+    distance: peak.distance,
+    angle: peak.angle,
+    status: peak.status,
+    named: peak.named,
+    url: ascentUrl(peak),
+  })),
+  labels: Object.fromEntries(
+    ["loading", "failed", "time", "season", "summer", "autumn", "winter", "spring", "labels", "sunrise", "sunset", "reset", "fullscreen", "surface", "satellite", "relief"].map(
+      (key) => [key, t(`cerro.panorama.3d.${key}` as UIKey)],
+    ),
+  ),
+};
+
+const TICKS = Array.from({ length: 72 }, (_, i) => i * 5);
+const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
+---
+
+<section class="mountain-panorama not-prose iv-block" data-panorama>
+  <h3 class="iv-block__title">{t("cerro.panorama.title")}</h3>
+  <p class="iv-note">{t("cerro.panorama.note")}</p>
+
+  <div class="iv-stats mp-stats">
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{inView.length}</span>
+      <span class="iv-stat__label">{t("cerro.panorama.stat.peaks")}</span>
+      <span class="iv-stat__hint">{t("cerro.panorama.stat.peaksNote")}</span>
+    </div>
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{number(VIEW_STATS.visibleArea)} km²</span>
+      <span class="iv-stat__label">{t("cerro.panorama.stat.area")}</span>
+      <span class="iv-stat__hint">{t("cerro.panorama.stat.areaNote", { n: number(VIEW_STATS.above3000) })}</span>
+    </div>
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{number(VIEW_STATS.farthest.distance)} km</span>
+      <span class="iv-stat__label">{t("cerro.panorama.stat.farthest")}</span>
+      <span class="iv-stat__hint">
+        {t("cerro.panorama.stat.farthestNote", { ele: number(VIEW_STATS.farthest.elevation), dir: compass(VIEW_STATS.farthest.azimuth) })}
+      </span>
+    </div>
+    {
+      aconcagua?.flank && (
+        <div class="iv-stat">
+          <span class="iv-stat__value iv-num">{number(aconcagua.flank.elevation)} m</span>
+          <span class="iv-stat__label">{t("cerro.panorama.stat.highest")}</span>
+          <span class="iv-stat__hint">{t("cerro.panorama.stat.highestNote")}</span>
+        </div>
+      )
+    }
+  </div>
+
+  <div class="mp-toolbar">
+    <div class="mp-tabs" role="tablist">
+      <button type="button" role="tab" class="mp-tab" aria-selected="true" data-mp-tab="drawing">{t("cerro.panorama.tab.drawing")}</button>
+      <button type="button" role="tab" class="mp-tab" aria-selected="false" data-mp-tab="3d">{t("cerro.panorama.tab.3d")}</button>
+    </div>
+    <div class="mp-jump">
+      <span class="mp-jump__label">{t("cerro.panorama.jump")}</span>
+      {
+        [0, 90, 180, 270].map((azimuth) => (
+          <button type="button" class="mp-jump__btn" data-jump={azimuth}>
+            {compass(azimuth)}
+          </button>
+        ))
+      }
+      {
+        aconcagua && (
+          <button type="button" class="mp-jump__btn" data-jump={aconcagua.azimuth}>
+            Aconcagua
+          </button>
+        )
+      }
+    </div>
+    <div class="mp-jump" data-mp-zoom-group>
+      <span class="mp-jump__label">{t("cerro.panorama.zoom")}</span>
+      <button type="button" class="mp-jump__btn" data-mp-zoom="0.5">½×</button>
+      <button type="button" class="mp-jump__btn is-active" data-mp-zoom="1">1×</button>
+      <button type="button" class="mp-jump__btn" data-mp-zoom="2">2×</button>
+    </div>
+  </div>
+
+  <div class="mp-stage">
+    <div class="mountain-panorama__chart" data-panorama-scroll tabindex="0" aria-label={t("cerro.panorama.scrollLabel")}>
+      <svg
+        viewBox={`${-OVERLAP} 0 ${WIDTH + 2 * OVERLAP} ${HEIGHT}`}
+        role="img"
+        aria-label={t("cerro.panorama.title")}
+        data-px={PX}
+        data-overlap={OVERLAP}
+        style={`--mp-w:${WIDTH + 2 * OVERLAP};--mp-h:${HEIGHT}`}
+      >
+        <defs>
+          <linearGradient id="mp-sky" x1="0" y1="0" x2="0" y2={y(0)} gradientUnits="userSpaceOnUse">
+            <stop offset="0" class="mp-sky__top" />
+            <stop offset="1" class="mp-sky__horizon" />
+          </linearGradient>
+        </defs>
+        <rect x={-OVERLAP} y="0" width={WIDTH + 2 * OVERLAP} height={HEIGHT} fill="url(#mp-sky)" />
+
+        <g id="mp-scene">
+          {/* Apparent height, every 2°. */}
+          {GRID_ANGLES.map((a) => <line class="mp-grid" x1="0" x2={WIDTH} y1={y(a)} y2={y(a)} />)}
+
+          {
+            BANDS.map((band) => (
+              <path
+                class="mp-band"
+                d={fill(band.points)}
+                style={`fill:color-mix(in oklab, var(--mp-near) ${Math.round((1 - band.share) * 100)}%, var(--mp-far))`}
+              />
+            ))
+          }
+          <g class="mp-ridges">
+            {PANORAMA.ridges.map((ridge) => <path class={`mp-ridge mp-ridge--${ridgeClass(ridge.distance)}`} d={path(ridge.points)} />)}
+          </g>
+          <path class="mp-skyline" d={path(PANORAMA.skyline)} />
+
+          {
+            routes.map((route) => (
+              <g class="mp-route">
+                <title>{route.title}</title>
+                {route.runs.map((run) => (
+                  <path class={`mp-route__run${run.visible ? "" : " mp-route__run--hidden"}`} d={path(run.points)} />
+                ))}
+              </g>
+            ))
+          }
+
+          {flanks.map((peak) => <path class="mp-flank" d={`M${f1(x(peak.flank!.azimuth))} ${f1(y(peak.flank!.angle) - 4)}l-5 -9h10z`} />)}
+
+          {/* Bearing ruler. */}
+          <rect class="mp-ruler" x="0" y={HEIGHT - RULER} width={WIDTH} height={RULER} />
+          {
+            TICKS.map((azimuth) => (
+              <g>
+                <line
+                  class="mp-tick"
+                  x1={x(azimuth)}
+                  x2={x(azimuth)}
+                  y1={HEIGHT - RULER}
+                  y2={HEIGHT - RULER + (azimuth % 45 === 0 ? 10 : azimuth % 15 === 0 ? 7 : 4)}
+                />
+                {azimuth % 15 === 0 && (
+                  <text class={`mp-tick__label${azimuth % 45 === 0 ? " mp-tick__label--cardinal" : ""}`} x={x(azimuth)} y={HEIGHT - 8} text-anchor="middle">
+                    {azimuth % 45 === 0 ? compass(azimuth) : `${azimuth}°`}
+                  </text>
+                )}
+              </g>
+            ))
+          }
+        </g>
+
+        {/* The same scene again on each side of the seam; the summits stay single and interactive. */}
+        <use href="#mp-scene" x={-WIDTH} class="mp-clone" aria-hidden="true" />
+        <use href="#mp-scene" x={WIDTH} class="mp-clone" aria-hidden="true" />
+
+        <g>
+          {
+            placed.map((peak) => {
+              const url = ascentUrl(peak);
+              const label = peak.labelY !== null && (
+                <>
+                  <text class="mp-name" x={peak.labelX} y={peak.labelY} text-anchor="middle">
+                    {short(peak.name)}
+                    {url && " ↗\uFE0E"}
+                  </text>
+                  <text class="mp-meta" x={peak.labelX} y={peak.labelY + 12} text-anchor="middle">
+                    {number(height(peak))} m · {km(peak.distance)} km
+                  </text>
+                </>
+              );
+              return (
+                <g
+                  class={`mp-peak mp-peak--${peak.status}${url ? " mp-peak--climbed" : ""}`}
+                  data-peak={peak.id}
+                  data-azimuth={peak.azimuth}
+                  tabindex="0"
+                  role="button"
+                  aria-label={`${peak.name} — ${number(height(peak))} m, ${number(peak.distance, 1)} km, ${compass(peak.azimuth)} — ${statusLabel(peak.status)}`}
+                >
+                  <title>
+                    {peak.name} — {number(height(peak))} m · {number(peak.distance, 1)} km · {compass(peak.azimuth)} {number(peak.azimuth)}° ·{" "}
+                    {number(peak.angle, 2)}° — {statusLabel(peak.status)}
+                    {peak.status === "hidden" && peak.hiddenBy && ` (${t("cerro.panorama.behind", { name: short(peak.hiddenBy) })})`}
+                  </title>
+                  {peak.labelY !== null && <line class="mp-leader" x1={peak.labelX} x2={x(peak.azimuth)} y1={peak.labelY + 16} y2={peak.dotY - 7} />}
+                  <circle class="mp-halo" cx={x(peak.azimuth)} cy={peak.dotY} r="10" />
+                  <circle class="mp-dot" cx={x(peak.azimuth)} cy={peak.dotY} r={peak.status === "hidden" ? 4 : 4.5} />
+                  {url ? <a href={url}>{label}</a> : label}
+                  <rect class="mp-hit" x={x(peak.azimuth) - 9} y={peak.dotY - 9} width="18" height="18" />
+                  {peak.labelY !== null && <rect class="mp-hit" x={peak.labelX - peak.half} y={peak.labelY - 13} width={peak.half * 2} height="30" />}
+                </g>
+              );
+            })
+          }
+        </g>
+      </svg>
+    </div>
+    <div class="mp-heading" aria-hidden="true" data-mp-heading></div>
+    <div class="mp-3d" data-panorama-3d hidden>
+      <p class="mp-3d__status" data-mp-3d-status>{t("cerro.panorama.3d.loading")}</p>
+    </div>
+  </div>
+
+  <p class="iv-note mp-hint" data-mp-hint="drawing">{t("cerro.panorama.hint")}</p>
+  <p class="iv-note mp-hint" data-mp-hint="3d" hidden>{t("cerro.panorama.3d.hint")}</p>
+
+  <div class="iv-legend">
+    {
+      (["visible", "borderline", "hidden"] as const).map((status) => (
+        <span class="iv-legend__item">
+          <svg width="16" height="12" aria-hidden="true" class={`mp-peak mp-peak--${status}`}>
+            <circle class="mp-dot" cx="8" cy="6" r="4.5" />
+          </svg>
+          {t(`cerro.panorama.legend.${status}` as UIKey)}
+        </span>
+      ))
+    }
+    {
+      flanks.length > 0 && (
+        <span class="iv-legend__item">
+          <svg width="16" height="12" aria-hidden="true">
+            <path class="mp-flank" d="M8 11l-5 -9h10z" />
+          </svg>
+          {t("cerro.panorama.legend.flank")}
+        </span>
+      )
+    }
+    {
+      routes.length > 0 && (
+        <span class="iv-legend__item">
+          <svg width="22" height="12" aria-hidden="true">
+            <path class="mp-route__run" d="M1 6h20" />
+          </svg>
+          {t("cerro.panorama.legend.route")}
+        </span>
+      )
+    }
+    <span class="iv-legend__item">
+      <svg width="40" height="12" aria-hidden="true">
+        {[0, 1, 2, 3].map((i) => <rect x={i * 10} y="1" width="10" height="10" style={`fill:color-mix(in oklab, var(--mp-near) ${100 - i * 33}%, var(--mp-far))`} />)}
+      </svg>
+      {t("cerro.panorama.legend.depth")}
+    </span>
+  </div>
+  <p class="iv-note" style="margin-top:.625rem">{t("cerro.panorama.borderlineNote")}</p>
+
+  <details class="mp-table">
+    <summary>{t("cerro.panorama.table", { n: tableRows.length })}</summary>
+    <div class="iv-table-wrap mp-table__wrap">
+      <table class="iv-table">
+        <thead>
+          <tr>
+            <th>{t("cerro.panorama.peak")}</th>
+            <th>{t("cerro.panorama.elevation")}</th>
+            <th>{t("cerro.panorama.distance")}</th>
+            <th>{t("cerro.panorama.bearing")}</th>
+            <th>{t("cerro.panorama.angle")}</th>
+            <th>{t("cerro.panorama.showing")}</th>
+            <th>{t("cerro.table.status")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            tableRows.map((peak) => {
+              const id = slug(`${peak.name}-${peak.osm}`);
+              const url = ascentUrl(peak);
+              return (
+                <tr data-peak-row={id}>
+                  <td>
+                    <button type="button" class="mp-row-btn" data-peak-show={id} title={t("cerro.panorama.show", { name: peak.name })}>
+                      {peak.name}
+                    </button>
+                    {url && (
+                      <a class="mp-row-ascent" href={url}>
+                        {t("cerro.panorama.climbed")}
+                      </a>
+                    )}
+                  </td>
+                  <td class="iv-num">{number(height(peak))} m</td>
+                  <td class="iv-num">{number(peak.distance, 1)} km</td>
+                  <td class="iv-num">
+                    {compass(peak.azimuth)} <em>{number(peak.azimuth)}°</em>
+                  </td>
+                  <td class="iv-num">{number(peak.angle, 2)}°</td>
+                  <td class="iv-num">
+                    {peak.showing > 0
+                      ? `${number(peak.showing)} m`
+                      : peak.flank
+                        ? t("cerro.panorama.flankShort", { ele: number(peak.flank.elevation) })
+                        : "—"}
+                  </td>
+                  <td>
+                    <span class="iv-table__status">
+                      <span aria-hidden="true">{STATUS_GLYPH[peak.status]}</span>
+                      {statusLabel(peak.status)}
+                    </span>
+                    {peak.status === "hidden" && peak.hiddenBy && <span class="mp-behind">{t("cerro.panorama.behind", { name: short(peak.hiddenBy) })}</span>}
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <p class="iv-note mp-source">{t("cerro.panorama.source")}</p>
+
+  <script type="application/json" data-panorama-data set:html={JSON.stringify(viewData)} />
+</section>
+
+<script>
+  // Panning, zoom, the summit ↔ table link and the 3D tab, on the first load and after every
+  // view-transition navigation.
+  document.addEventListener("astro:page-load", async () => {
+    if (!document.querySelector("[data-panorama]")) return;
+    const { initMountainPanorama } = await import("../scripts/mountain-panorama");
+    initMountainPanorama();
+  });
+</script>

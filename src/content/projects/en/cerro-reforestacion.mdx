@@ -1,0 +1,228 @@
+---
+title: "My hill: reforesting an island hill in Calle Larga"
+category: "personal"
+description: "A native-plant reforestation project my sister and I run on a small hill in Valle Alegre, Calle Larga. It includes the digital inventory of the 44 plants we put in during 2025, the view from the top in 2D and 3D, the weather of that first year, and an open invitation to join."
+pubDate: 2026-10-26
+author: Gonzalo Olguin
+tags: [reforestación, flora nativa, los andes, calle larga, mapas]
+---
+
+import PlantInventory from "../../../components/PlantInventory.astro";
+import MountainPanorama from "../../../components/MountainPanorama.astro";
+import ViewshedMap from "../../../components/ViewshedMap.astro";
+import HillSun from "../../../components/HillSun.astro";
+import GrowthScale from "../../../components/GrowthScale.astro";
+import ClimateStory from "../../../components/ClimateStory.astro";
+
+{/* COVER PHOTO: the south face of the hill with the Andes behind, ideally in spring.
+    When it exists, add to the frontmatter: heroImage: /assets/img/headers/cerro.jpg */}
+
+There's a small hill a few minutes from my house that I've been going up since I was a teenager. First by bike, then by car, and lately with the car full of water bottles. It has no interesting summit, no route, it's in no guidebook: it's a ridge about 400 metres long that rises barely 25 metres above the fields around it. But from the top you can see the whole Aconcagua valley, and that changes everything.
+
+I've called it **"my hill"** all my life. I went to look at the mountains, to be there, nothing more. And because I went so often for so many years, I ended up seeing something you don't notice if you go once: the seasons passing. The dry brown hill of summer, the green that comes back with the first rains, the spring full of azulillos and alstroemerias. Watching that repeat year after year in the same place is a strange and very good way of measuring time.
+
+{/* TO DO: if you like, tell something of your own from those trips up the hill — an afternoon, a person, something you saw. */}
+
+This post is about what my sister and I are doing there: planting a forest.
+
+{/* GALLERY: the hill in different seasons, same view if possible.
+:::gallery{cols=2 ratio=4/3 caption="The same place in winter, spring, summer and autumn"}
+![The hill in winter](cerro/invierno.jpg)
+![The hill in spring](cerro/primavera.jpg)
+![The hill in summer](cerro/verano.jpg)
+![The hill in autumn](cerro/otono.jpg)
+:::
+*/}
+
+## A hill with no name (or with a name I can't find)
+
+I have to admit a defeat here. I've never known what the hill is called. I think it's **Cerro de la Cruz**, but I can't say for sure.
+
+I searched properly: the hill is in **Valle Alegre, in the comuna of Calle Larga, province of Los Andes**, next to the O'Nell area, and in OpenStreetMap it simply has no name. The nearest named summit is **Cerro La Monja**, 2.2 km to the southwest, which isn't this one. The closest thing to a clue is that one of the streets in the neighbourhood next door is called *Pasaje La Cruz*, which fits my memory but proves nothing.
+
+So it's an open question: **if you know what this hill is called, write to me.** I genuinely want to know, and it seems right that the first thing this project needs from the neighbours is the name of the place.
+
+### The Devil's Seat
+
+What does have a name is a rock. On the hill there's a big stone known as the **Asiento del Diablo**, the Devil's Seat: the story goes that it's shaped like the devil's backside, and that the devils used to sit there to drink water. I haven't found any written version of the legend — and I looked —, which probably means it's a story that only exists spoken, in this neighbourhood and on this hill. That makes it more valuable, not less, and it's one of the reasons it's worth writing something down.
+
+{/* PHOTO: the Devil's Seat, with someone sitting on it for scale.
+![The Devil's Seat](cerro/asiento-del-diablo.jpg "The rock that gives it its name: the story goes that the devils sat here to drink water")
+*/}
+
+## How it started
+
+My sister is the botanist of the family. She loves nature, and **native plants** in particular: she's taken a whole lot of courses, works one day a week as an apprentice at [Vivero Pumahuida](https://www.pumahuida.cl), and this year she organized a native-flora congress. I have a hill I'm disproportionately fond of. The sum was fairly obvious.
+
+The hill isn't degraded, but it's poor. It has **espinos** — the tree that defines the landscape of the central valley — and small native shrubs scattered around, and in spring it fills with flowers: azulillos, alstroemerias and several more we still have to catalogue properly. What it lacks isn't life, it's **density and diversity**: there's a layer on top (the espinos) and a layer below (grass and spring herbs), and almost nothing in between. That middle shrub layer is exactly what sustains the birds, the insects and everyone else's seeds.
+
+And the hill is small. That sounds like a limitation, but it's actually the reason this is possible: it's a piece of land small enough that two people with a car and some water bottles can really change it. We're not restoring a watershed. We're planting a hill you can walk all over in a short while.
+
+The plants are donated by **Vivero Pumahuida**, a nursery in Huechuraba that specialises in plants from Chile's arid and Mediterranean zones. Everything in the inventory came from there.
+
+## Why the south face
+
+We planted everything on the south slope, and the reason is the one anyone who walks the hill sees immediately: **the south face has vegetation and the north face has cacti**. In the southern hemisphere the slope that faces south gets much less direct sun, heats up less, loses less water and keeps its soil moist a good deal longer. On a hill where the limiting factor is water and nothing else, that difference in orientation is the difference between a quillay and a cactus.
+
+Since I couldn't leave it alone, I checked it with data. I downloaded the **Copernicus GLO-30** elevation model, from the European Space Agency — 30-metre cells, the best free model there is for Chile — and asked the ground:
+
+- The summit is at **776 m**, about **25 m** above the surrounding fields (which sit around 750 m).
+- It isn't a round hill but a **ridge about 410 × 140 m**, running east-northeast to west-southwest. That's why its two faces are so distinct.
+- Above the 758 m contour — the body of the hill — there are about **3.6 hectares**. That's roughly the real size of the project if we ever fill it.
+- Where most of the planting is, the ground tilts about **16°** and faces **177°**: practically due south.
+
+And then I did the calculation that really matters: how much sun reaches each bit of the hill. With the sun's real position, day by day through a year:
+
+<HillSun />
+
+**In June the north face gets three times as much direct sun as the south face.** Over the whole year, the south gets roughly a quarter less. In other words: my sister's intuition, the vegetation that was already there and the physics all say the same thing. It's a pleasure when that happens.
+
+An honest note: 30 metres is a big cell for a hill this size. And Copernicus is a *surface* model — it includes trees and roofs —, so the figures are the shape of the ground in broad strokes, not a survey.
+
+{/* PHOTO: the two faces of the hill side by side, ideally on the same day.
+:::gallery{cols=2 ratio=3/2 caption="The two faces of the same hill: scrub to the south, cacti to the north"}
+![South face](cerro/cara-sur.jpg)
+![North face](cerro/cara-norte.jpg)
+:::
+*/}
+
+## The guardians of the valley
+
+The other thing this hill has, and the reason I've been going up it since I was a teenager, is the view. From the top you can see many of the giants of the Aconcagua valley: Mocoen, Colunquén, La Giganta, Alto del Cobre, Parva del Inca, Gloria with Bastión and Glorieta, Becker. You can even make out the massif of the [Algarrobo Traverse](/en/ascents/algarrobo-traverse), which I did last year.
+
+One of the things I'd most like to do on the hill is put up an **infographic with the names of the peaks**. Not as decoration: because in Chile we have no mountain culture, which is incredible for a country that's almost 80% mountains. Most people who live in this valley don't know the names of the mountains they see out of the window every day. A sign can fix that.
+
+Until the sign exists, I computed it — properly this time. From the summit I cast **7,200 sight lines**, one every 0.05°, and walked each one every 30 metres out to 160 km, over the same Copernicus model, with the earth's curvature and atmospheric refraction. That gives the real skyline, and also every ridge that passes in front of another, which is what makes a mountain range look like a mountain range. On top I put every named summit in OpenStreetMap within that radius — more than 1,300 — and for each one I checked whether the ground in between lets you see it.
+
+The drawing is at true scale: a degree across is as long as a degree up, as in a photograph. And the **3D view** tab shows the same thing as if you were standing on top: with the sun where it should be for the time and season you pick, shadows, snow, and satellite imagery draped over the terrain.
+
+<MountainPanorama />
+
+What came out, which mostly confirms what you see and in one part corrected me:
+
+- **Mocoen hides Aconcagua.** Aconcagua's summit sits about 260 m below Mocoen's ridge, which is three times closer and in almost the same direction. But it doesn't hide all of it: just to its right a piece of Aconcagua's south ridge pokes out, at about **6,740 m** — which turns out to be the highest thing you can see from the hill. So the answer to "can you see Aconcagua from my hill?" is: a little, if you know where to look.
+- **The Gloria group** comes out complete: Gloria, Glorieta, Barile and Bastión, the last one literally on the edge — 4 metres of it show.
+- **Algarrobo**: the summit OpenStreetMap marks as Cerro Algarrobo sits just behind its own front ridge, by 45 metres. But **a full quarter** of my traverse track is in view, drawn in orange.
+- **Espinazo del Diablo**: its summit, according to the model, is clearly hidden. On the same range, about 3.6 km away, a 3,900 m ridge peeks out, and that may be what I see as the Espinazo. If someone knows which is which, I'd love to hear it.
+- **None of my Santiago routes is visible.** Provincia, La Cruz, Canoitas, the quadruple crown: all of it is behind the Chacabuco range. Nor are Juncal, Tupungato or Mercedario, even though they're "in that direction".
+
+{/* PHOTO: the Andes from the hill, to compare with the drawing. Ideally the Mocoen and Aconcagua sector.
+![The Andes from the hill](cerro/vista-cordillera.jpg "The view east, with Mocoen in the middle")
+*/}
+
+And since I had the sight lines, I drew it the other way round: not which summits you can see, but **every patch of ground** visible from the top.
+
+<ViewshedMap />
+
+## The digital inventory
+
+During 2025 we planted **44 plants of 11 species**, over six planting days between June and August. Each plant carries an aluminium tag with a code (`QY000`, `LT004`, `HG010`) and is logged in a spreadsheet we keep in the field: species, date, source, coordinates, status and notes.
+
+That spreadsheet is the heart of the project and also its most fragile part: it lives in a shared drive, gets edited with dirty hands and has gaps. So I did what I know how to do: a converter that reads it and turns it into this page's data (`npm run inventory`). **Nothing below is written by hand.** If I edit the spreadsheet and rebuild the site, this updates; and if something's missing here, it's because it's missing there — which is why at the end there's a section that explicitly lists everything the inventory doesn't know.
+
+A warning about the species cards: I wrote them, from general references on the sclerophyll scrub of central Chile, not from a study of this hill. They're pending review by the person in the family who actually studied botany. The photos come from [iNaturalist](https://www.inaturalist.org), each with its author and licence; every card also has links to read more.
+
+<PlantInventory spreadsheet="/assets/INVENTARIO.xlsx" />
+
+And to get a sense of the bet, this is what the slope would look like if it all works out — though "works out", on a dry hill, mostly means the low end of each range:
+
+<GrowthScale />
+
+## The first year, which went pretty badly
+
+Let's say it straight: **2025 was a dry year and we planted too late**. The last two planting days were 10 and 24 August, which leaves a freshly planted seedling very few weeks of soil moisture before the heat starts. Several of the plants that show as "alive" in the inventory are no longer there. The survey froze in the spring of 2025 and the real figure now is worse than what the page shows. I'd rather leave it like that, with the date in plain sight, than dress it up.
+
+I wanted to understand how bad the year really was, and the data tells a slightly different story from the one I had in my head — a more interesting one, too:
+
+<ClimateStory />
+
+It wasn't the year with the least rain: according to the reanalysis, 19% less fell than normal, the same figure a University of Talca agroclimatologist gave for the winter between Valparaíso and Santiago. What made it hard was **when** the water went missing. July got less than a quarter of its usual rain, and right after we planted came a dry and very hot spring: in October the Chilean Weather Service recorded a 70% rainfall deficit in the region, and the Calle Larga station — our comuna — hit **34.9 °C on 18 October**. For a plant one month in the ground with its roots still short, that's the worst thing that can happen.
+
+The root cause, though, isn't the weather, it's **watering**. The current system is: we go up once a week with dozens of water bottles in the car and carry them by hand to each plant. That works for ten plants. For forty-four, spread across the slope, in January, it doesn't: there's always a group that ends up without water, and that group is the one that dies. And the chart above says why there's no shortcut: from September to April the air draws far more water out of the ground than falls on it.
+
+The other thing we learned is more depressing: a quillay was **stolen or destroyed**. One in forty-four, so not a catastrophe, but a reminder that a hill next to a neighbourhood isn't fenced land, and anything we plant there also has to survive people.
+
+{/* PHOTOS: the planting days — the hole, the tag, watering with bottles.
+:::carousel{ratio=3/2 caption="The 2025 planting days"}
+![Planting](cerro/plantacion-1.jpg)
+![Aluminium tag](cerro/etiqueta.jpg)
+![Watering with bottles](cerro/riego-botellas.jpg)
+:::
+*/}
+
+## What's next
+
+None of these ideas is under way yet. I'm writing them down anyway, in enough detail that someone could pick them up, because the bottleneck of this project isn't money or permission: it's that we're two people with jobs.
+
+### 1. Watering that doesn't depend on our hands
+
+This is the absolute priority, because it's the direct cause of the first year's deaths. The idea is a **tank** at the top — 500 or 1,000 litres — refilled now and then by a water truck or with jerrycans, and from there a gravity-fed drip network down to the plants. The slope helps: tank above and plants below means no pump is needed, just hose and the pressure of height.
+
+With that, a weekly visit would go from "carrying two hundred kilos of water up the hill" to "opening a tap and checking drippers". And the calendar is clear: it has to be working before September, when the deficit begins. It's the difference between a project that depends on our energy and one that doesn't.
+
+### 2. Plant earlier
+
+The other cheap lesson of the first year: plant in **May and June**, with the first rains, not in August. A plant that reaches spring with three months of root instead of one is a different story.
+
+### 3. Have the neighbourhood's children adopt a tree
+
+This is the one that excites me most. The hill is next to a small neighbourhood, with its *junta de vecinos* (residents' association). The idea is that each child or family **"adopts" a plant**: whichever code they get, with their name attached, and takes charge of watering it in the dry seasons.
+
+It isn't just distributed labour. A tree with a known owner doesn't get stolen, and a hill with forty children who know which tree is theirs stops being nobody's land. The digital inventory on this page is designed for that: every plant already has a code, a species, a card and a position, so the adoption list is ready to put together.
+
+We talked once with the president of the junta de vecinos and it went well. We didn't take it further for lack of time, nothing else.
+
+### 4. A clean-up day, with the municipality
+
+There's **a lot of rubbish** on the hill, and not picnic rubbish: televisions, mattresses, cables. People drive up in pickups to dump what they don't want to pay to dump. Cleaning that by hand and taking it down in a car isn't realistic; it needs a **rubbish truck at the foot of the hill on a Saturday**, and the Calle Larga municipality has one.
+
+It's a small, well-defined project: coordinate with the municipality, call people through the junta de vecinos, and in one morning the hill is different.
+
+### 5. Mark the paths with the hill's own stones
+
+The problem is a classic: without a marked path, people and bikes go wherever, and wherever includes the grass, the spring flowers and the small plants. The fix is a classic too and costs nothing: **line a path with the stones already on the hill**, so there's a "sacrifice path" everyone uses and the rest of the slope is left alone.
+
+We've started: one short segment is done. The rest is pure stone-moving.
+
+{/* PHOTO: the stone-lined path segment that already exists.
+![Marked path](cerro/sendero-piedras.jpg "The only stretch marked so far")
+*/}
+
+### 6. The summit infographic
+
+The sign I mentioned above, with the names of the mountains you can see. The drawing of the guardians is basically the draft: it's at true scale, so printed lengthwise and set up facing the range, each name would sit above its mountain.
+
+## How to join
+
+If you live in Valle Alegre, Calle Larga or Los Andes, or are simply interested, there are several ways to help and none of them requires knowing about plants:
+
+- **Tell me what the hill is called.** Seriously.
+- **A morning of stones.** Marking the path is the easiest task of all and gives the most per hour.
+- **Water in summer.** If you live nearby and can go up with water once in January or February, that saves plants. Literally.
+- **The right contact at the municipality** for the clean-up day and the truck.
+- **Old photos of the hill.** If you have photos from ten or twenty years ago, they're data: they show what was there and what was lost.
+- **Check the cards and the names.** If you know native plants and spot a mistake in the species cards, or if you know a summit name in the drawing is wrong — the Espinazo, say —, tell me and I'll fix it.
+
+What we don't need is money. The nursery donates the plants; what's missing is time and hands.
+
+## Further reading
+
+If native plants have caught you, this is where I'd start:
+
+- **[Chilebosque](http://www.chilebosque.cl)** — a huge catalogue of Chilean flora, with photos and fact sheets. Six of our species have a page there.
+- **[iNaturalist](https://www.inaturalist.org)** — to photograph whatever you see and get help identifying it. Every photo in the species cards comes from there.
+- **[Species classification by Chile's Ministry of the Environment](https://clasificacionespecies.mma.gob.cl)** — the official conservation status of Chilean species.
+- **Luebert, F. and Pliscoff, P. (2018).** *Sinopsis bioclimática y vegetacional de Chile*, 2nd ed. Editorial Universitaria. The book that explains what vegetation should be in each corner of Chile, and why.
+- **Hoffmann, A.** *Flora silvestre de Chile: zona central.* Ediciones Fundación Claudio Gay. The classic field guide for central Chile.
+- **Riedemann, P. and Aldunate, G.** *Flora nativa de valor ornamental: Chile, zona centro.* For anyone who wants to plant natives in their own garden.
+- **[Vivero Pumahuida](https://www.pumahuida.cl)** — if you want to plant flora from arid and Mediterranean zones, everything of ours came from there.
+
+## Final (personal) comments
+
+I'm a little embarrassed by how sentimental this project is. There's no grand environmental justification: three and a half hectares of scrub in Calle Larga don't move any needle. It's a small hill I've been fond of since I was a teenager, and it turns out my sister knows how to put plants in the ground and I know how to count things and make maps, and that's enough for something.
+
+But there's one thing that does seem big to me, and it's the children. In a country that's almost all mountains, where almost nobody knows the name of what they're looking at, teaching the children of a neighbourhood the names of the mountains in front of them — the guardians of their land — and giving each of them a tree of their own is, by far, the most useful part of all this. The plants are the excuse.
+
+And there's something I like about the time scale. The quillayes we planted in 2025, if they survive, will cast shade in a few decades. It's the first thing I've done whose result I won't see soon, and that turned out to be an enormous relief.
+
+{/* TO DO: the music pick for this project, as in the other posts. */}

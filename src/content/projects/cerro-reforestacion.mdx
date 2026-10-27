@@ -1,0 +1,228 @@
+---
+title: "Mi cerro: reforestar un cerro isla en Calle Larga"
+category: "personal"
+description: "Un proyecto de reforestación con flora nativa que llevamos con mi hermana en un cerro chico de Valle Alegre, Calle Larga. Incluye el inventario digital de las 44 plantas que pusimos en 2025, la vista desde arriba en 2D y 3D, el clima del primer año y una invitación abierta a sumarse."
+pubDate: 2026-10-26
+author: Gonzalo Olguin
+tags: [reforestación, flora nativa, los andes, calle larga, mapas]
+---
+
+import PlantInventory from "../../components/PlantInventory.astro";
+import MountainPanorama from "../../components/MountainPanorama.astro";
+import ViewshedMap from "../../components/ViewshedMap.astro";
+import HillSun from "../../components/HillSun.astro";
+import GrowthScale from "../../components/GrowthScale.astro";
+import ClimateStory from "../../components/ClimateStory.astro";
+
+{/* FOTO PORTADA: la ladera sur del cerro con la cordillera de fondo, idealmente en primavera.
+    Cuando esté, agregar al frontmatter: heroImage: /assets/img/headers/cerro.jpg */}
+
+Hay un cerro chico a unos minutos de mi casa al que subo desde que era adolescente. Primero en bicicleta, después en auto, y últimamente con el auto lleno de botellas de agua. No tiene cumbre interesante, no tiene ruta, no sale en ninguna guía: es un lomo de unos 400 metros de largo que se levanta apenas unos 25 metros sobre los potreros de alrededor. Pero desde arriba se ve el valle del Aconcagua entero, y eso lo cambia todo.
+
+Le he llamado **«mi cerro»** toda la vida. Iba a mirar la cordillera, a estar ahí, nada más. Y como iba tanto y durante tantos años, terminé viendo algo que no se nota cuando vas una vez: el paso de las estaciones. El cerro seco y café del verano, el verde que vuelve con las primeras lluvias, la primavera llena de azulillos y alstromelias. Ver eso repetirse año tras año en el mismo lugar es una forma rara y muy buena de medir el tiempo.
+
+{/* PENDIENTE: si quieres, cuenta acá algo tuyo de esas idas al cerro — una tarde, una persona, una cosa que viste. */}
+
+Este post es sobre lo que estamos haciendo ahí con mi hermana: plantar un bosque.
+
+{/* GALERÍA: el cerro en distintas estaciones, misma vista si se puede.
+:::gallery{cols=2 ratio=4/3 caption="El mismo lugar en invierno, primavera, verano y otoño"}
+![El cerro en invierno](cerro/invierno.jpg)
+![El cerro en primavera](cerro/primavera.jpg)
+![El cerro en verano](cerro/verano.jpg)
+![El cerro en otoño](cerro/otono.jpg)
+:::
+*/}
+
+## Un cerro sin nombre (o con un nombre que no encuentro)
+
+Acá tengo que reconocer una derrota. Nunca he sabido cómo se llama el cerro. Creo que es **Cerro de la Cruz**, pero no lo puedo afirmar.
+
+Busqué en serio: el cerro está en **Valle Alegre, comuna de Calle Larga, provincia de Los Andes**, al lado del sector O'Nell, y en OpenStreetMap simplemente no tiene nombre. La cumbre con nombre más cercana es el **Cerro La Monja**, a 2,2 km al suroeste, que no es este. Lo más parecido a una pista es que una de las calles de la población de al lado se llama *Pasaje La Cruz*, lo que es consistente con mi recuerdo pero no prueba nada.
+
+Así que queda abierto: **si sabes cómo se llama este cerro, escríbeme.** Me interesa de verdad, y me parece bien que la primera cosa que este proyecto necesite de los vecinos sea justamente el nombre del lugar.
+
+### El Asiento del Diablo
+
+Lo que sí tiene nombre es una roca. En el cerro hay una piedra grande que se conoce como el **Asiento del Diablo**: según el cuento, tiene la forma del trasero del diablo, y ahí se sentaban los diablos a tomar agua. No he encontrado ninguna versión escrita de la leyenda — y busqué —, lo que probablemente significa que es una historia que solo existe hablada, en esta población y en este cerro. Eso la hace más valiosa, no menos, y es una de las razones por las que vale la pena dejar algo escrito.
+
+{/* FOTO: el Asiento del Diablo, con alguien sentado para dar escala.
+![El Asiento del Diablo](cerro/asiento-del-diablo.jpg "La roca que le da el nombre: según el cuento, los diablos se sentaban acá a tomar agua")
+*/}
+
+## Cómo empezó
+
+Mi hermana es la botánica de la familia. Le encanta la naturaleza, y en particular **la flora nativa**: ha tomado un montón de cursos, trabaja un día a la semana como aprendiz en el [Vivero Pumahuida](https://www.pumahuida.cl) y este año organizó un congreso de flora nativa. Yo tengo un cerro al que le tengo un cariño desproporcionado. La suma era bastante obvia.
+
+El cerro no está degradado, pero está pobre. Tiene **espinos** — el árbol que define el paisaje del valle central — y arbustos nativos chicos repartidos, y en primavera se llena de flores: azulillos, alstromelias y varias más que todavía tenemos que catastrar bien. Lo que le falta no es vida, es **densidad y diversidad**: hay una capa arriba (los espinos) y una capa abajo (el pasto y las hierbas de primavera), y casi nada entremedio. Ese estrato arbustivo intermedio es exactamente lo que sostiene a las aves, a los insectos y a las semillas del resto.
+
+Y el cerro es chico. Eso, que suena como una limitación, es en realidad la razón de que esto sea posible: es un pedazo de tierra lo bastante pequeño para que dos personas con un auto y unas botellas de agua puedan de verdad cambiarlo. No estamos restaurando una cuenca. Estamos plantando un cerro que se puede recorrer completo en un rato.
+
+Las plantas las dona el **Vivero Pumahuida**, un vivero de Huechuraba especializado en flora de las zonas áridas y mediterráneas de Chile. Todo lo que está en el inventario salió de ahí.
+
+## Por qué la cara sur
+
+Plantamos todo en la ladera sur, y la razón es la que cualquiera que camine el cerro ve de inmediato: **la cara sur tiene vegetación y la cara norte tiene cactus**. En el hemisferio sur la ladera que mira al sur recibe mucho menos sol directo, se calienta menos, pierde menos agua y mantiene la humedad del suelo bastante más tiempo. En un cerro donde el factor limitante es el agua y nada más, esa diferencia de orientación es la diferencia entre un quillay y un quisco.
+
+Como no me podía quedar tranquilo, lo revisé con datos. Bajé el modelo de elevación **Copernicus GLO-30**, de la Agencia Espacial Europea — celdas de 30 metros, el mejor modelo libre que hay para Chile — y le pregunté al terreno:
+
+- La cumbre está a **776 m**, unos **25 m** sobre los potreros de alrededor (que andan por los 750 m).
+- No es un cerro redondo sino un **lomo de unos 410 × 140 m**, alargado de este-noreste a oeste-suroeste. Por eso tiene dos caras tan marcadas.
+- Sobre la cota 758 — el cuerpo del cerro — hay unas **3,6 hectáreas**. Eso es, más o menos, el tamaño real del proyecto si algún día lo llenamos.
+- Donde está el grueso de lo plantado, el terreno se inclina unos **16°** y mira al **177°**: prácticamente al sur exacto.
+
+Y después hice la cuenta que de verdad importa: cuánto sol le llega a cada pedazo del cerro. Con la posición real del sol, día por día durante un año:
+
+<HillSun />
+
+**En junio la cara norte recibe tres veces más sol directo que la cara sur.** En todo el año, la sur recibe más o menos un cuarto menos. O sea: la intuición de mi hermana, la vegetación que ya había y la física dicen lo mismo. Da gusto cuando pasa.
+
+Un detalle honesto: 30 metros es una celda grande para un cerro de este tamaño. Además Copernicus es un modelo de *superficie* — incluye árboles y techos —, así que las cifras son la forma del terreno a grandes rasgos, no un levantamiento topográfico.
+
+{/* FOTO: comparación de las dos caras del cerro, idealmente el mismo día.
+:::gallery{cols=2 ratio=3/2 caption="Las dos caras del mismo cerro: al sur, matorral; al norte, cactáceas"}
+![Ladera sur](cerro/cara-sur.jpg)
+![Ladera norte](cerro/cara-norte.jpg)
+:::
+*/}
+
+## Los guardianes del valle
+
+La otra cosa que tiene este cerro, y que es la razón por la que subo desde adolescente, es la vista. Desde arriba se ven buena parte de los gigantes del valle del Aconcagua: Mocoen, Colunquén, La Giganta, Alto del Cobre, Parva del Inca, Gloria con el Bastión y la Glorieta, Becker. Incluso se alcanza a ver el macizo de la [Travesía del Algarrobo](/ascents/algarrobo-traverse), que hice el año pasado.
+
+Una de las cosas que más me gustaría hacer en el cerro es poner arriba una **infografía con los nombres de las cumbres**. No por el adorno: porque en Chile no tenemos cultura de montaña, lo que es increíble para un país que es casi 80 % montaña. La mayoría de la gente que vive en este valle no sabe cómo se llaman los cerros que ve todos los días por la ventana. Eso se puede arreglar con un cartel.
+
+Mientras llegue el cartel, lo calculé — y esta vez en serio. Desde la cumbre tiré **7.200 visuales**, una cada 0,05°, y recorrí cada una cada 30 metros hasta 160 km, sobre el mismo modelo Copernicus, con la curvatura de la Tierra y la refracción del aire. Eso da el horizonte real, y también cada filo que pasa por delante de otro, que es lo que hace que una cordillera se vea como cordillera. Encima puse todas las cumbres con nombre de OpenStreetMap en ese radio — más de 1.300 — y para cada una revisé si el terreno de por medio la deja ver.
+
+El dibujo está a escala real: un grado de ancho mide lo mismo que un grado de alto, como en una foto. Y en la pestaña **Vista 3D** está lo mismo como si estuvieras parado arriba: con el sol donde corresponde para la hora y la estación que elijas, sombras, nieve, y las imágenes satelitales encima del terreno.
+
+<MountainPanorama />
+
+Lo que salió, que en buena parte confirma lo que uno ve y en una parte me corrigió:
+
+- **El Mocoen tapa al Aconcagua.** La cumbre del Aconcagua queda unos 260 m por debajo del filo del Mocoen, que está tres veces más cerca y casi en la misma dirección. Pero no lo tapa entero: justo a su derecha asoma un pedazo de la arista sur del Aconcagua, a unos **6.740 m**, que resulta ser lo más alto que se ve desde el cerro. Así que la respuesta a «¿se ve el Aconcagua desde mi cerro?» es: un poquito, si sabes dónde mirar.
+- **El grupo del Gloria** sale completo: Gloria, Glorieta, Barile y el Bastión, este último literalmente al filo — asoman 4 metros.
+- **El Algarrobo**: la cumbre que OpenStreetMap marca como Cerro Algarrobo queda justo detrás de su propio filo delantero, por 45 metros. Pero de mi track de la travesía se ve **un cuarto completo**, que en el dibujo está en naranjo.
+- **El Espinazo del Diablo**: su cumbre, según el modelo, queda claramente tapada. En el mismo cordón, a unos 3,6 km, asoma un filo de 3.900 m, y puede que eso sea lo que yo veo como el Espinazo. Si alguien sabe cuál es cuál, me encantaría que me lo dijera.
+- **Ninguna de mis rutas de Santiago se ve.** Provincia, La Cruz, Canoitas, la cuádruple corona: todo queda detrás del cordón de Chacabuco. Tampoco se ven el Juncal, el Tupungato ni el Mercedario, aunque estén «en la dirección».
+
+{/* FOTO: la cordillera desde el cerro, para comparar con el dibujo. Idealmente el sector del Mocoen y el Aconcagua.
+![La cordillera desde el cerro](cerro/vista-cordillera.jpg "La vista hacia el este, con el Mocoen al centro")
+*/}
+
+Y ya que tenía las visuales, dibujé al revés: no qué cumbres se ven, sino **cada pedazo de terreno** que se alcanza a ver desde arriba.
+
+<ViewshedMap />
+
+## El inventario digital
+
+Durante 2025 plantamos **44 plantas de 11 especies**, en seis jornadas entre junio y agosto. Cada planta lleva una etiqueta de aluminio con un código (`QY000`, `LT004`, `HG010`) y va anotada en una planilla que llevamos en terreno: especie, fecha, procedencia, coordenadas, estado y notas.
+
+Esa planilla es el corazón del proyecto y también su parte más frágil: vive en un drive, se edita con las manos sucias y tiene huecos. Así que hice lo que sé hacer: un conversor que la lee y la transforma en los datos de esta página (`npm run inventory`). **Nada de lo que sigue está escrito a mano.** Si edito la planilla y vuelvo a compilar el sitio, esto se actualiza; y si un dato falta acá, es porque falta allá — por eso al final hay una sección que lista explícitamente todo lo que el inventario no sabe.
+
+Una advertencia sobre las fichas de especies: las escribí yo, a partir de referencias generales del matorral esclerófilo de Chile central, no de un estudio de este cerro. Están pendientes de revisión por la persona de la familia que de verdad estudió botánica. Las fotos son de [iNaturalist](https://www.inaturalist.org), con su autor y licencia en cada una; cada ficha tiene además enlaces para leer más.
+
+<PlantInventory spreadsheet="/assets/INVENTARIO.xlsx" />
+
+Y para dimensionar la apuesta, así se vería la ladera si todo sale bien — aunque «bien», en un cerro seco, significa sobre todo la parte baja de cada rango:
+
+<GrowthScale />
+
+## El primer año, que salió bastante mal
+
+Hay que decirlo derecho: **2025 fue un año seco y plantamos demasiado tarde**. Las dos últimas jornadas fueron el 10 y el 24 de agosto, lo que le deja a una planta recién puesta muy pocas semanas de humedad de suelo antes de que empiece el calor. Varias de las que aparecen como «vivas» en el inventario hoy ya no están. El catastro quedó congelado en la primavera de 2025 y la cifra real de ahora es peor que la que muestra la página. Prefiero dejarlo así, con la fecha a la vista, que maquillarlo.
+
+Quise entender qué tan malo fue el año en realidad, y los datos cuentan una historia un poco distinta de la que yo tenía en la cabeza — más interesante, también:
+
+<ClimateStory />
+
+No fue el año con menos lluvia: según el reanálisis, cayó un 19 % menos de lo normal, la misma cifra que dio el agroclimatólogo de la Universidad de Talca para el invierno entre Valparaíso y Santiago. Lo que lo hizo duro fue **cuándo** faltó el agua. Julio tuvo menos de un cuarto de su lluvia habitual, y apenas plantamos llegó una primavera seca y muy calurosa: en octubre la Dirección Meteorológica registró un déficit de lluvia de 70 % en la región, y la estación de Calle Larga — nuestra comuna — marcó **34,9 °C el 18 de octubre**. Para una planta con un mes en la tierra y la raíz todavía corta, eso es lo peor que puede pasar.
+
+La causa de fondo, de todos modos, no es el clima, es el **riego**. El sistema actual es: subimos una vez a la semana con decenas de botellas de agua en el auto, y las cargamos a mano hasta cada planta. Eso funciona para diez plantas. Para cuarenta y cuatro, repartidas en la ladera, en enero, no funciona: siempre hay un grupo que queda sin agua, y ese grupo es el que se muere. Y el gráfico de arriba dice por qué no hay atajo: de septiembre a abril el aire le saca al suelo mucha más agua de la que cae.
+
+Lo otro que aprendimos es más deprimente: a un quillay se lo **robaron o lo destrozaron**. Uno de cuarenta y cuatro, así que no es una catástrofe, pero es un recordatorio de que un cerro al lado de una población no es un terreno cercado, y que cualquier cosa que plantemos ahí tiene que sobrevivir también a la gente.
+
+{/* FOTOS: las jornadas de plantación — el hoyo, la etiqueta, el riego con botellas.
+:::carousel{ratio=3/2 caption="Las jornadas de 2025"}
+![Plantando](cerro/plantacion-1.jpg)
+![Etiqueta de aluminio](cerro/etiqueta.jpg)
+![Riego con botellas](cerro/riego-botellas.jpg)
+:::
+*/}
+
+## Lo que viene
+
+Ninguna de estas ideas está en marcha todavía. Las escribo igual, con el detalle suficiente para que alguien las pueda tomar, porque el cuello de botella de este proyecto no es la plata ni el permiso: es que somos dos personas con pega.
+
+### 1. Riego que no dependa de nuestras manos
+
+Es la prioridad absoluta, porque es la causa directa de la mortalidad del primer año. La idea es un **estanque** arriba — 500 o 1.000 litros — que se llene cada tanto con un camión aljibe o con bidones, y desde ahí una red de goteo por gravedad hacia las plantas. La ladera juega a favor: el estanque arriba y las plantas más abajo significa que no se necesita bomba, solo manguera y presión de altura.
+
+Con eso, una visita semanal pasaría de «cargar doscientos kilos de agua cerro arriba» a «abrir una llave y revisar goteros». Y el calendario es claro: hay que tenerlo funcionando antes de septiembre, que es cuando el déficit empieza. Es la diferencia entre un proyecto que depende de nuestra energía y uno que no.
+
+### 2. Plantar antes
+
+La otra lección barata del primer año: plantar en **mayo y junio**, con las primeras lluvias, y no en agosto. Una planta que llega a la primavera con tres meses de raíz en vez de uno tiene otra cara.
+
+### 3. Que los niños de la población adopten un árbol
+
+Esta es la que más me entusiasma. El cerro está al lado de una población chica, con su junta de vecinos. La idea es que cada niño o familia **«adopte» una planta**: la del código que le toque, con su nombre asociado, y se haga cargo de regarla en las temporadas secas.
+
+No es solo mano de obra distribuida. Es que un árbol con dueño conocido no se lo roba nadie, y un cerro con cuarenta niños que saben cuál es su árbol deja de ser un terreno de nadie. El inventario digital de esta página está pensado para eso: cada planta ya tiene código, especie, ficha y posición, así que la lista de adopción está lista para armarse.
+
+Hablamos una vez con el presidente de la junta de vecinos y quedó en buena. No avanzamos más por falta de tiempo, nada más.
+
+### 4. Una jornada de limpieza, con el municipio
+
+En el cerro hay **mucha basura**, y no basura de picnic: televisores, colchones, cables. Gente que sube en camioneta a botar lo que no quiere pagar por botar. Limpiar eso a mano y bajarlo en un auto no es realista; se necesita un **camión de basura en la base del cerro un sábado**, y eso lo tiene el municipio de Calle Larga.
+
+Es un proyecto chico y bien definido: coordinar con el municipio, convocar por la junta de vecinos, y en una mañana el cerro queda distinto.
+
+### 5. Marcar los senderos con las mismas piedras del cerro
+
+El problema es clásico: sin sendero marcado, la gente y las bicicletas pasan por donde sea, y donde sea incluye el pasto, las flores de primavera y las plantas chicas. La solución también es clásica y no cuesta nada: **delimitar un camino con las piedras que ya están en el cerro**, para que exista un «sendero de sacrificio» por donde circule todo el mundo y el resto de la ladera quede tranquilo.
+
+Esto ya lo empezamos: hay un segmento corto hecho. Falta el resto, que es puro trabajo de mover piedras.
+
+{/* FOTO: el segmento de sendero marcado con piedras que ya existe.
+![Sendero marcado](cerro/sendero-piedras.jpg "El único tramo marcado hasta ahora")
+*/}
+
+### 6. La infografía de cumbres
+
+El cartel del que hablé más arriba, con los nombres de los cerros que se ven. El dibujo de los guardianes es, básicamente, el borrador: está a escala real, así que impreso a lo largo y puesto mirando hacia la cordillera, cada nombre quedaría encima de su cerro.
+
+## Cómo sumarse
+
+Si vives en Valle Alegre, en Calle Larga o en Los Andes, o simplemente te interesa, hay varias formas de ayudar y ninguna requiere saber de plantas:
+
+- **Decirme cómo se llama el cerro.** En serio.
+- **Una mañana de piedras.** Marcar sendero es la tarea más fácil de todas y la que más rinde por hora.
+- **Agua en verano.** Si vives cerca y puedes subir con agua una vez en enero o febrero, eso salva plantas. Literalmente.
+- **El contacto correcto en el municipio** para la jornada de limpieza y el camión.
+- **Fotos del cerro de antes.** Si tienes fotos de hace diez o veinte años, son datos: muestran qué había y qué se perdió.
+- **Revisar las fichas y los nombres.** Si sabes de flora nativa y ves un error en las fichas de especies, o si sabes que algún nombre de cumbre del dibujo está mal — el Espinazo, por ejemplo —, dímelo y lo corrijo.
+
+Lo que no necesitamos es plata. Las plantas las dona el vivero; lo que falta es tiempo y manos.
+
+## Para leer más
+
+Si te picó el bichito de la flora nativa, esto es por donde yo empezaría:
+
+- **[Chilebosque](http://www.chilebosque.cl)** — un catálogo enorme de la flora chilena, con fotos y fichas. Seis de nuestras especies tienen ficha ahí.
+- **[iNaturalist](https://www.inaturalist.org)** — para fotografiar lo que veas y que alguien te ayude a identificarlo. Todas las fotos de las fichas de este post salen de ahí.
+- **[Clasificación de especies del Ministerio del Medio Ambiente](https://clasificacionespecies.mma.gob.cl)** — el estado de conservación oficial de las especies chilenas.
+- **Luebert, F. y Pliscoff, P. (2018).** *Sinopsis bioclimática y vegetacional de Chile*, 2.ª ed. Editorial Universitaria. El libro que explica qué vegetación debería haber en cada rincón de Chile y por qué.
+- **Hoffmann, A.** *Flora silvestre de Chile: zona central.* Ediciones Fundación Claudio Gay. El clásico de campo para la zona central.
+- **Riedemann, P. y Aldunate, G.** *Flora nativa de valor ornamental: Chile, zona centro.* Para quien quiera plantar nativas en su propio jardín.
+- **[Vivero Pumahuida](https://www.pumahuida.cl)** — si quieres plantar flora de zonas áridas y mediterráneas, de ahí salió todo lo nuestro.
+
+## Comentarios finales (personales)
+
+Me da un poco de vergüenza lo sentimental que es este proyecto. No hay una justificación ambiental grande: tres hectáreas y media de matorral en Calle Larga no mueven ninguna aguja. Es un cerro chico al que le tengo cariño desde adolescente, y resulta que mi hermana sabe cómo poner plantas y yo sé cómo contar cosas y hacer mapas, y eso alcanza para algo.
+
+Pero hay una cosa que sí me parece grande, y es la de los niños. En un país que es casi todo montaña y donde casi nadie sabe el nombre de lo que ve, enseñarle a los niños de una población el nombre de los cerros que tienen enfrente — los guardianes de su tierra — y darle a cada uno un árbol suyo es, de lejos, la parte más útil de todo esto. Las plantas son la excusa.
+
+Y hay algo que me gusta de la escala de tiempo. Los quillayes que plantamos en 2025, si sobreviven, van a dar sombra en unas cuantas décadas. Es la primera cosa que he hecho cuyo resultado no voy a ver pronto, y eso resultó ser un alivio enorme.
+
+{/* PENDIENTE: la elección musical para este proyecto, como en los otros posts. */}

@@ -1,0 +1,278 @@
+---
+// The weather behind the first year, from src/data/climate.json (scripts/climate.mjs, ERA5).
+//
+// Three charts, each answering one question:
+//   1. What did the plants live through? Daily maximum temperature against the 1991–2020
+//      normal, and daily rain, from May 2025 to the end of that summer, with our six planting
+//      days drawn through both. Two panels on one time axis, never two scales on one panel.
+//   2. When does the hill run out of water? Monthly rain against the air's thirst (reference
+//      evapotranspiration), in the same millimetres.
+//   3. Is 2025 unusual? Thirty-five years of rain, one bar each.
+//
+// ERA5 is a 28 km model, known to run wet in the foothills: the charts lean on comparisons
+// (this year against the usual), and the captions say so.
+import climate from "../data/climate.json";
+import { waves } from "../lib/inventory";
+import "../styles/inventory.css";
+import { languages, getLangFromUrl, useTranslations } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const dayFormat = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
+const monthFormat = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+const day = (iso: string) => dayFormat.format(new Date(`${iso}T00:00:00Z`));
+const monthName = (m: number) => monthFormat.format(new Date(Date.UTC(2025, m, 1))).replace(".", "");
+
+// ---------------------------------------------------------------------------- 1. the season
+
+const season = climate.season;
+const plantings = waves();
+const S = { w: 720, left: 38, right: 14, top: 22, temp: 150, gap: 30, rain: 92, axis: 26 };
+const sx = (i: number) => S.left + (i / (season.length - 1)) * (S.w - S.left - S.right);
+const T_MIN = 5;
+const T_MAX = 36;
+const ty = (v: number) => S.top + (1 - (v - T_MIN) / (T_MAX - T_MIN)) * S.temp;
+const RAIN_MAX = 60;
+const rainTop = S.top + S.temp + S.gap;
+const ry = (v: number) => rainTop + (1 - Math.min(v, RAIN_MAX) / RAIN_MAX) * S.rain;
+const seasonHeight = rainTop + S.rain + S.axis;
+const linePath = (key: "tmax" | "normal") =>
+  season.map((d, i) => (d[key] === null ? "" : `${i && season[i - 1][key] !== null ? "L" : "M"}${sx(i).toFixed(1)} ${ty(d[key]!).toFixed(1)}`)).join("");
+const indexOf = (iso: string) => season.findIndex((d) => d.date === iso);
+const monthStarts = season.map((d, i) => ({ d, i })).filter(({ d }) => d.date.endsWith("-01"));
+// The hottest day of that October, the month the weather service singled out.
+const october = season.map((d, i) => ({ ...d, i })).filter((d) => d.date >= "2025-10-01" && d.date <= "2025-10-31" && d.tmax !== null);
+const hottest = october.reduce((best, d) => (d.tmax! > best.tmax! ? d : best));
+const barWidth = Math.max(1, (S.w - S.left - S.right) / season.length - 0.6);
+
+// ---------------------------------------------------------------------------- 2. the water
+
+const W2 = { w: 720, h: 260, left: 40, right: 110, top: 20, bottom: 30 };
+const MM_MAX = 210;
+const mx = (m: number) => W2.left + ((m + 0.5) / 12) * (W2.w - W2.left - W2.right);
+const my = (v: number) => W2.top + (1 - v / MM_MAX) * (W2.h - W2.top - W2.bottom);
+const slot = (W2.w - W2.left - W2.right) / 12;
+const months = climate.months;
+const rain2025 = climate.monthly["2025"];
+const et0Path = months.map((m, i) => `${i ? "L" : "M"}${mx(i).toFixed(1)} ${my(m.et0).toFixed(1)}`).join("");
+const deficit = months.map((m) => m.et0 > m.rain);
+// The dry season as one run of months (it wraps round the new year).
+const dryMonths = months.filter((m) => m.et0 > m.rain).length;
+
+// ---------------------------------------------------------------------------- 3. the years
+
+const years = climate.years.filter((y) => y.complete);
+const normalRain = months.reduce((total, m) => total + m.rain, 0);
+const W3 = { w: 720, h: 200, left: 40, right: 14, top: 22, bottom: 28 };
+const YEAR_MAX = Math.ceil(Math.max(...years.map((y) => y.rain)) / 100) * 100;
+const YEAR_TICKS = Array.from({ length: Math.floor(YEAR_MAX / 200) + 1 }, (_, i) => i * 200);
+const yx = (i: number) => W3.left + i * ((W3.w - W3.left - W3.right) / years.length);
+const yw = (W3.w - W3.left - W3.right) / years.length - 2;
+const yy = (v: number) => W3.top + (1 - v / YEAR_MAX) * (W3.h - W3.top - W3.bottom);
+const driest = years.reduce((low, y) => (y.rain < low.rain ? y : low));
+const y2025 = years.find((y) => y.year === 2025)!;
+const octobers = climate.years.filter((y) => y.octoberTmax !== null).sort((a, b) => b.octoberTmax! - a.octoberTmax!);
+const octoberRank = octobers.findIndex((y) => y.year === 2025) + 1;
+const octoberNormal = months[9].tmax;
+---
+
+<section class="climate-story not-prose iv-block" aria-labelledby="climate-title">
+  <h3 class="iv-block__title" id="climate-title">{t("cerro.climate.title")}</h3>
+  <p class="iv-note">{t("cerro.climate.note")}</p>
+
+  <figure class="cs-figure">
+    <figcaption class="cs-title">{t("cerro.climate.season.title")}</figcaption>
+    <div class="cs-legend">
+      <span class="cs-key"><i class="cs-swatch cs-swatch--line"></i>{t("cerro.climate.season.tmax")}</span>
+      <span class="cs-key"><i class="cs-swatch cs-swatch--normal"></i>{t("cerro.climate.season.normal")}</span>
+      <span class="cs-key"><i class="cs-swatch cs-swatch--rain"></i>{t("cerro.climate.season.rain")}</span>
+      <span class="cs-key"><i class="cs-swatch cs-swatch--planting"></i>{t("cerro.climate.season.planting")}</span>
+    </div>
+    <svg viewBox={`0 0 ${S.w} ${seasonHeight}`} role="img" aria-label={t("cerro.climate.season.title")}>
+      {/* Temperature panel. */}
+      {
+        [10, 20, 30].map((v) => (
+          <g>
+            <line class="cs-grid" x1={S.left} x2={S.w - S.right} y1={ty(v)} y2={ty(v)} />
+            <text class="cs-axis" x={S.left - 6} y={ty(v) + 3.5} text-anchor="end">
+              {v}°
+            </text>
+          </g>
+        ))
+      }
+      <path class="cs-normal" d={linePath("normal")} />
+      <path class="cs-tmax" d={linePath("tmax")} />
+      <circle class="cs-mark" cx={sx(hottest.i)} cy={ty(hottest.tmax!)} r="3.5" />
+      <text class="cs-annotation" x={sx(hottest.i) + 7} y={ty(hottest.tmax!) - 4}>
+        {t("cerro.climate.season.hottest", { day: day(hottest.date), value: number(hottest.tmax!, 1) })}
+      </text>
+
+      {/* Rain panel. */}
+      <line class="cs-grid" x1={S.left} x2={S.w - S.right} y1={ry(0)} y2={ry(0)} />
+      {
+        [20, 40, 60].map((v) => (
+          <g>
+            <line class="cs-grid" x1={S.left} x2={S.w - S.right} y1={ry(v)} y2={ry(v)} />
+            <text class="cs-axis" x={S.left - 6} y={ry(v) + 3.5} text-anchor="end">
+              {v}
+            </text>
+          </g>
+        ))
+      }
+      <text class="cs-axis" x={S.left} y={rainTop - 8}>
+        {t("cerro.climate.season.rainAxis")}
+      </text>
+      {season.map((d, i) => d.rain !== null && d.rain >= 0.5 && <rect class="cs-rain" x={sx(i) - barWidth / 2} y={ry(d.rain)} width={barWidth} height={ry(0) - ry(d.rain)} />)}
+
+      {/* Planting days, through both panels. */}
+      {
+        plantings.map((wave, k) => {
+          const i = indexOf(wave.date);
+          if (i < 0) return null;
+          return (
+            <g class="cs-planting">
+              <line x1={sx(i)} x2={sx(i)} y1={S.top - 4} y2={ry(0)} />
+              <circle cx={sx(i)} cy={S.top - 8} r="6.5" />
+              <text x={sx(i)} y={S.top - 4.5} text-anchor="middle">
+                {k + 1}
+              </text>
+              <title>{t("cerro.climate.season.plantingTip", { day: day(wave.date), n: wave.total })}</title>
+            </g>
+          );
+        })
+      }
+
+      {/* Month axis. */}
+      {
+        monthStarts.map(({ d, i }) => (
+          <g>
+            <line class="cs-tick" x1={sx(i)} x2={sx(i)} y1={ry(0)} y2={ry(0) + 5} />
+            <text class="cs-axis" x={sx(i) + 3} y={ry(0) + 17}>
+              {monthName(Number(d.date.slice(5, 7)) - 1)}
+              {d.date.slice(5, 7) === "01" ? ` ${d.date.slice(0, 4)}` : ""}
+            </text>
+          </g>
+        ))
+      }
+      {/* One hover target per day. */}
+      {
+        season.map((d, i) => (
+          <rect class="cs-hit" x={sx(i) - (S.w - S.left - S.right) / season.length / 2} y={S.top} width={(S.w - S.left - S.right) / season.length} height={ry(0) - S.top}>
+            <title>
+              {day(d.date)} {d.date.slice(0, 4)} — {t("cerro.climate.season.tip", { tmax: d.tmax === null ? "–" : number(d.tmax, 1), normal: d.normal === null ? "–" : number(d.normal, 1), rain: number(d.rain ?? 0, 1) })}
+            </title>
+          </rect>
+        ))
+      }
+    </svg>
+    <p class="iv-note">
+      {t("cerro.climate.season.caption", { rank: octoberRank, years: octobers.length, value: number(octobers[octoberRank - 1].octoberTmax!, 1), normal: number(octoberNormal, 1) })}
+    </p>
+  </figure>
+
+  <figure class="cs-figure">
+    <figcaption class="cs-title">{t("cerro.climate.water.title")}</figcaption>
+    <div class="cs-legend">
+      <span class="cs-key"><i class="cs-swatch cs-swatch--rain"></i>{t("cerro.climate.water.rain")}</span>
+      <span class="cs-key"><i class="cs-swatch cs-swatch--tick"></i>{t("cerro.climate.water.rain2025")}</span>
+      <span class="cs-key"><i class="cs-swatch cs-swatch--et0"></i>{t("cerro.climate.water.et0")}</span>
+    </div>
+    <svg viewBox={`0 0 ${W2.w} ${W2.h}`} role="img" aria-label={t("cerro.climate.water.title")}>
+      {months.map((m, i) => deficit[i] && <rect class="cs-dry" x={mx(i) - slot / 2} y={W2.top} width={slot} height={W2.h - W2.top - W2.bottom} />)}
+      {
+        [0, 50, 100, 150, 200].map((v) => (
+          <g>
+            <line class="cs-grid" x1={W2.left} x2={W2.w - W2.right} y1={my(v)} y2={my(v)} />
+            <text class="cs-axis" x={W2.left - 6} y={my(v) + 3.5} text-anchor="end">
+              {v}
+            </text>
+          </g>
+        ))
+      }
+      <text class="cs-axis" x={W2.left} y="12">
+        {t("cerro.climate.water.axis")}
+      </text>
+      {
+        months.map((m, i) => (
+          <g>
+            <path class="cs-bar" d={`M${mx(i) - slot * 0.3} ${my(0)}V${my(m.rain) + 3}q0 -3 3 -3H${mx(i) + slot * 0.3 - 3}q3 0 3 3V${my(0)}Z`} />
+            {rain2025[i] !== null && <line class="cs-tick2025" x1={mx(i) - slot * 0.38} x2={mx(i) + slot * 0.38} y1={my(rain2025[i]!)} y2={my(rain2025[i]!)} />}
+            <text class="cs-axis" x={mx(i)} y={W2.h - 10} text-anchor="middle">
+              {monthName(i)}
+            </text>
+            <rect class="cs-hit" x={mx(i) - slot / 2} y={W2.top} width={slot} height={W2.h - W2.top - W2.bottom}>
+              <title>
+                {monthName(i)} — {t("cerro.climate.water.tip", { rain: number(m.rain), rain2025: rain2025[i] === null ? "–" : number(rain2025[i]!), et0: number(m.et0) })}
+              </title>
+            </rect>
+          </g>
+        ))
+      }
+      <path class="cs-et0" d={et0Path} />
+      {months.map((m, i) => <circle class="cs-et0-point" cx={mx(i)} cy={my(m.et0)} r="3" />)}
+      <text class="cs-direct" x={mx(11) + 10} y={my(months[11].et0) + 4}>
+        {t("cerro.climate.water.et0Short")}
+      </text>
+      <text class="cs-direct" x={mx(11) + 10} y={my(months[11].rain) + 4}>
+        {t("cerro.climate.water.rainShort")}
+      </text>
+    </svg>
+    <p class="iv-note">{t("cerro.climate.water.caption", { months: dryMonths, et0: number(months.reduce((a, m) => a + m.et0, 0)), rain: number(normalRain) })}</p>
+  </figure>
+
+  <figure class="cs-figure">
+    <figcaption class="cs-title">{t("cerro.climate.years.title")}</figcaption>
+    <svg viewBox={`0 0 ${W3.w} ${W3.h}`} role="img" aria-label={t("cerro.climate.years.title")}>
+      {
+        YEAR_TICKS.map((v) => (
+          <g>
+            <line class="cs-grid" x1={W3.left} x2={W3.w - W3.right} y1={yy(v)} y2={yy(v)} />
+            <text class="cs-axis" x={W3.left - 6} y={yy(v) + 3.5} text-anchor="end">
+              {v}
+            </text>
+          </g>
+        ))
+      }
+      {
+        years.map((y, i) => (
+          <g>
+            <path
+              class={`cs-year${y.year === 2025 ? " cs-year--focus" : ""}`}
+              d={`M${yx(i) + 1} ${yy(0)}V${yy(y.rain) + 2}q0 -2 2 -2H${yx(i) + yw - 1}q2 0 2 2V${yy(0)}Z`}
+            />
+            {(y.year % 5 === 0 || y.year === 2025) && (
+              <text class="cs-axis" x={yx(i) + yw / 2 + 1} y={W3.h - 10} text-anchor="middle">
+                {y.year}
+              </text>
+            )}
+            <rect class="cs-hit" x={yx(i)} y={W3.top} width={yw + 2} height={W3.h - W3.top - W3.bottom}>
+              <title>
+                {y.year}: {number(y.rain)} mm
+              </title>
+            </rect>
+          </g>
+        ))
+      }
+      <line class="cs-normal-rain" x1={W3.left} x2={W3.w - W3.right} y1={yy(normalRain)} y2={yy(normalRain)} />
+      <text class="cs-annotation" x={W3.left + 4} y={yy(normalRain) - 5}>
+        {t("cerro.climate.years.normal", { mm: number(normalRain) })}
+      </text>
+      {
+        [driest, y2025].map((y) => {
+          const i = years.indexOf(y);
+          return (
+            <text class="cs-annotation" x={yx(i) + yw / 2 + 1} y={yy(y.rain) - 6} text-anchor="middle">
+              {number(y.rain)}
+            </text>
+          );
+        })
+      }
+    </svg>
+    <p class="iv-note">{t("cerro.climate.years.caption", { driest: driest.year, driestMm: number(driest.rain), mm: number(y2025.rain), pct: number(((normalRain - y2025.rain) / normalRain) * 100) })}</p>
+  </figure>
+
+  <p class="iv-note mp-source">{t("cerro.climate.source")}</p>
+</section>

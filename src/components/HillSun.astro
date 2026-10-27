@@ -1,0 +1,203 @@
+---
+// Why the south face: two views of the same computation (scripts/terrain.mjs).
+//
+// Left, the hill in plan, every patch coloured by how much clear-sky direct sun it gets over
+// a year compared with flat ground — a diverging scale, amber for more, green for less, grey
+// for the same — with 2 m contours and the plants we took coordinates for. Right, the same
+// sun month by month on the two faces of the ridge, at the slope and orientation the
+// elevation model measures where we planted, against flat ground.
+//
+// Clear-sky direct beam only: diffuse light reaches every slope about alike, and clouds are
+// rare enough in this valley outside winter that the comparison between faces holds.
+import { PANORAMA, HILL } from "../data/hill";
+import { PLANTS } from "../lib/inventory";
+import "../styles/inventory.css";
+import { languages, getLangFromUrl, useTranslations } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+// ---------------------------------------------------------------------------- the plan
+
+const map = PANORAMA.sunMap;
+const toX = (lon: number) => ((lon - map.west) / (map.east - map.west)) * map.width;
+const toY = (lat: number) => ((map.north - lat) / (map.north - map.south)) * map.height;
+
+const located = PLANTS.filter((plant) => plant.lat !== null && plant.lon !== null);
+const summit = { x: toX(HILL.summit.lon), y: toY(HILL.summit.lat) };
+
+// Frame the hill: the body contour and the plants, with room around them.
+const contourPoints = map.contours.flatMap((contour) => contour.points);
+const xs = [...contourPoints.map(([x]) => x), ...located.map((plant) => toX(plant.lon!))];
+const ys = [...contourPoints.map(([, y]) => y), ...located.map((plant) => toY(plant.lat!))];
+const PAD = 70;
+const frame = {
+  x: Math.max(0, Math.min(...xs) - PAD),
+  y: Math.max(0, Math.min(...ys) - PAD),
+  w: 0,
+  h: 0,
+};
+frame.w = Math.min(map.width, Math.max(...xs) + PAD) - frame.x;
+frame.h = Math.min(map.height, Math.max(...ys) + PAD) - frame.y;
+
+const contourPath = (points: number[][]) => points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join("") + "Z";
+const SCALE_BAR = 100;
+
+// ---------------------------------------------------------------------------- the chart
+
+const faces = PANORAMA.sunFaces;
+const W = 520;
+const H = 300;
+const M = { top: 22, right: 16, bottom: 34, left: 40 };
+const Y_MAX = 8;
+const cx = (month: number) => M.left + (month / 11) * (W - M.left - M.right);
+const cy = (value: number) => M.top + (1 - value / Y_MAX) * (H - M.top - M.bottom);
+const line = (values: number[]) => values.map((v, i) => `${i ? "L" : "M"}${cx(i).toFixed(1)} ${cy(v).toFixed(1)}`).join("");
+const monthShort = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+const monthName = (m: number) => monthShort.format(new Date(Date.UTC(2025, m, 1))).replace(".", "");
+const SERIES = [
+  { key: "north", values: faces.north, label: t("cerro.sun.north") },
+  { key: "flat", values: faces.flat, label: t("cerro.sun.flat") },
+  { key: "south", values: faces.south, label: t("cerro.sun.south") },
+] as const;
+const JUNE = 5;
+// Direct labels go where the three lines are furthest apart: early spring.
+const LABEL_AT = 8.5;
+const valueAt = (values: number[], at: number) => {
+  const i = Math.floor(at);
+  return values[i] + (values[Math.min(11, i + 1)] - values[i]) * (at - i);
+};
+const ratio = faces.north[JUNE] / faces.south[JUNE];
+const yearly = (values: number[]) => values.reduce((a, b) => a + b, 0);
+const lessSun = 1 - yearly(faces.south) / yearly(faces.north);
+---
+
+<section class="hill-sun not-prose iv-block" aria-labelledby="hill-sun-title">
+  <h3 class="iv-block__title" id="hill-sun-title">{t("cerro.sun.title")}</h3>
+  <p class="iv-note">{t("cerro.sun.note", { slope: HILL.slope, aspect: HILL.aspect })}</p>
+
+  <div class="hs-grid">
+    <figure class="hs-figure">
+      <svg viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`} role="img" aria-label={t("cerro.sun.planLabel")} class="hs-plan">
+        <image href={map.file} x="0" y="0" width={map.width} height={map.height} preserveAspectRatio="none" />
+        {map.contours.map((contour) => <path class={`hs-contour${contour.level % 10 === 0 ? " hs-contour--index" : ""}`} d={contourPath(contour.points)} />)}
+        {
+          located.map((plant) => (
+            <circle class="hs-plant" cx={toX(plant.lon!)} cy={toY(plant.lat!)} r="3.6">
+              <title>{plant.id}</title>
+            </circle>
+          ))
+        }
+        <path class="hs-summit" d={`M${summit.x} ${summit.y - 9}l8 13h-16z`} />
+        <text class="hs-label" x={summit.x + 11} y={summit.y + 3}>
+          {t("cerro.sun.summit", { ele: number(HILL.summit.elevation) })}
+        </text>
+        {/* North arrow and scale bar. */}
+        <g transform={`translate(${frame.x + frame.w - 26} ${frame.y + 22})`}>
+          <path class="hs-north" d="M0 -14l7 18l-7 -5l-7 5z" />
+          <text class="hs-label" x="0" y="19" text-anchor="middle">N</text>
+        </g>
+        <g transform={`translate(${frame.x + 14} ${frame.y + frame.h - 16})`}>
+          <path class="hs-scale" d={`M0 -5V0H${SCALE_BAR}V-5`} />
+          <text class="hs-label" x={SCALE_BAR / 2} y="-8" text-anchor="middle">{SCALE_BAR} m</text>
+        </g>
+      </svg>
+      <figcaption>
+        <span class="hs-ramp" aria-hidden="true"></span>
+        <span class="hs-ramp__labels">
+          <span>{t("cerro.sun.less")}</span>
+          <span>{t("cerro.sun.same")}</span>
+          <span>{t("cerro.sun.more")}</span>
+        </span>
+        <span class="iv-note">{t("cerro.sun.planCaption", { n: located.length })}</span>
+      </figcaption>
+    </figure>
+
+    <figure class="hs-figure">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("cerro.sun.chartLabel")} class="hs-chart">
+        {
+          [0, 2, 4, 6, 8].map((v) => (
+            <g>
+              <line class="hs-grid" x1={M.left} x2={W - M.right} y1={cy(v)} y2={cy(v)} />
+              <text class="hs-axis" x={M.left - 8} y={cy(v) + 3.5} text-anchor="end">
+                {v}
+              </text>
+            </g>
+          ))
+        }
+        <text class="hs-axis" x={M.left} y="12">
+          kWh/m² · {t("cerro.sun.perDay")}
+        </text>
+        {
+          Array.from({ length: 12 }, (_, m) => (
+            <text class="hs-axis" x={cx(m)} y={H - 12} text-anchor="middle">
+              {monthName(m)}
+            </text>
+          ))
+        }
+        {/* The June gap, the heart of it. */}
+        <line class="hs-gap" x1={cx(JUNE)} x2={cx(JUNE)} y1={cy(faces.north[JUNE]) + 5} y2={cy(faces.south[JUNE]) - 5} />
+        <text class="hs-annotation" x={cx(JUNE) + 8} y={(cy(faces.north[JUNE]) + cy(faces.south[JUNE])) / 2 + 4}>
+          ×{number(ratio, 1)}
+        </text>
+        {
+          SERIES.map((series) => (
+            <g class={`hs-series hs-series--${series.key}`}>
+              <path class="hs-line" d={line(series.values)} />
+              {series.values.map((v, m) => (
+                <circle class="hs-point" cx={cx(m)} cy={cy(v)} r="3" />
+              ))}
+              <text class="hs-direct" x={cx(LABEL_AT)} y={cy(valueAt(series.values, LABEL_AT)) + (series.key === "north" ? -9 : 15)} text-anchor="middle">
+                {series.label}
+              </text>
+            </g>
+          ))
+        }
+        {/* One hover target per month, with all three values. */}
+        {
+          Array.from({ length: 12 }, (_, m) => (
+            <rect class="hs-hit" x={cx(m) - (W - M.left - M.right) / 22} y={M.top} width={(W - M.left - M.right) / 11} height={H - M.top - M.bottom}>
+              <title>
+                {monthName(m)} — {SERIES.map((s) => `${s.label}: ${number(s.values[m], 1)}`).join(" · ")} kWh/m²
+              </title>
+            </rect>
+          ))
+        }
+      </svg>
+      <figcaption class="iv-note">
+        {t("cerro.sun.chartCaption", { ratio: number(ratio, 1), north: number(faces.north[JUNE], 1), south: number(faces.south[JUNE], 1), less: number(lessSun * 100) })}
+      </figcaption>
+    </figure>
+  </div>
+
+  <details class="mp-table">
+    <summary>{t("cerro.sun.table")}</summary>
+    <div class="iv-table-wrap">
+      <table class="iv-table">
+        <thead>
+          <tr>
+            <th></th>
+            {Array.from({ length: 12 }, (_, m) => <th class="iv-num">{monthName(m)}</th>)}
+            <th class="iv-num">{t("cerro.sun.year")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            SERIES.map((series) => (
+              <tr>
+                <td>{series.label}</td>
+                {series.values.map((v) => (
+                  <td class="iv-num">{number(v, 1)}</td>
+                ))}
+                <td class="iv-num">{number(yearly(series.values) * 30.4)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

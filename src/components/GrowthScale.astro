@@ -1,0 +1,173 @@
+---
+// The species at their adult size, to scale: what this slope looks like if the project works.
+// One silhouette per species, drawn at the top of its usual mature height (solid up to the
+// bottom of the range, faint above it), beside a person and under a line at the height the
+// hill itself rises above the fields. Heights from src/data/species.ts; the hill from the
+// elevation model (src/data/hill.ts).
+import { SPECIES } from "../data/species";
+import { HILL } from "../data/hill";
+import { speciesRows } from "../lib/inventory";
+import "../styles/inventory.css";
+import { languages, getLangFromUrl, useTranslations } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: digits });
+
+const rows = speciesRows()
+  .map((row) => ({ ...row, species: SPECIES[row.scientific] }))
+  .filter((row) => row.species)
+  .sort((a, b) => b.species.height[1] - a.species.height[1]);
+
+const PER_M = 8; // viewBox units per metre
+const SLOT = 72;
+const PERSON = 1.7;
+const top = Math.max(HILL.prominence, ...rows.map((r) => r.species.height[1])) + 3;
+const TICKS = [5, 10, 15, 20, 25].filter((m) => m < top);
+const W = 70 + rows.length * SLOT + 10;
+const BASE = 24 + top * PER_M;
+const H = BASE + 46;
+const gy = (m: number) => BASE - m * PER_M;
+
+/** A tree: trunk and a round crown; a shrub: a mound. Both scaled to `h` metres. */
+const silhouette = (habit: "tree" | "shrub", cx: number, h: number) => {
+  const height = h * PER_M;
+  if (habit === "shrub") {
+    const w = Math.max(10, height * 1.5);
+    return `M${cx - w / 2} ${BASE}C${cx - w / 2} ${BASE - height * 1.25} ${cx + w / 2} ${BASE - height * 1.25} ${cx + w / 2} ${BASE}Z`;
+  }
+  const crown = height * 0.62;
+  const w = Math.max(10, crown * 1.15);
+  const trunk = Math.max(1.6, height * 0.05);
+  const cy = BASE - height + crown / 2;
+  return (
+    `M${cx - trunk / 2} ${BASE}V${cy}H${cx + trunk / 2}V${BASE}Z` +
+    `M${cx - w / 2} ${cy}a${w / 2} ${crown / 2} 0 1 0 ${w} 0a${w / 2} ${crown / 2} 0 1 0 ${-w} 0Z`
+  );
+};
+---
+
+<section class="growth-scale not-prose iv-block" aria-labelledby="growth-title">
+  <h3 class="iv-block__title" id="growth-title">{t("cerro.growth.title")}</h3>
+  <p class="iv-note">{t("cerro.growth.note")}</p>
+  <div class="gs-frame">
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("cerro.growth.title")}>
+      {
+        TICKS.map((m) => (
+          <g>
+            <line class="gs-grid" x1="34" x2={W - 6} y1={gy(m)} y2={gy(m)} />
+            <text class="gs-axis" x="30" y={gy(m) + 3.5} text-anchor="end">
+              {m} m
+            </text>
+          </g>
+        ))
+      }
+      <line class="gs-hill" x1="34" x2={W - 6} y1={gy(HILL.prominence)} y2={gy(HILL.prominence)} />
+      <text class="gs-hill-label" x={W - 8} y={gy(HILL.prominence) - 5} text-anchor="end">
+        {t("cerro.growth.hill", { m: HILL.prominence })}
+      </text>
+
+      {/* A person, 1.7 m. */}
+      <g class="gs-person" transform={`translate(52 ${BASE})`}>
+        <circle cx="0" cy={-PERSON * PER_M + 1.6} r="1.6" />
+        <path d={`M-1.6 ${-PERSON * PER_M + 3.6}h3.2l0.6 ${PERSON * PER_M * 0.45}h-1.2l-0.4 ${PERSON * PER_M * 0.5}h-1.4l-0.4 ${-PERSON * PER_M * 0.5}h-1.2z`} />
+      </g>
+      <text class="gs-axis" x="52" y={BASE + 14} text-anchor="middle">
+        1,7 m
+      </text>
+
+      {
+        rows.map((row, i) => {
+          const cx = 70 + SLOT * (i + 0.5);
+          const [low, high] = row.species.height;
+          const text = row.species[lang];
+          return (
+            <g class="gs-species">
+              <title>
+                {text.name} ({row.scientific}) — {t("cerro.growth.tip", { from: number(low, 1), to: number(high, 1), n: row.total })}
+              </title>
+              <path class="gs-max" d={silhouette(row.species.habit, cx, high)} />
+              <path class="gs-min" d={silhouette(row.species.habit, cx, low)} />
+              <text class="gs-name" x={cx} y={BASE + 15} text-anchor="middle">
+                {text.name}
+              </text>
+              <text class="gs-axis" x={cx} y={BASE + 28} text-anchor="middle">
+                {number(low, 1)}–{number(high, 1)} m
+              </text>
+            </g>
+          );
+        })
+      }
+      <line class="gs-ground" x1="34" x2={W - 6} y1={BASE} y2={BASE} />
+    </svg>
+  </div>
+  <p class="iv-note">{t("cerro.growth.caption")}</p>
+</section>
+
+<style>
+  .growth-scale {
+    --gs-plant: #199e70;
+    contain: inline-size;
+    color: oklch(var(--bc));
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  :global([data-theme="light"]) .growth-scale {
+    --gs-plant: #1baf7a;
+  }
+  .gs-frame {
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    border: 1px solid oklch(var(--bc) / 0.16);
+    border-radius: 0.75rem;
+    background: oklch(var(--b2));
+    padding: 0.5rem;
+  }
+  .gs-frame svg {
+    display: block;
+    width: 100%;
+    min-width: 40rem;
+    height: auto;
+  }
+  .gs-grid {
+    stroke: oklch(var(--bc) / 0.08);
+  }
+  .gs-axis {
+    fill: oklch(var(--bc) / 0.62);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .gs-name {
+    fill: oklch(var(--bc));
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .gs-ground {
+    stroke: oklch(var(--bc) / 0.5);
+    stroke-width: 1.5;
+  }
+  .gs-hill {
+    stroke: oklch(var(--bc) / 0.55);
+    stroke-dasharray: 5 4;
+  }
+  .gs-hill-label {
+    fill: oklch(var(--bc) / 0.8);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .gs-max {
+    fill: var(--gs-plant);
+    opacity: 0.28;
+  }
+  .gs-min {
+    fill: var(--gs-plant);
+  }
+  .gs-person {
+    fill: oklch(var(--bc));
+  }
+  .gs-species:hover .gs-max {
+    opacity: 0.45;
+  }
+</style>

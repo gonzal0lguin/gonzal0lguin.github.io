@@ -1,0 +1,103 @@
+---
+// Everything the hilltop can see, as a map: the viewshed computed by scripts/terrain.mjs
+// (public/assets/cerro/viewshed.png, already in Web Mercator) over OpenTopoMap, with
+// distance rings and the summits the post talks about. Leaflet loads on demand.
+import { PANORAMA, PEAKS, VIEW_STATS, VIEWPOINT } from "../data/hill";
+import "../styles/inventory.css";
+import { languages, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+const peaks = PEAKS.filter((peak) => peak.named || (peak.status !== "hidden" && peak.skyline && (peak.ele ?? peak.model) > 3500)).map((peak) => ({
+  name: peak.name,
+  lat: peak.lat,
+  lon: peak.lon,
+  ele: peak.ele ?? peak.model,
+  distance: peak.distance,
+  status: peak.status,
+  named: peak.named,
+  url: peak.ascent ? localizePath(lang, `/ascents/${peak.ascent.slug}/`) : null,
+}));
+
+const data = {
+  viewpoint: VIEWPOINT,
+  overlay: PANORAMA.viewshed,
+  peaks,
+  labels: {
+    summit: t("cerro.viewshed.summit"),
+    visible: t("cerro.panorama.visible"),
+    borderline: t("cerro.panorama.borderline"),
+    hidden: t("cerro.panorama.hidden"),
+    climbed: t("cerro.panorama.climbed"),
+    layer: t("cerro.viewshed.layer"),
+  },
+};
+---
+
+<section class="viewshed not-prose iv-block" aria-labelledby="viewshed-title">
+  <h3 class="iv-block__title" id="viewshed-title">{t("cerro.viewshed.title")}</h3>
+  <p class="iv-note">
+    {t("cerro.viewshed.note", { area: number(VIEW_STATS.visibleArea), share: number(VIEW_STATS.visibleShare * 100, 1), far: number(VIEW_STATS.farthest.distance) })}
+  </p>
+  <div class="viewshed__map" id="viewshed-map" role="region" aria-label={t("cerro.viewshed.title")}></div>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><i class="viewshed__swatch"></i>{t("cerro.viewshed.legend")}</span>
+    <span class="iv-legend__item"><i class="viewshed__ring"></i>{t("cerro.viewshed.rings")}</span>
+  </div>
+  <script type="application/json" id="viewshed-map-data" set:html={JSON.stringify(data)} />
+</section>
+
+<style>
+  .viewshed__map {
+    height: min(68vh, 30rem);
+    margin-top: 0.75rem;
+    border: 1px solid oklch(var(--bc) / 0.16);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .viewshed__swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 0.75rem;
+    border-radius: 2px;
+    background: rgb(242 166 28 / 0.8);
+  }
+  .viewshed__ring {
+    display: inline-block;
+    width: 1rem;
+    height: 0;
+    border-top: 1.5px dashed oklch(var(--bc) / 0.7);
+  }
+  .viewshed :global(.vs-peak) {
+    border: 0;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    color: #0f172a;
+    font-size: 11px;
+    font-weight: 650;
+    text-shadow: 0 0 3px #fff, 0 0 2px #fff;
+    white-space: nowrap;
+  }
+  .viewshed :global(.vs-peak::before) {
+    display: none;
+  }
+  .viewshed :global(.vs-peak--hidden) {
+    color: #475569;
+    font-style: italic;
+    font-weight: 500;
+  }
+</style>
+
+<script>
+  document.addEventListener("astro:page-load", async () => {
+    if (!document.getElementById("viewshed-map")) return;
+    const { initViewshedMap } = await import("../scripts/viewshed-map");
+    initViewshedMap();
+  });
+</script>

@@ -1,0 +1,1467 @@
+/* Digital inventory of the hill (src/components/PlantInventory.astro and MountainPanorama.astro)
+   and its Leaflet map (src/scripts/plant-inventory.ts).
+
+   Colour follows the data-viz method: surfaces and ink come from the daisyUI theme so the
+   block matches the rest of the site, while the data colours are fixed slots — the status
+   palette for plant state, one categorical slot for single-series bars, and a validated
+   single-hue ordinal ramp for the flowering calendar. Status colours never carry meaning
+   alone: every one of them ships with a glyph and a label. */
+
+.plant-inventory,
+.mountain-panorama {
+  --iv-card: oklch(var(--b2));
+  --iv-sunken: oklch(var(--b3));
+  --iv-ink: oklch(var(--bc));
+  --iv-muted: oklch(var(--bc) / 0.62);
+  --iv-grid: oklch(var(--bc) / 0.12);
+  --iv-ring: oklch(var(--bc) / 0.16);
+
+  /* Status palette — fixed, never themed. */
+  --iv-good: #0ca30c;
+  --iv-warning: #fab219;
+  --iv-critical: #d03b3b;
+  /* Ink on top of a status or series fill. */
+  --iv-on-fill: #ffffff;
+  --iv-on-warning: #0b0b0b;
+
+  /* Categorical slot 1, for single-series bars. */
+  --iv-series: #3987e5;
+  /* Single-hue ordinal ramp, least → most. Dark mode runs dark → light. */
+  --iv-step-1: #256abf;
+  --iv-step-2: #3987e5;
+  --iv-step-3: #6da7ec;
+  --iv-step-4: #9ec5f4;
+
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--iv-ink);
+  /* The block takes the width it's given: its wide parts (tables, the panorama) scroll inside
+     it instead of widening the page layout, which sizes flex items to their content. */
+  contain: inline-size;
+}
+
+[data-theme="light"] .plant-inventory,
+[data-theme="light"] .mountain-panorama {
+  --iv-series: #2a78d6;
+  --iv-step-1: #86b6ef;
+  --iv-step-2: #5598e7;
+  --iv-step-3: #2a78d6;
+  --iv-step-4: #1c5cab;
+}
+
+/* ------------------------------------------------------------------ shared furniture */
+
+.iv-block {
+  margin: 2.5rem 0;
+}
+.iv-block__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.iv-note {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+  color: var(--iv-muted);
+  font-size: 0.875rem;
+}
+.iv-card {
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+  background: var(--iv-card);
+  padding: 1rem;
+}
+.iv-label {
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.iv-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------- stat tiles */
+
+.iv-stats {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+}
+.iv-stat {
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+  background: var(--iv-card);
+  padding: 0.75rem 0.875rem;
+}
+.iv-stat__value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.iv-stat__label {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.iv-stat__hint {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+}
+
+/* ------------------------------------------------------- status bar (one stacked bar) */
+
+.iv-statusbar {
+  display: flex;
+  /* The 2px surface gap between fills, as a gap rather than a border. */
+  gap: 2px;
+  height: 2.25rem;
+  overflow: hidden;
+  border-radius: 0.375rem;
+}
+.iv-statusbar__part {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--iv-on-fill);
+}
+.iv-statusbar__part:first-child {
+  border-radius: 0.375rem 0 0 0.375rem;
+}
+.iv-statusbar__part:last-child {
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+.iv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-top: 0.625rem;
+  font-size: 0.8125rem;
+}
+.iv-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.iv-swatch {
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--iv-on-fill);
+}
+.iv-swatch--alive {
+  background: var(--iv-good);
+}
+.iv-swatch--unchecked {
+  background: var(--iv-warning);
+  color: var(--iv-on-warning);
+}
+.iv-swatch--lost,
+.iv-swatch--dead {
+  background: var(--iv-critical);
+}
+.iv-swatch--unknown {
+  background: var(--iv-muted);
+}
+.iv-swatch--tree {
+  border-radius: 9999px;
+  border: 2px solid var(--iv-ink);
+  background: none;
+}
+.iv-swatch--shrub {
+  border-radius: 0.1875rem;
+  border: 2px solid var(--iv-ink);
+  background: none;
+}
+
+/* ------------------------------------------------------------------- bar chart rows */
+
+.iv-bars {
+  display: grid;
+  gap: 0.375rem;
+}
+.iv-bars__row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 9rem) 1fr;
+  align-items: center;
+  gap: 0.625rem;
+}
+.iv-bars__name {
+  text-align: right;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.iv-bars__track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-left: 1px solid var(--iv-grid);
+  padding-left: 0.25rem;
+}
+.iv-bars__fill {
+  height: 0.875rem;
+  min-width: 2px;
+  width: var(--iv-w);
+  /* Rounded data-end only, anchored to the baseline. */
+  border-radius: 0 4px 4px 0;
+  background: var(--iv-series);
+  transition: filter 0.15s;
+}
+.iv-bars__row:hover .iv-bars__fill {
+  filter: brightness(1.15);
+}
+.iv-bars__value {
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+
+/* ----------------------------------------------------------------- planting days */
+
+.iv-waves {
+  display: grid;
+  gap: 0.5rem;
+}
+.iv-wave {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) 1fr;
+  align-items: start;
+  gap: 0.75rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.625rem;
+  background: var(--iv-card);
+  padding: 0.625rem 0.75rem;
+}
+.iv-wave__date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.iv-wave__count {
+  display: block;
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+}
+.iv-wave__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.iv-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 9999px;
+  background: var(--iv-sunken);
+  padding: 0.0625rem 0.5rem;
+  font-size: 0.75rem;
+}
+.iv-chip__n {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- flowering calendar */
+
+.iv-months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+}
+.iv-month {
+  display: grid;
+  gap: 0.125rem;
+  justify-items: center;
+  padding: 0.25rem 0;
+}
+.iv-month__cell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 2.25rem;
+  border-radius: 0.25rem;
+  background: var(--iv-sunken);
+  color: var(--iv-on-fill);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.iv-month[data-step="1"] .iv-month__cell {
+  background: var(--iv-step-1);
+}
+.iv-month[data-step="2"] .iv-month__cell {
+  background: var(--iv-step-2);
+}
+.iv-month[data-step="3"] .iv-month__cell {
+  background: var(--iv-step-3);
+}
+.iv-month[data-step="4"] .iv-month__cell {
+  background: var(--iv-step-4);
+  color: var(--iv-on-warning);
+}
+[data-theme="light"] .iv-month[data-step="4"] .iv-month__cell {
+  color: var(--iv-on-fill);
+}
+.iv-month[data-step="0"] .iv-month__cell {
+  color: var(--iv-muted);
+}
+.iv-month__name {
+  color: var(--iv-muted);
+  font-size: 0.6875rem;
+}
+
+/* ----------------------------------------------------------------------- the map */
+
+.plant-inventory__map {
+  height: 26rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+  background: var(--iv-sunken);
+}
+.plant-inventory .leaflet-container {
+  font: inherit;
+  border-radius: 0.75rem;
+}
+/* A plant marker: the fill is its status, the outline shape its growth habit, and the two
+   letters its tag prefix — so neither colour nor shape has to carry identity on its own. */
+.iv-pin {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  /* The 2px surface ring that keeps overlapping marks legible. */
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+  font:
+    700 11px/1 system-ui,
+    sans-serif;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+.iv-pin--tree {
+  border-radius: 9999px;
+}
+.iv-pin--shrub {
+  border-radius: 4px;
+}
+.iv-pin--alive {
+  background: #0ca30c;
+}
+.iv-pin--unchecked {
+  background: #fab219;
+  color: #0b0b0b;
+}
+.iv-pin--lost,
+.iv-pin--dead {
+  background: #d03b3b;
+}
+.iv-pin--unknown {
+  background: #898781;
+}
+.iv-popup h4 {
+  margin: 0 0 0.125rem;
+  font-size: 0.9375rem;
+}
+.iv-popup em {
+  color: #52514e;
+}
+.iv-popup dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.125rem 0.5rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+}
+.iv-popup dt {
+  color: #52514e;
+}
+.iv-popup dd {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ species cards */
+
+.iv-species {
+  display: grid;
+  gap: 0.75rem;
+}
+.iv-species__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.375rem 0.625rem;
+  margin-bottom: 0.5rem;
+}
+.iv-species__name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.iv-species__sci {
+  color: var(--iv-muted);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+.iv-species__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.iv-species__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0.625rem 0 0;
+  font-size: 0.8125rem;
+}
+.iv-species__facts div {
+  display: flex;
+  gap: 0.375rem;
+}
+.iv-species__facts dt {
+  color: var(--iv-muted);
+}
+.iv-species__facts dd {
+  margin: 0;
+}
+.iv-species__card {
+  padding-top: 0;
+  overflow: hidden;
+}
+.iv-species__photo {
+  position: relative;
+  margin: 0 -1rem 0.875rem;
+  aspect-ratio: 5 / 2;
+  max-height: 15rem;
+  background: var(--iv-sunken);
+}
+.iv-species__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: cover;
+}
+.iv-species__photo figcaption {
+  position: absolute;
+  right: 0.375rem;
+  bottom: 0.375rem;
+  max-width: calc(100% - 0.75rem);
+  border-radius: 0.375rem;
+  background: rgb(0 0 0 / 0.55);
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.iv-species__photo figcaption a {
+  color: #f8fafc;
+  text-decoration: none;
+}
+.iv-species__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.75rem !important;
+  font-size: 0.8125rem;
+}
+.iv-species__links span {
+  color: var(--iv-muted);
+}
+.iv-species__links a {
+  color: var(--iv-series);
+}
+.iv-species__why {
+  margin: 0.625rem 0 0;
+  border-left: 3px solid var(--iv-series);
+  padding-left: 0.75rem;
+}
+.iv-species__why strong {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--iv-muted);
+}
+.iv-species p {
+  margin: 0.375rem 0 0;
+}
+
+/* --------------------------------------------------------------------- the table */
+
+.iv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.iv-filters input,
+.iv-filters select {
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.5rem;
+  background: var(--iv-card);
+  color: inherit;
+  padding: 0.375rem 0.625rem;
+  font: inherit;
+  font-size: 0.875rem;
+}
+.iv-filters input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.iv-filters__count {
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.iv-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+}
+.iv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.iv-table th,
+.iv-table td {
+  padding: 0.4375rem 0.625rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.iv-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--iv-sunken);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--iv-muted);
+}
+.iv-table tbody tr {
+  border-top: 1px solid var(--iv-grid);
+}
+.iv-table tbody tr:hover {
+  background: oklch(var(--bc) / 0.05);
+}
+.iv-table td:first-child {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.iv-table em {
+  color: var(--iv-muted);
+}
+.iv-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.iv-table__notes {
+  white-space: normal;
+  min-width: 12rem;
+  color: var(--iv-muted);
+}
+.iv-table__empty {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--iv-muted);
+}
+
+/* ------------------------------------------------------------------ data quality */
+
+.iv-issues {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.iv-issues li {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) minmax(3.5rem, auto) 1fr;
+  gap: 0.5rem;
+  border-top: 1px solid var(--iv-grid);
+  padding-top: 0.25rem;
+  font-size: 0.8125rem;
+}
+.iv-issues li:first-child {
+  border-top: 0;
+}
+.iv-issues__kind {
+  color: var(--iv-muted);
+}
+.iv-issues__id {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------- panorama */
+
+/* Panorama colours. The terrain is a single cool hue stepped from near (strong) to far (close
+   to the sky at the horizon), the way haze flattens distant ridges; the summits wear the
+   categorical blue, my routes categorical slot 2 (orange). Both themes are set explicitly. */
+.mountain-panorama {
+  --mp-sky-top: #0f1620;
+  --mp-sky-horizon: #4a5d77;
+  --mp-far: #48586d;
+  --mp-near: #0e131a;
+  --mp-ridge: oklch(0.92 0.02 250);
+  --mp-route: #d95926;
+  --mp-label-halo: #161d28;
+}
+[data-theme="light"] .mountain-panorama {
+  --mp-sky-top: #b8d0e8;
+  --mp-sky-horizon: #f1f5f9;
+  --mp-far: #c4cfdb;
+  --mp-near: #3d4855;
+  --mp-ridge: oklch(0.25 0.03 250);
+  --mp-route: #eb6834;
+  --mp-label-halo: #dbe7f2;
+}
+
+/* Several of these blocks set their own display; the hidden attribute must still win. */
+.mountain-panorama [hidden] {
+  display: none !important;
+}
+.mp-stats {
+  margin: 0.875rem 0 1rem;
+}
+.mp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+.mp-tabs {
+  display: inline-flex;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.625rem;
+  padding: 2px;
+  background: var(--iv-card);
+}
+.mp-tab {
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--iv-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+.mp-tab[aria-selected="true"] {
+  background: var(--iv-series);
+  color: var(--iv-on-fill);
+}
+.mp-jump {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.mp-jump__label {
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+  margin-right: 0.125rem;
+}
+.mp-jump__btn {
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.5rem;
+  background: var(--iv-card);
+  color: var(--iv-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.1875rem 0.625rem;
+  cursor: pointer;
+}
+.mp-jump__btn:hover,
+.mp-jump__btn.is-active {
+  border-color: var(--iv-series);
+  color: var(--iv-series);
+}
+.mp-hint {
+  margin-top: 0.5rem;
+}
+
+/* The strip is far wider than the page: it scrolls sideways (the script wraps it round at
+   north) and zooms by resizing the whole drawing, so proportions never change. */
+.mp-stage {
+  position: relative;
+}
+.mountain-panorama__chart {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+  background: var(--mp-sky-horizon);
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  cursor: grab;
+  touch-action: pan-x pan-y;
+}
+.mountain-panorama__chart.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.mountain-panorama__chart:focus-visible {
+  outline: 2px solid var(--iv-series);
+  outline-offset: 2px;
+}
+.mountain-panorama__chart svg {
+  display: block;
+  max-width: none;
+  width: calc(var(--mp-w) * var(--mp-zoom, 1) * 1px);
+  height: calc(var(--mp-h) * var(--mp-zoom, 1) * 1px);
+}
+.mp-heading {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: oklch(var(--b1) / 0.8);
+  color: var(--iv-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.125rem 0.625rem;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+.mp-heading:empty {
+  display: none;
+}
+
+.mp-sky__top {
+  stop-color: var(--mp-sky-top);
+}
+.mp-sky__horizon {
+  stop-color: var(--mp-sky-horizon);
+}
+.mp-grid {
+  stroke: oklch(var(--bc) / 0.08);
+  stroke-width: 1;
+}
+.mp-band {
+  stroke: none;
+}
+.mp-ridge,
+.mp-skyline {
+  fill: none;
+  stroke: var(--mp-ridge);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.mp-skyline {
+  stroke-width: 1.4;
+  stroke-opacity: 0.85;
+}
+.mp-ridge--near {
+  stroke-width: 1.3;
+  stroke-opacity: 0.6;
+}
+.mp-ridge--mid {
+  stroke-width: 1;
+  stroke-opacity: 0.5;
+}
+.mp-ridge--far {
+  stroke-width: 0.8;
+  stroke-opacity: 0.42;
+}
+.mp-ridge--farthest {
+  stroke-width: 0.7;
+  stroke-opacity: 0.34;
+}
+.mp-ruler {
+  fill: var(--iv-card);
+}
+.mp-tick {
+  stroke: oklch(var(--bc) / 0.35);
+  stroke-width: 1;
+}
+.mp-tick__label {
+  fill: var(--iv-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.mp-tick__label--cardinal {
+  fill: var(--iv-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.mp-clone {
+  pointer-events: none;
+}
+
+/* My routes. */
+.mp-route__run {
+  fill: none;
+  stroke: var(--mp-route);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mp-route__run--hidden {
+  stroke-width: 1.25;
+  stroke-dasharray: 2 4;
+  stroke-opacity: 0.55;
+}
+
+/* One summit: a dot at its bearing and apparent height, a leader up to its name. */
+.mp-peak {
+  cursor: pointer;
+}
+.mp-leader {
+  stroke: var(--mp-ridge);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.mp-dot {
+  stroke: var(--mp-label-halo);
+  stroke-width: 1.5;
+  fill: var(--iv-series);
+}
+.mp-peak--borderline .mp-dot {
+  fill: var(--mp-label-halo);
+  stroke: var(--iv-series);
+  stroke-width: 2;
+}
+.mp-peak--hidden .mp-dot {
+  fill: none;
+  stroke: var(--iv-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
+.mp-flank {
+  fill: var(--iv-series);
+  stroke: var(--mp-label-halo);
+  stroke-width: 1;
+}
+.mp-name,
+.mp-meta {
+  paint-order: stroke;
+  stroke: var(--mp-label-halo);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.mp-name {
+  fill: var(--iv-ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+.mp-meta {
+  fill: var(--iv-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.mp-peak--hidden .mp-name {
+  fill: var(--iv-muted);
+  font-weight: 500;
+  font-style: italic;
+}
+.mp-peak--climbed .mp-name {
+  fill: var(--mp-route);
+}
+.mp-peak a {
+  cursor: pointer;
+}
+.mp-peak a:hover .mp-name {
+  text-decoration: underline;
+}
+.mp-hit {
+  fill: none;
+  pointer-events: all;
+}
+.mp-peak:focus {
+  outline: none;
+}
+/* The ring that marks the summit you picked. A separate circle rather than a bigger `r`,
+   which is a CSS geometry property not every browser supports. */
+.mp-halo {
+  fill: none;
+  stroke: var(--iv-series);
+  stroke-width: 2;
+  opacity: 0;
+}
+.mp-peak:hover .mp-halo,
+.mp-peak:focus-visible .mp-halo,
+.mp-peak.is-active .mp-halo {
+  opacity: 1;
+}
+.mp-peak:hover .mp-leader,
+.mp-peak:focus-visible .mp-leader,
+.mp-peak.is-active .mp-leader {
+  stroke: var(--iv-series);
+  stroke-opacity: 1;
+  stroke-dasharray: none;
+}
+.mp-peak.is-active .mp-name {
+  fill: var(--iv-series);
+}
+
+/* The table of summits: folded away by default, it's long. */
+.mp-table {
+  margin-top: 1rem;
+}
+.mp-table summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.mp-table__wrap {
+  max-height: 26rem;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+.mp-table__wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--iv-card);
+}
+.mp-row-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--iv-ink);
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--iv-ring);
+}
+.mp-row-btn:hover {
+  color: var(--iv-series);
+  border-bottom-color: var(--iv-series);
+}
+.mp-row-ascent {
+  margin-left: 0.5rem;
+  color: var(--mp-route);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.mp-behind {
+  display: block;
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+}
+.iv-table tr.is-active {
+  background: oklch(var(--bc) / 0.07);
+}
+.iv-table tr.is-active .mp-row-btn {
+  color: var(--iv-series);
+}
+.mp-source {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* ----------------------------------------------------------------------- 3D view */
+
+.mp-3d {
+  position: relative;
+  height: min(70vh, 34rem);
+  min-height: 22rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #8fb3d6;
+  touch-action: none;
+  user-select: none;
+}
+.mp-3d:fullscreen {
+  height: 100%;
+  border-radius: 0;
+}
+.mp-3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+.mp-3d canvas.is-dragging {
+  cursor: grabbing;
+}
+.mp-3d__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1.5rem;
+  color: #0f172a;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.mp-3d__labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mp-3d__label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  text-align: center;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.15;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.85), 0 0 6px rgb(0 0 0 / 0.5);
+  pointer-events: auto;
+}
+.mp-3d__label small {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.mp-3d__label::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: var(--leader, 18px);
+  margin: 2px auto 0;
+  background: rgb(255 255 255 / 0.75);
+  box-shadow: 0 0 2px rgb(0 0 0 / 0.6);
+}
+.mp-3d__label--hidden {
+  opacity: 0.6;
+  font-style: italic;
+}
+.mp-3d__label--climbed {
+  color: #ffd2b8;
+}
+.mp-3d__label a {
+  color: inherit;
+  text-decoration: none;
+}
+.mp-3d__label a:hover {
+  text-decoration: underline;
+}
+.mp-3d__controls {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  border-radius: 0.625rem;
+  background: rgb(15 23 42 / 0.62);
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.625rem;
+  backdrop-filter: blur(6px);
+}
+.mp-3d__controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.mp-3d__controls input[type="range"] {
+  width: 9rem;
+  accent-color: #f5b83d;
+}
+.mp-3d__controls select,
+.mp-3d__controls button {
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 0.375rem;
+  background: rgb(255 255 255 / 0.08);
+  color: inherit;
+  font: inherit;
+  padding: 0.125rem 0.5rem;
+  cursor: pointer;
+}
+.mp-3d__controls select option {
+  color: #0f172a;
+}
+.mp-3d__clock {
+  min-width: 3.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.mp-3d__compass {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.55);
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  padding: 0.125rem 0.625rem;
+  pointer-events: none;
+}
+.mp-3d__attribution {
+  position: absolute;
+  top: 2.25rem;
+  right: 0.5rem;
+  max-width: 60%;
+  text-align: right;
+  color: rgb(255 255 255 / 0.8);
+  font-size: 0.625rem;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .mp-3d__controls input[type="range"] {
+    width: 6.5rem;
+  }
+}
+
+/* -------------------------------------------------------------- the sun on the hill */
+
+.hill-sun {
+  --hs-more: #e09a34;
+  --hs-less: #2c9670;
+  --hs-same: #8a8f96;
+  contain: inline-size;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: oklch(var(--bc));
+}
+.hs-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  margin-top: 0.875rem;
+}
+@media (max-width: 760px) {
+  .hs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.hs-figure {
+  margin: 0;
+  border: 1px solid oklch(var(--bc) / 0.16);
+  border-radius: 0.75rem;
+  background: oklch(var(--b2));
+  padding: 0.75rem;
+}
+.hs-figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.hs-plan {
+  border-radius: 0.5rem;
+  max-height: 26rem;
+}
+.hs-figure figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+.hs-contour {
+  fill: none;
+  stroke: rgb(20 24 30 / 0.45);
+  stroke-width: 0.8;
+}
+.hs-contour--index {
+  stroke-width: 1.5;
+}
+.hs-plant {
+  fill: #ffffff;
+  stroke: #10151c;
+  stroke-width: 1.4;
+}
+.hs-summit,
+.hs-north {
+  fill: #10151c;
+  stroke: #ffffff;
+  stroke-width: 1.2;
+}
+.hs-scale {
+  fill: none;
+  stroke: #10151c;
+  stroke-width: 2;
+}
+.hs-label {
+  fill: #10151c;
+  font-size: 11px;
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: rgb(255 255 255 / 0.8);
+  stroke-width: 3px;
+}
+.hs-ramp {
+  display: block;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--hs-less), var(--hs-same), var(--hs-more));
+}
+.hs-ramp__labels {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.125rem 0 0.375rem;
+  color: oklch(var(--bc) / 0.7);
+  font-size: 0.75rem;
+}
+.hs-grid line.hs-grid,
+.hs-chart .hs-grid {
+  stroke: oklch(var(--bc) / 0.1);
+}
+.hs-axis {
+  fill: oklch(var(--bc) / 0.62);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.hs-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.hs-point {
+  stroke: oklch(var(--b2));
+  stroke-width: 1.5;
+}
+.hs-series--north .hs-line {
+  stroke: var(--hs-more);
+}
+.hs-series--north .hs-point {
+  fill: var(--hs-more);
+}
+.hs-series--south .hs-line {
+  stroke: var(--hs-less);
+}
+.hs-series--south .hs-point {
+  fill: var(--hs-less);
+}
+.hs-series--flat .hs-line {
+  stroke: var(--hs-same);
+  stroke-dasharray: 4 3;
+}
+.hs-series--flat .hs-point {
+  fill: var(--hs-same);
+}
+.hs-direct {
+  fill: oklch(var(--bc));
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: oklch(var(--b2));
+  stroke-width: 3px;
+}
+.hs-gap {
+  stroke: oklch(var(--bc) / 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+.hs-annotation {
+  fill: oklch(var(--bc));
+  font-size: 13px;
+  font-weight: 700;
+}
+.hs-hit {
+  fill: transparent;
+}
+.hs-hit:hover {
+  fill: oklch(var(--bc) / 0.05);
+}
+
+/* ----------------------------------------------------------------------- the weather */
+
+.climate-story {
+  --cs-series: #3987e5;
+  --cs-series-2: #d95926;
+  --cs-ink: oklch(var(--bc));
+  --cs-muted: oklch(var(--bc) / 0.62);
+  --cs-grid: oklch(var(--bc) / 0.1);
+  contain: inline-size;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--cs-ink);
+}
+[data-theme="light"] .climate-story {
+  --cs-series: #2a78d6;
+  --cs-series-2: #eb6834;
+}
+.cs-figure {
+  margin: 1rem 0 0;
+  border: 1px solid oklch(var(--bc) / 0.16);
+  border-radius: 0.75rem;
+  background: oklch(var(--b2));
+  padding: 0.875rem 0.875rem 0.625rem;
+}
+.cs-figure {
+  overflow-x: auto;
+}
+/* On a phone the charts keep a legible size and scroll sideways rather than shrink. */
+.cs-figure svg {
+  display: block;
+  width: 100%;
+  min-width: 36rem;
+  height: auto;
+}
+.cs-title {
+  font-weight: 650;
+  font-size: 0.9375rem;
+}
+.cs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.8125rem;
+}
+.cs-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.cs-swatch {
+  display: inline-block;
+  width: 1.125rem;
+  height: 0.625rem;
+}
+.cs-swatch--line {
+  height: 2px;
+  background: var(--cs-series);
+}
+.cs-swatch--normal {
+  height: 0;
+  border-top: 2px dashed var(--cs-muted);
+}
+.cs-swatch--rain {
+  border-radius: 2px;
+  background: var(--cs-series);
+  opacity: 0.85;
+}
+.cs-swatch--planting {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--cs-ink);
+}
+.cs-swatch--tick {
+  height: 0;
+  border-top: 2.5px solid var(--cs-ink);
+}
+.cs-swatch--et0 {
+  height: 2px;
+  background: var(--cs-series-2);
+}
+.cs-grid {
+  stroke: var(--cs-grid);
+}
+.cs-tick {
+  stroke: var(--cs-muted);
+}
+.cs-axis {
+  fill: var(--cs-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.cs-normal {
+  fill: none;
+  stroke: var(--cs-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.cs-tmax {
+  fill: none;
+  stroke: var(--cs-series);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.cs-mark {
+  fill: var(--cs-series);
+  stroke: oklch(var(--b2));
+  stroke-width: 2;
+}
+.cs-annotation {
+  fill: var(--cs-ink);
+  font-size: 11px;
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: oklch(var(--b2));
+  stroke-width: 3px;
+}
+.cs-rain,
+.cs-bar {
+  fill: var(--cs-series);
+  opacity: 0.85;
+}
+.cs-planting line {
+  stroke: var(--cs-ink);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.6;
+}
+.cs-planting circle {
+  fill: var(--cs-ink);
+}
+.cs-planting text {
+  fill: oklch(var(--b2));
+  font-size: 9px;
+  font-weight: 700;
+}
+.cs-dry {
+  fill: var(--cs-series-2);
+  opacity: 0.07;
+}
+.cs-tick2025 {
+  stroke: var(--cs-ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.cs-et0 {
+  fill: none;
+  stroke: var(--cs-series-2);
+  stroke-width: 2;
+}
+.cs-et0-point {
+  fill: var(--cs-series-2);
+  stroke: oklch(var(--b2));
+  stroke-width: 1.5;
+}
+.cs-direct {
+  fill: var(--cs-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cs-year {
+  fill: oklch(var(--bc) / 0.28);
+}
+.cs-year--focus {
+  fill: var(--cs-series);
+}
+.cs-normal-rain {
+  stroke: var(--cs-ink);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+.cs-hit {
+  fill: transparent;
+}
+.cs-hit:hover {
+  fill: oklch(var(--bc) / 0.06);
+}
