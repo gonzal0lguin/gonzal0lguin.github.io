@@ -16,6 +16,7 @@ the things that cost an afternoon to find out once.
 | `npm run translate` | Spanish → English with Claude, needs `ANTHROPIC_API_KEY` |
 | `npm run photos` | EXIF of post photos → `src/data/photo-locations.json` (runs on pre-dev/pre-build) |
 | `npm run panoramas` | summit views; `-- provincia` for one, `-- --all` for all (~30 s each) |
+| `npm run profiles` | every summit's outline for the to-scale chart → `src/data/profiles.json` (seconds) |
 | `npm run terrain` / `climate` / `inventory` | data for the reforestation post |
 
 Stick to **npm** — the GitHub Actions deploy uses `npm ci`.
@@ -87,8 +88,10 @@ the CSS in `<![CDATA[ ]]>`, and narrow the `viewBox` to crop a slice of the 1920
 - **Overpass (OpenStreetMap)** returns **406 without a real User-Agent** and is often at capacity
   (502/504). Always go through `scripts/lib/overpass.mjs`: GET, a real UA, backoff across two
   servers, and an on-disk cache in `scripts/data/osm/`. Delete a region's file to refresh it.
-- **The Copernicus DEM reader** (`scripts/lib/dem.mjs`) only handles the **southern and western**
-  hemispheres. A summit in the Alps can be registered but will not get a panorama.
+- **The Copernicus DEM reader** (`scripts/lib/dem.mjs`) reads any hemisphere, but only 1° × 1°
+  tiles of 3600 px, so nothing past ±50° latitude (Copernicus narrows its tiles there). The
+  panorama pipeline is only proven south and west of 0°, and `scripts/panoramas.mjs` still
+  skips the rest: a summit in the Alps gets its outline (`npm run profiles`) but no panorama.
 - Elevation tiles and OSM answers are cached; the first `npm run panoramas` is slow, the rest fast.
 
 ## Conventions

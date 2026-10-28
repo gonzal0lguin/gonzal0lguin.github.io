@@ -53,7 +53,7 @@ const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
         <div class="flex place-content-between items-center text-sm mb-4">
           <div class="grow md:grow-0">
             { mountain && <span class="mr-4"><strong>{t("ascents.mountain")}:</strong> {mountain}</span> }
-            { elevation && elevation > 0 && <span class="mr-4"><strong>{t("ascents.elevation")}:</strong> {elevation.toLocaleString(lang)} m</span> }
+            { elevation && elevation > 0 && <span class="mr-4"><strong>{t("ascents.elevation")}:</strong> {elevation.toLocaleString(locale)} m</span> }
             <span><strong>{t("ascents.date")}:</strong> <time datetime={pubDate.toISOString()}>{formatDate(pubDate, lang)}</time></span>
           </div>
         </div>

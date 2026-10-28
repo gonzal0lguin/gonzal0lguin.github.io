@@ -18,6 +18,7 @@
     "terrain": "node scripts/terrain.mjs",
     "climate": "node scripts/climate.mjs",
     "panoramas": "node scripts/panoramas.mjs",
+    "profiles": "node scripts/profiles.mjs",
     "shot": "node scripts/shot.mjs"
   },
   "dependencies": {

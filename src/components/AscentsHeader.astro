@@ -20,10 +20,12 @@ const tabs = [
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
   <h1 class="text-3xl font-bold">{t("ascents.title")}</h1>
-  <nav role="tablist" class="tabs tabs-boxed bg-base-200" aria-label={t("ascents.title")}>
+  {/* daisyUI lays the tabs out on a single grid row, which pushes the widest label off the
+      screen on a phone; a wrapping flex row lets them fall onto a second line instead. */}
+  <nav role="tablist" class="tabs tabs-boxed flex flex-wrap bg-base-200" aria-label={t("ascents.title")}>
     {
       tabs.map((tab) => (
-        <a role="tab" href={tab.href} class:list={["tab gap-2", { "tab-active": tab.id === active }]} aria-selected={tab.id === active ? "true" : "false"}>
+        <a role="tab" href={tab.href} class:list={["tab h-auto min-h-8 gap-2 whitespace-nowrap py-1.5", { "tab-active": tab.id === active }]} aria-selected={tab.id === active ? "true" : "false"}>
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d={tab.icon} />
           </svg>

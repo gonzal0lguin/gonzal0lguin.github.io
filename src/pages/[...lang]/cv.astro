@@ -23,7 +23,7 @@ const { Content } = await entry.render();
 
 <BaseLayout title={entry.data.title} description={entry.data.description} sideBarActiveItemID="cv">
   {fallback && <UntranslatedNotice />}
-  <div lang={fallback ? "es" : undefined} class="[&>p]:mb-10 [&>p]:text-justify [&_ul]:list-disc [&_ul]:mx-6">
+  <div lang={fallback ? "es" : undefined} class="[&>p]:mb-10 [&>p]:text-left sm:[&>p]:text-justify [&_ul]:list-disc [&_ul]:mx-6">
     <Content components={{ TimeLine, TimeLineGroup, Columns, h2: SectionTitle }} />
   </div>
 

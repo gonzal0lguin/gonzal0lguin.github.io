@@ -17,7 +17,7 @@
 import { PANORAMA as HILL_PANORAMA, type Peak } from "../data/hill";
 import type { PanoramaData } from "../lib/summits";
 import "../styles/inventory.css";
-import { languages, getLangFromUrl, localizePath, useTranslations, type UIKey } from "../i18n/ui";
+import { compassPoint, languages, getLangFromUrl, localizePath, useTranslations, type UIKey } from "../i18n/ui";
 
 export interface Props {
   data?: PanoramaData;
@@ -109,11 +109,7 @@ const ridgeClass = (distance: number) =>
 
 // ---------------------------------------------------------------------------- summits
 
-const COMPASS = {
-  es: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
-  en: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
-};
-const compass = (azimuth: number) => COMPASS[lang][Math.round(azimuth / 22.5) % 16];
+const compass = (azimuth: number) => compassPoint(azimuth, lang);
 
 const slug = (name: string) =>
   name

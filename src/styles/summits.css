@@ -651,66 +651,104 @@
 .chart-scroll {
   overflow-x: auto;
 }
-.chart-grid line {
+/* Summits to scale: a wrapping row of equal cells, so every outline keeps the same metres per
+   pixel. Each row sits on its own sea level: the cells align at the bottom, over labels of a
+   fixed height. */
+.scale-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  align-items: end;
+  gap: 1.25rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.scale-peak {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.375rem;
+}
+.scale-peak__view {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* The view box is in metres; strokes stay in pixels. */
+.scale-peak__view line,
+.scale-peak__view path {
+  vector-effect: non-scaling-stroke;
+}
+.scale-peak__grid {
   stroke: var(--iv-grid);
   stroke-width: 1;
 }
-.chart-grid text,
-.scale-peak__name {
-  fill: var(--iv-muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.chart-baseline {
+.scale-peak__ground {
   stroke: oklch(var(--bc) / 0.35);
   stroke-width: 1;
 }
-.scale-chart {
-  display: block;
-  width: 100%;
-  min-width: 36rem;
-  height: auto;
+.scale-peak__stop {
+  stop-color: var(--iv-series);
+  transition: stop-color 0.15s;
 }
-.scale-peak__fill {
-  fill: var(--iv-series);
-  transition: fill 0.15s;
+.scale-peak__stop--low {
+  stop-opacity: 0.25;
 }
-/* The 2px surface ring between overlapping mountains; no line along the ground. */
-.scale-peak__edge,
-.scale-swatch {
+.scale-peak__edge {
   fill: none;
-  stroke: oklch(var(--b1));
-  stroke-width: 2;
+  stroke: var(--iv-series);
+  stroke-width: 1.5;
   stroke-linejoin: round;
 }
+.scale-peak__name,
+.scale-peak__ele {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.25rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scale-peak__name {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.scale-peak__ele {
+  color: var(--iv-muted);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
 .scale-swatch {
   fill: var(--iv-series);
+  stroke: none;
 }
-.scale-peak--attempt .scale-peak__fill {
-  fill: oklch(var(--b1));
+/* An attempt is only its outline, dashed, over a faint wash of the same colour. */
+.scale-peak--attempt .scale-peak__stop {
+  stop-opacity: 0.12;
+}
+.scale-peak--attempt .scale-peak__stop--low {
+  stop-opacity: 0.03;
 }
 .scale-peak--attempt .scale-peak__edge,
 .scale-swatch--attempt {
   fill: none;
   stroke: var(--iv-series);
-  stroke-width: 1.75;
+  stroke-width: 1.5;
   stroke-dasharray: 4 3;
 }
-.scale-peak:hover .scale-peak__fill,
-.scale-peak:focus-visible .scale-peak__fill {
-  fill: color-mix(in oklab, var(--iv-series) 70%, oklch(var(--bc)));
-}
-.scale-peak--attempt:hover .scale-peak__fill,
-.scale-peak--attempt:focus-visible .scale-peak__fill {
-  fill: color-mix(in oklab, var(--iv-series) 18%, oklch(var(--b1)));
+.scale-peak:hover .scale-peak__stop,
+.scale-peak:focus-visible .scale-peak__stop {
+  stop-color: color-mix(in oklab, var(--iv-series) 70%, oklch(var(--bc)));
 }
 .scale-peak:hover .scale-peak__name,
 .scale-peak:focus-visible .scale-peak__name {
-  fill: var(--iv-ink);
-  font-weight: 700;
+  color: var(--iv-series);
 }
 .scale-peak:focus-visible {
-  outline: none;
+  outline: 2px solid var(--iv-series);
+  outline-offset: 2px;
 }
 
 .seasons {
@@ -805,16 +843,24 @@ a.seasons__dot:focus-visible {
 .routes-table td {
   vertical-align: middle;
 }
+/* The route name and its summits are the only free text here; letting them wrap keeps the
+   whole table — the profile column included — inside the page instead of off its right edge. */
+.routes-table th:first-child,
+.routes-table td:first-child {
+  white-space: normal;
+}
 .routes-sort {
   font: inherit;
   font-weight: inherit;
   color: inherit;
   white-space: nowrap;
 }
+/* The neutral state reuses the same arrow as the sorted one, dimmed: U+2195 (↕) is missing
+   from several common system fonts and shows up as a tofu box. */
 .routes-sort::after {
-  content: "↕";
+  content: "↓";
   margin-left: 0.25rem;
-  opacity: 0.35;
+  opacity: 0.3;
 }
 th[aria-sort="descending"] .routes-sort::after {
   content: "↓";
@@ -826,6 +872,7 @@ th[aria-sort="ascending"] .routes-sort::after {
 }
 .routes-table__name {
   display: block;
+  max-width: 15rem;
   font-weight: 600;
 }
 .routes-table__name:hover {

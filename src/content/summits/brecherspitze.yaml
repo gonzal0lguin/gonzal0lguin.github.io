@@ -3,6 +3,6 @@ elevation: 1683
 lat: 47.67667
 lon: 11.87083
 region: Alpes bávaros · Alemania
-# El modelo de elevación del sitio solo lee el hemisferio sur por ahora.
+# El panorama todavía no se ha probado al norte ni al este de 0° (el perfil sí se calcula).
 panorama: false
 timezone: Europe/Berlin

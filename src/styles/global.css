@@ -14,3 +14,19 @@
 [data-theme="light"] .theme-icon-sun {
     display: none;
 }
+
+/* A table or a display formula in a post is as wide as its content makes it, and on a phone a
+   wide one drags the whole page sideways. Both get to scroll inside their own line instead.
+   The table needs `display: block` for that, which is what costs it its own `width: 100%`. */
+.prose table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.25rem 0;
+}

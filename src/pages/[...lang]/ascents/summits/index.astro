@@ -53,6 +53,13 @@ const panoramas = summits.filter((summit) => summit.panorama).length;
       {
         summits.map((summit) => {
           const reached = summit.ascents.filter((ascent) => !ascent.attempt).length;
+          const attempts = summit.ascents.length - reached;
+          // Each half is only shown when it happened, and each picks its own singular: a summit
+          // tried once and never reached reads "1 intento", not "0 subidas, 1 intentos".
+          const visits = [
+            reached > 0 && t(reached === 1 ? "summits.visitsOne" : "summits.visitsMany", { n: reached }),
+            attempts > 0 && t(attempts === 1 ? "summits.attemptsOne" : "summits.attemptsMany", { n: attempts }),
+          ].filter(Boolean).join(", ");
           return (
             <li
               data-filter-item
@@ -69,9 +76,7 @@ const panoramas = summits.filter((summit) => summit.panorama).length;
                 <span class="summit-card__name">{summit.data.name}</span>
                 {summit.data.region && <span class="summit-card__region">{summit.data.region}</span>}
                 <span class="summit-card__meta iv-num">
-                  {reached === summit.ascents.length
-                    ? t(summit.ascents.length === 1 ? "summits.visitsOne" : "summits.visitsMany", { n: summit.ascents.length })
-                    : t("summits.visitsAttempts", { n: reached, m: summit.ascents.length - reached })}
+                  {visits}
                   {summit.last && ` · ${formatDate(summit.last, lang)}`}
                 </span>
                 {summit.panorama && (

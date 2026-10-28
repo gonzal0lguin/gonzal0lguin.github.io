@@ -37,6 +37,16 @@ export function formatDate(date: Date, lang: Lang): string {
   return new Intl.DateTimeFormat(languages[lang].locale, { dateStyle: "medium", timeZone: "UTC" }).format(date);
 }
 
+const COMPASS = {
+  es: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
+  en: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
+};
+
+/** A bearing in degrees as one of the 16 points of the compass. */
+export function compassPoint(azimuth: number, lang: Lang): string {
+  return COMPASS[lang][Math.round((((azimuth % 360) + 360) % 360) / 22.5) % 16];
+}
+
 const ui = {
   es: {
     "site.title": "Gonzalo Olguín | Portafolio y Montañismo",
@@ -561,7 +571,8 @@ const ui = {
     "summits.countMany": "{n} cumbres",
     "summits.visitsOne": "1 subida",
     "summits.visitsMany": "{n} subidas",
-    "summits.visitsAttempts": "{n} subidas, {m} intentos",
+    "summits.attemptsOne": "1 intento",
+    "summits.attemptsMany": "{n} intentos",
     "summits.panoramaBadge": "{n} cumbres a la vista",
 
     "log.search": "Buscar salida, cumbre o zona…",
@@ -577,7 +588,8 @@ const ui = {
 
     "chart.last": "Última vez: {date}",
     "chart.scale.title": "Mis cumbres a escala",
-    "chart.scale.note": "Las {n} cumbres de la bitácora una al lado de la otra, cada una tan alta como es. Cada una lleva a su página.",
+    "chart.scale.note": "Las {n} cumbres de la bitácora una al lado de la otra, todas a la misma escala y sin exagerar la altura: un corte del terreno por cada cumbre, desde el lado en que más se destaca. Líneas cada 1.000 m; cada una lleva a su página.",
+    "chart.scale.from": "Silueta vista desde el {dir}",
     "chart.scale.reached": "Cumbre",
     "chart.scale.attempt": "Solo intento",
     "chart.seasons.title": "Cuándo salgo",
@@ -1128,7 +1140,8 @@ const ui = {
     "summits.countMany": "{n} summits",
     "summits.visitsOne": "1 ascent",
     "summits.visitsMany": "{n} ascents",
-    "summits.visitsAttempts": "{n} ascents, {m} attempts",
+    "summits.attemptsOne": "1 attempt",
+    "summits.attemptsMany": "{n} attempts",
     "summits.panoramaBadge": "{n} summits in view",
 
     "log.search": "Search a trip, summit or area…",
@@ -1144,7 +1157,8 @@ const ui = {
 
     "chart.last": "Last time: {date}",
     "chart.scale.title": "My summits to scale",
-    "chart.scale.note": "The {n} summits of the log side by side, each as tall as it is. Each one links to its page.",
+    "chart.scale.note": "The {n} summits of the log side by side, all at the same scale and with no vertical exaggeration: a slice of the terrain through each top, from the side it stands out most. Lines every 1,000 m; each one links to its page.",
+    "chart.scale.from": "Outline seen from the {dir}",
     "chart.scale.reached": "Summit",
     "chart.scale.attempt": "Attempt only",
     "chart.seasons.title": "When I go out",

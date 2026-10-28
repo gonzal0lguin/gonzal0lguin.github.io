@@ -12,7 +12,11 @@ import { inflateSync } from "node:zlib";
 const CACHE = new URL("../../.cache/dem/", import.meta.url);
 const SOURCE = "https://copernicus-dem-30m.s3.amazonaws.com";
 
-const tileName = (south, west) => `S${String(south).padStart(2, "0")}_W${String(west).padStart(3, "0")}`;
+// A tile is named by its south-west corner, in degrees south and west; a negative one is north
+// or east of the line (S-47 is N47, W-11 is E011), which is what loadDem's arithmetic gives.
+const latName = (south) => `${south > 0 ? "S" : "N"}${String(Math.abs(south)).padStart(2, "0")}`;
+const lonName = (west) => `${west > 0 ? "W" : "E"}${String(Math.abs(west)).padStart(3, "0")}`;
+const tileName = (south, west) => `${latName(south)}_${lonName(west)}`;
 
 /** Downloads a 1° tile if it isn't cached yet. Returns null over open sea, where there is no tile. */
 async function fetchTile(south, west) {
@@ -22,7 +26,7 @@ async function fetchTile(south, west) {
   if (existsSync(path)) return readFileSync(path);
   if (existsSync(missing)) return null;
   mkdirSync(CACHE, { recursive: true });
-  const id = `Copernicus_DSM_COG_10_S${String(south).padStart(2, "0")}_00_W${String(west).padStart(3, "0")}_00_DEM`;
+  const id = `Copernicus_DSM_COG_10_${latName(south)}_00_${lonName(west)}_00_DEM`;
   process.stderr.write(`downloading ${id}…\n`);
   const response = await fetch(`${SOURCE}/${id}/${id}.tif`);
   if (response.status === 404 || response.status === 403) {
@@ -165,7 +169,8 @@ export async function loadDem({ south, north, west, east }) {
     const gx = Math.floor(px);
     const fy = py - gy;
     const fx = px - gx;
-    const ly = gy % N;
+    // North of the equator the rows count negative, and % keeps the sign.
+    const ly = ((gy % N) + N) % N;
     const lx = gx % N;
     let a, b, c, d;
     if (ly < N - 1 && lx < N - 1) {

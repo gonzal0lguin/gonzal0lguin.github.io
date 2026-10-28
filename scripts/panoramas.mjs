@@ -331,7 +331,9 @@ const wanted = registry.filter((entry) => {
 if (!wanted.length) console.log("Every summit with `panorama: true` already has one (use --all or name them to recompute).");
 for (const entry of wanted) {
   if (entry.lat > 0 || entry.lon > 0) {
-    console.log(`\n=== ${entry.name}: skipped — the elevation reader only knows the southern and western hemispheres`);
+    // The elevation reader handles any hemisphere (the summit outlines use it in the Alps), but
+    // nothing north or east of 0° has been run through the whole panorama yet.
+    console.log(`\n=== ${entry.name}: skipped — panoramas north or east of 0° haven't been tried yet`);
     continue;
   }
   await panorama(entry, registry, ascents, tracks);
