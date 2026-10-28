@@ -6,5 +6,6 @@ mountain: "Mercachas"
 elevation: 1800
 latitude: -33.8
 longitude: -70
+summits: [mercachas]
 tags: ['Mountain']
 ---

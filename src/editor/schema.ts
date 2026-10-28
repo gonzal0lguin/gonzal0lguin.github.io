@@ -31,6 +31,7 @@ export const FIELDS: Record<string, Field[]> = {
     ...common,
     { key: "mountain", label: "Montaña", type: "text" },
     { key: "elevation", label: "Altitud (m)", type: "number" },
+    { key: "summits", label: "Cumbres", type: "tags", hint: "Nombres de archivo en src/content/summits (p. ej. provincia); dan la pestaña de panorama" },
     { key: "latitude", label: "Latitud / Longitud", type: "coords", hint: "Ubicación del mapa de ascensos" },
     { key: "route", label: "Ruta GPX", type: "routes", hint: "Uno o varios .gpx en public/; se unen en orden cronológico" },
     { key: "waypoints", label: "Puntos marcados", type: "waypoints", hint: "Se editan en la pestaña Ruta" },

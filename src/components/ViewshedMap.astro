@@ -1,10 +1,22 @@
 ---
-// Everything the hilltop can see, as a map: the viewshed computed by scripts/terrain.mjs
-// (public/assets/cerro/viewshed.png, already in Web Mercator) over OpenTopoMap, with
-// distance rings and the summits the post talks about. Leaflet loads on demand.
-import { PANORAMA, PEAKS, VIEW_STATS, VIEWPOINT } from "../data/hill";
+// Everything a summit can see, as a map: the viewshed computed by scripts/lib/viewshed.mjs
+// (already in Web Mercator) over a grey relief, with distance rings and the summits worth naming.
+// With no props it is the hill of the reforestation post (public/assets/cerro/viewshed.png); given
+// a summit's panorama `data` it shows that summit's, whose overlay also carries the glacier ice.
+// Leaflet loads on demand.
+import { PANORAMA as HILL_PANORAMA } from "../data/hill";
+import type { PanoramaData } from "../lib/summits";
 import "../styles/inventory.css";
+import "../styles/summits.css";
 import { languages, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  data?: PanoramaData;
+  title?: string;
+  note?: string;
+  /** Name on the viewpoint's marker. */
+  summitLabel?: string;
+}
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
@@ -12,23 +24,42 @@ const locale = languages[lang].locale;
 const number = (value: number, digits = 0) =>
   value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-const peaks = PEAKS.filter((peak) => peak.named || (peak.status !== "hidden" && peak.skyline && (peak.ele ?? peak.model) > 3500)).map((peak) => ({
-  name: peak.name,
-  lat: peak.lat,
-  lon: peak.lon,
-  ele: peak.ele ?? peak.model,
-  distance: peak.distance,
-  status: peak.status,
-  named: peak.named,
-  url: peak.ascent ? localizePath(lang, `/ascents/${peak.ascent.slug}/`) : null,
-}));
+const { data: panorama = HILL_PANORAMA as unknown as PanoramaData, summitLabel = t("cerro.viewshed.summit") } = Astro.props;
+const stats = panorama.stats;
+const {
+  title = t("cerro.viewshed.title"),
+  note = t("cerro.viewshed.note", { area: number(stats.visibleArea), share: number(stats.visibleShare * 100, 1), far: number(stats.farthest.distance) }),
+} = Astro.props;
 
+// The summits worth a name on the map: the named ones, and the highest that stand on the skyline
+// (above 3,500 m for the hill; for a summit, its 30 highest).
+const height = (peak: PanoramaData["peaks"][number]) => peak.ele ?? peak.model;
+const skyline = panorama.peaks.filter((peak) => peak.status !== "hidden" && peak.skyline);
+const threshold = Astro.props.data ? (skyline.map(height).sort((a, b) => b - a)[29] ?? 0) : 3500;
+const peaks = panorama.peaks
+  .filter((peak) => peak.named || (peak.status !== "hidden" && peak.skyline && height(peak) > threshold))
+  .map((peak) => ({
+    name: peak.name,
+    lat: peak.lat,
+    lon: peak.lon,
+    ele: height(peak),
+    distance: peak.distance,
+    status: peak.status,
+    named: peak.named,
+    url: peak.summit
+      ? localizePath(lang, `/ascents/summits/${peak.summit}/`)
+      : peak.ascent
+        ? localizePath(lang, `/ascents/${peak.ascent.slug}/`)
+        : null,
+  }));
+
+const hasIce = !!panorama.glaciers?.count;
 const data = {
-  viewpoint: VIEWPOINT,
-  overlay: PANORAMA.viewshed,
+  viewpoint: panorama.viewpoint,
+  overlay: panorama.viewshed,
   peaks,
   labels: {
-    summit: t("cerro.viewshed.summit"),
+    summit: summitLabel,
     visible: t("cerro.panorama.visible"),
     borderline: t("cerro.panorama.borderline"),
     hidden: t("cerro.panorama.hidden"),
@@ -38,65 +69,29 @@ const data = {
 };
 ---
 
-<section class="viewshed not-prose iv-block" aria-labelledby="viewshed-title">
-  <h3 class="iv-block__title" id="viewshed-title">{t("cerro.viewshed.title")}</h3>
-  <p class="iv-note">
-    {t("cerro.viewshed.note", { area: number(VIEW_STATS.visibleArea), share: number(VIEW_STATS.visibleShare * 100, 1), far: number(VIEW_STATS.farthest.distance) })}
-  </p>
-  <div class="viewshed__map" id="viewshed-map" role="region" aria-label={t("cerro.viewshed.title")}></div>
+<section class="viewshed not-prose iv-block" data-viewshed>
+  {title && <h3 class="iv-block__title">{title}</h3>}
+  {note && <p class="iv-note">{note}</p>}
+  <div class="viewshed__map" data-viewshed-map role="region" aria-label={title || t("cerro.viewshed.title")}></div>
   <div class="iv-legend">
     <span class="iv-legend__item"><i class="viewshed__swatch"></i>{t("cerro.viewshed.legend")}</span>
+    {
+      hasIce && (
+        <>
+          <span class="iv-legend__item"><i class="viewshed__swatch viewshed__swatch--ice"></i>{t("summit.viewshed.ice")}</span>
+          <span class="iv-legend__item"><i class="viewshed__swatch viewshed__swatch--ice-hidden"></i>{t("summit.viewshed.iceHidden")}</span>
+        </>
+      )
+    }
     <span class="iv-legend__item"><i class="viewshed__ring"></i>{t("cerro.viewshed.rings")}</span>
   </div>
-  <script type="application/json" id="viewshed-map-data" set:html={JSON.stringify(data)} />
+  <script type="application/json" data-viewshed-data set:html={JSON.stringify(data)} />
 </section>
 
-<style>
-  .viewshed__map {
-    height: min(68vh, 30rem);
-    margin-top: 0.75rem;
-    border: 1px solid oklch(var(--bc) / 0.16);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    z-index: 0;
-  }
-  .viewshed__swatch {
-    display: inline-block;
-    width: 1rem;
-    height: 0.75rem;
-    border-radius: 2px;
-    background: rgb(242 166 28 / 0.8);
-  }
-  .viewshed__ring {
-    display: inline-block;
-    width: 1rem;
-    height: 0;
-    border-top: 1.5px dashed oklch(var(--bc) / 0.7);
-  }
-  .viewshed :global(.vs-peak) {
-    border: 0;
-    background: none;
-    box-shadow: none;
-    padding: 0;
-    color: #0f172a;
-    font-size: 11px;
-    font-weight: 650;
-    text-shadow: 0 0 3px #fff, 0 0 2px #fff;
-    white-space: nowrap;
-  }
-  .viewshed :global(.vs-peak::before) {
-    display: none;
-  }
-  .viewshed :global(.vs-peak--hidden) {
-    color: #475569;
-    font-style: italic;
-    font-weight: 500;
-  }
-</style>
 
 <script>
   document.addEventListener("astro:page-load", async () => {
-    if (!document.getElementById("viewshed-map")) return;
+    if (!document.querySelector("[data-viewshed]")) return;
     const { initViewshedMap } = await import("../scripts/viewshed-map");
     initViewshedMap();
   });

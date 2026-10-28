@@ -1,0 +1,76 @@
+---
+// When I go to the mountains: one row per year, one column per month, a dot per outing. Winter
+// months (June–August down here) are shaded, since a winter ascent is a different thing. A dot
+// is hollow when the summit wasn't reached; hover or focus it for the outing, click to open it.
+import type { Outing } from "../lib/log";
+import { formatDate, getLangFromUrl, languages, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  outings: Outing[];
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const { outings } = Astro.props;
+
+const MONTHS = Array.from({ length: 12 }, (_, m) =>
+  new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2024, m, 15))).replace(".", ""),
+);
+// Southern hemisphere: winter is June–August.
+const WINTER = new Set([5, 6, 7]);
+const years = [...new Set(outings.map(({ item }) => item.entry.data.pubDate.getUTCFullYear()))].sort((a, b) => b - a);
+const cell = (year: number, month: number) =>
+  outings
+    .filter(({ item }) => item.entry.data.pubDate.getUTCFullYear() === year && item.entry.data.pubDate.getUTCMonth() === month)
+    .sort((a, b) => a.item.entry.data.pubDate.valueOf() - b.item.entry.data.pubDate.valueOf());
+const perYear = (year: number) => outings.filter(({ item }) => item.entry.data.pubDate.getUTCFullYear() === year).length;
+---
+
+<figure class="summit-ui chart-block" data-chart>
+  <figcaption class="chart-block__head">
+    <h3 class="iv-block__title">{t("chart.seasons.title")}</h3>
+    <p class="iv-note">{t("chart.seasons.note")}</p>
+  </figcaption>
+  <div class="chart-scroll">
+    <table class="seasons">
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr-only">{t("chart.seasons.year")}</span></th>
+          {MONTHS.map((month, m) => <th scope="col" class:list={{ "seasons__winter": WINTER.has(m) }}>{month}</th>)}
+          <th scope="col" class="seasons__total">Σ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          years.map((year) => (
+            <tr>
+              <th scope="row" class="iv-num">{year}</th>
+              {MONTHS.map((_, m) => (
+                <td class:list={{ "seasons__winter": WINTER.has(m) }}>
+                  {cell(year, m).map(({ key, item, attempt, summits }) => {
+                    const label = [
+                      item.entry.data.title,
+                      formatDate(item.entry.data.pubDate, lang),
+                      summits.length ? summits.map((summit) => `${summit.data.name} · ${summit.data.elevation.toLocaleString(locale)} m`).join(", ") : "",
+                      attempt ? t("ascent.attempt") : "",
+                    ].filter(Boolean).join("\n");
+                    return (
+                      <a href={localizePath(lang, `/ascents/${key}/`)} class:list={["seasons__dot", { "seasons__dot--attempt": attempt }]} data-tip={label} aria-label={label.replaceAll("\n", ", ")} />
+                    );
+                  })}
+                </td>
+              ))}
+              <td class="seasons__total iv-num">{perYear(year)}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><i class="seasons__dot" aria-hidden="true"></i>{t("chart.seasons.outing")}</span>
+    <span class="iv-legend__item"><i class="seasons__dot seasons__dot--attempt" aria-hidden="true"></i>{t("chart.scale.attempt")}</span>
+    <span class="iv-legend__item"><i class="seasons__swatch" aria-hidden="true"></i>{t("chart.seasons.winter")}</span>
+  </div>
+</figure>

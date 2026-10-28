@@ -16,7 +16,9 @@
     "photos": "node scripts/photo-locations.mjs",
     "inventory": "node scripts/inventory.mjs",
     "terrain": "node scripts/terrain.mjs",
-    "climate": "node scripts/climate.mjs"
+    "climate": "node scripts/climate.mjs",
+    "panoramas": "node scripts/panoramas.mjs",
+    "shot": "node scripts/shot.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^2.0.3",
@@ -41,6 +43,8 @@
     "@anthropic-ai/sdk": "^0.132.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/leaflet": "^1.9.12",
-    "@types/three": "^0.169.0"
+    "@types/three": "^0.169.0",
+    "playwright": "^1.64.1",
+    "yaml": "^2.9.1"
   }
 }

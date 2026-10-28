@@ -148,6 +148,33 @@ The GPX files are analyzed when the site is built (`src/lib/gpx.ts`, `src/lib/gp
 
 The tool is a self-contained component (`src/components/RouteTool.astro`, `src/scripts/route-tool.ts`), ready to move to a future tools section.
 
+#### Summits and summit panoramas
+
+A summit is its own thing, separate from the outings that reach it: one YAML file per summit in `src/content/summits/` (the `summits` collection), and each ascent lists the summits it reached (or attempted) by file name:
+
+```yaml
+# src/content/ascents/provincia-invernal.md
+summits: [provincia]          # a traverse lists several: [manquehue, manquehuito, el-penon]
+attempt: true                 # only when the summit wasn't reached
+
+# src/content/summits/provincia.yaml
+name: Cerro Provincia
+elevation: 2751
+lat: -33.4265
+lon: -70.4349
+osm: 373621475                # the OpenStreetMap node, to recognise it in other summits' views
+region: Santiago · Precordillera
+panorama: true                # compute the view from the top (below)
+photos:                       # optional: photos from the top, pinned on the panorama at their bearing
+  - { src: /assets/img/cumbres/provincia-este.jpg, azimuth: 80, caption: "El Plomo" }
+```
+
+Every summit gets a page at `/ascents/summits/<file name>/` with all the outings to it and, with `panorama: true`, the view from the top: what's in sight (named summits, the highest and farthest ground, glaciers and how much ice shows, towns, lakes, the sea, and which of my other summits can be seen), the 360° drawing and 3D view, and the viewshed map with the glacier ice. Ascent posts show the same view in their **Summit panorama** tab, loaded from the summit page when the tab opens; posts are split in tabs (**Story**, **Route**, **Summit panorama**) when they have more than the story.
+
+`npm run panoramas` computes the views (`scripts/panoramas.mjs`, on the same engine as the hill's panorama, `scripts/lib/viewshed.mjs`): summits without one yet, or `npm run panoramas -- provincia` / `-- --all`. About 30 s per summit once the elevation tiles are cached; it writes `src/data/panoramas/<id>.json` and `public/assets/panoramas/<id>/`. Summits, glaciers, towns and lakes come from OpenStreetMap through Overpass, fetched once per region and cached in `scripts/data/osm/` (delete a region's files to refresh them). The elevation reader only covers the southern and western hemispheres for now, so a summit in the Alps can be registered but gets no panorama.
+
+The Mountaineering section has four tabs: **Log** (totals, map, my summits to scale, a month-by-year calendar of outings, and every outing grouped by year with search and filters), **Summits** (a card per summit with the horizon from its top, sortable and searchable), **Routes** (every GPS route in one sortable table with elevation profiles at a shared scale) and the route analyzer.
+
 ### 3. Blog
 Located in `src/content/blog/`.
 Standard blog posts.

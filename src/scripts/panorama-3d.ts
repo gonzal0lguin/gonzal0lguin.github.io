@@ -45,6 +45,8 @@ interface ViewData {
   mesh: { cols: number; rings: number; azStep: number; r0: number; ratio: number; effectiveRadius: number; file: string };
   peaks: PeakData[];
   labels: Record<string, string>;
+  /** Snowline per season for this viewpoint, when it isn't in the central Andes. */
+  snowlines?: Partial<Record<"summer" | "autumn" | "winter" | "spring", number>>;
 }
 
 const RAD = Math.PI / 180;
@@ -628,7 +630,7 @@ export async function createPanoramaView3D(container: HTMLElement, data: ViewDat
     const dir = direction(sun.azimuth, sun.elevation);
     uniforms.sunDirection.value.copy(dir);
     skyUniforms.sunPosition.value.copy(dir);
-    uniforms.snowline.value = SEASONS[season].snowline;
+    uniforms.snowline.value = data.snowlines?.[season] ?? SEASONS[season].snowline;
 
     // Light colour through the atmosphere: white at noon, gold, then red at the horizon.
     const el = sun.elevation;

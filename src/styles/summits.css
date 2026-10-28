@@ -1,0 +1,854 @@
+/* The mountaineering section beyond the posts themselves: the tabs of an ascent, the view from a
+   summit (src/components/SummitView.astro), the summit and route indexes, the log's list and its
+   two charts. Surfaces and ink come from the --iv-* tokens of inventory.css (scoped to
+   .summit-ui), so all of it matches the hill's post in both themes. Data colour is the one
+   categorical slot, --iv-series; nothing here is coloured by meaning alone. */
+
+/* ---------------------------------------------------------------------- ascent tabs */
+
+.summit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+}
+.summit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.5rem;
+  border: 1px solid oklch(var(--bc) / 0.18);
+  border-radius: 999px;
+  background: oklch(var(--b2));
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: oklch(var(--bc));
+  transition: border-color 0.15s, background 0.15s;
+}
+.summit-chip:hover {
+  border-color: oklch(var(--p));
+}
+.summit-chip svg {
+  width: 1rem;
+  height: 0.75rem;
+  fill: oklch(var(--bc) / 0.55);
+}
+.summit-chip__ele,
+.summit-chip__count {
+  font-weight: 500;
+  color: oklch(var(--bc) / 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.ascent-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 1rem 0 1.5rem;
+  border-bottom: 1px solid oklch(var(--bc) / 0.14);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ascent-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: none;
+  margin-bottom: -1px;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 2px solid transparent;
+  color: oklch(var(--bc) / 0.65);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ascent-tabs__tab svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ascent-tabs__tab:hover {
+  color: oklch(var(--bc));
+}
+.ascent-tabs__tab[aria-selected="true"] {
+  color: oklch(var(--bc));
+  border-bottom-color: oklch(var(--p));
+}
+.ascent-tabs__tab:focus-visible {
+  outline: 2px solid oklch(var(--p));
+  outline-offset: -2px;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.summit-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+.summit-picker [aria-pressed="true"] {
+  background: oklch(var(--bc));
+  color: oklch(var(--b1));
+}
+.summit-frame__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.summit-frame__head h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+.summit-frame__head a {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: oklch(var(--p));
+}
+.summit-frame__status {
+  padding: 3rem 0;
+  text-align: center;
+  max-width: none;
+}
+
+/* ---------------------------------------------------------------------- summit view */
+
+.summit-view {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--iv-ink);
+}
+.summit-view__heading {
+  margin: 0 0 0.625rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.summit-view__stats {
+  margin-bottom: 0.75rem;
+}
+.summit-view__lists {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.summit-list {
+  padding: 0.75rem 0.875rem;
+}
+.summit-list__title {
+  margin: 0 0 0.375rem;
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.summit-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.summit-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.15rem 0;
+  font-size: 0.875rem;
+}
+.summit-list li + li {
+  border-top: 1px solid var(--iv-grid);
+}
+.summit-list a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: oklch(var(--bc) / 0.3);
+  text-underline-offset: 2px;
+}
+.summit-list a:hover {
+  text-decoration-color: currentColor;
+}
+.summit-list__meta {
+  flex: none;
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+.summit-list__hidden,
+.summit-list__empty {
+  margin: 0.375rem 0 0;
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+.summit-view__source {
+  margin-top: -1.25rem;
+}
+.summit-photos__strip {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  overflow-x: auto;
+  list-style: none;
+}
+.summit-photos__strip li {
+  flex: none;
+  width: 14rem;
+  font-size: 0.8125rem;
+  color: var(--iv-muted);
+}
+.summit-photos__strip img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+/* ---------------------------------------------------------------------- viewshed map */
+
+.viewshed__map {
+  height: min(68vh, 30rem);
+  margin-top: 0.75rem;
+  border: 1px solid oklch(var(--bc) / 0.16);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 0;
+}
+.viewshed__swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  background: rgb(242 166 28 / 0.8);
+}
+.viewshed__swatch--ice {
+  background: rgb(64 200 255 / 0.92);
+}
+.viewshed__swatch--ice-hidden {
+  background: rgb(120 170 255 / 0.43);
+}
+.viewshed__ring {
+  display: inline-block;
+  width: 1rem;
+  height: 0;
+  border-top: 1.5px dashed oklch(var(--bc) / 0.7);
+}
+.viewshed .vs-peak {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 650;
+  text-shadow: 0 0 3px #fff, 0 0 2px #fff;
+  white-space: nowrap;
+}
+.viewshed .vs-peak::before {
+  display: none;
+}
+.viewshed .vs-peak--hidden {
+  color: #475569;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------- summit page */
+
+.summit-page__back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: var(--iv-muted);
+  font-size: 0.875rem;
+}
+.summit-page__back:hover {
+  color: var(--iv-ink);
+}
+.summit-page__head {
+  position: relative;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 1rem;
+  background: var(--iv-card);
+  overflow: hidden;
+}
+.summit-page__head > div {
+  position: relative;
+}
+.summit-page__skyline {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 70%;
+}
+.summit-page__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-top: 0.25rem;
+  color: var(--iv-muted);
+}
+.summit-page__meta strong {
+  color: var(--iv-ink);
+}
+.summit-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.summit-page__ascents {
+  margin-bottom: 2rem;
+}
+.ascent-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--iv-grid);
+}
+.ascent-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--iv-grid);
+}
+.ascent-row__date,
+.ascent-row__meta {
+  color: var(--iv-muted);
+  font-size: 0.875rem;
+}
+.ascent-row__title {
+  font-weight: 600;
+}
+.ascent-row__title:hover {
+  text-decoration: underline;
+}
+.ascent-row__meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+@media (max-width: 560px) {
+  .ascent-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The silhouette of a summit's horizon. */
+.summit-skyline {
+  display: block;
+}
+.summit-skyline path {
+  fill: color-mix(in oklab, var(--iv-series) 26%, transparent);
+  stroke: var(--iv-series);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.summit-skyline--glyph path {
+  fill: var(--iv-sunken);
+  stroke: var(--iv-ring);
+}
+.summit-skyline__horizon {
+  stroke: var(--iv-grid);
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------------------------------------------------------------------- lists: controls */
+
+.summits-intro {
+  max-width: 62ch;
+  margin-bottom: 1.25rem;
+  font-size: 1.05rem;
+}
+.log-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.log-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 16rem;
+  max-width: 26rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.5rem;
+  background: var(--iv-card);
+}
+.log-search:focus-within {
+  border-color: oklch(var(--p));
+}
+.log-search svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: none;
+  stroke: var(--iv-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.log-search input {
+  width: 100%;
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--iv-ink);
+}
+.log-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--iv-muted);
+  font-size: 0.875rem;
+}
+.log-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.log-chip {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 999px;
+  background: var(--iv-card);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--iv-muted);
+}
+.log-chip:hover {
+  color: var(--iv-ink);
+}
+.log-chip[aria-pressed="true"] {
+  border-color: var(--iv-ink);
+  background: var(--iv-ink);
+  color: oklch(var(--b1));
+}
+.log-count {
+  min-height: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+.log-empty {
+  padding: 2rem 0;
+  color: var(--iv-muted);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------- summit cards */
+
+.summit-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.summit-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.875rem;
+  background: var(--iv-card);
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.summit-card:hover,
+.summit-card:focus-visible {
+  border-color: var(--iv-series);
+  box-shadow: 0 10px 24px -14px rgb(0 0 0 / 0.5);
+  transform: translateY(-2px);
+}
+.summit-card__skyline {
+  width: calc(100% + 2rem);
+  height: 3.75rem;
+  margin: -0.875rem -1rem 0.625rem;
+  background: linear-gradient(to bottom, transparent, var(--iv-sunken));
+}
+.summit-card__ele {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--iv-muted);
+}
+.summit-card__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.summit-card__region {
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+.summit-card__meta {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+.summit-card__badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--iv-card);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--iv-muted);
+}
+.summit-card__badge svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: currentColor;
+}
+
+/* ---------------------------------------------------------------------- the log list */
+
+.log-year {
+  margin-bottom: 1.75rem;
+}
+.log-year__title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 0 0.5rem;
+  padding: 0.25rem 0;
+  background: oklch(var(--b1));
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--iv-muted);
+}
+.log-list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.log-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--iv-ring);
+  border-radius: 0.875rem;
+  background: var(--iv-card);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.log-entry:hover {
+  border-color: var(--iv-series);
+  box-shadow: 0 10px 24px -16px rgb(0 0 0 / 0.5);
+}
+.log-entry__thumb {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--iv-sunken);
+  aspect-ratio: 16 / 10;
+}
+.log-entry__thumb img,
+.log-entry__thumb svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.log-entry__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* The whole card is the link, through the title's ::after; tag links sit above it. */
+.log-entry__title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.log-entry__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.875rem;
+  margin: 0.125rem 0 0.25rem;
+  color: var(--iv-muted);
+  font-size: 0.8125rem;
+}
+.log-entry__desc {
+  margin: 0;
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.log-entry__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.5rem 0 0;
+}
+.log-entry__tag {
+  position: relative;
+  z-index: 1;
+}
+.log-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: var(--iv-sunken);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: var(--iv-muted);
+}
+.log-badge--route::before,
+.log-badge--panorama::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 999px;
+  background: var(--iv-series);
+}
+.log-badge--panorama::before {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+@media (max-width: 560px) {
+  .log-entry {
+    grid-template-columns: 1fr;
+  }
+  .log-entry__thumb {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+/* ---------------------------------------------------------------------- charts */
+
+.chart-block {
+  margin: 0 0 2.5rem;
+  text-align: left;
+}
+.chart-scroll {
+  overflow-x: auto;
+}
+.chart-grid line {
+  stroke: var(--iv-grid);
+  stroke-width: 1;
+}
+.chart-grid text,
+.scale-peak__name {
+  fill: var(--iv-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-baseline {
+  stroke: oklch(var(--bc) / 0.35);
+  stroke-width: 1;
+}
+.scale-chart {
+  display: block;
+  width: 100%;
+  min-width: 36rem;
+  height: auto;
+}
+.scale-peak__fill {
+  fill: var(--iv-series);
+  transition: fill 0.15s;
+}
+/* The 2px surface ring between overlapping mountains; no line along the ground. */
+.scale-peak__edge,
+.scale-swatch {
+  fill: none;
+  stroke: oklch(var(--b1));
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.scale-swatch {
+  fill: var(--iv-series);
+}
+.scale-peak--attempt .scale-peak__fill {
+  fill: oklch(var(--b1));
+}
+.scale-peak--attempt .scale-peak__edge,
+.scale-swatch--attempt {
+  fill: none;
+  stroke: var(--iv-series);
+  stroke-width: 1.75;
+  stroke-dasharray: 4 3;
+}
+.scale-peak:hover .scale-peak__fill,
+.scale-peak:focus-visible .scale-peak__fill {
+  fill: color-mix(in oklab, var(--iv-series) 70%, oklch(var(--bc)));
+}
+.scale-peak--attempt:hover .scale-peak__fill,
+.scale-peak--attempt:focus-visible .scale-peak__fill {
+  fill: color-mix(in oklab, var(--iv-series) 18%, oklch(var(--b1)));
+}
+.scale-peak:hover .scale-peak__name,
+.scale-peak:focus-visible .scale-peak__name {
+  fill: var(--iv-ink);
+  font-weight: 700;
+}
+.scale-peak:focus-visible {
+  outline: none;
+}
+
+.seasons {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.75rem;
+}
+.seasons th {
+  padding: 0.125rem 0.25rem;
+  color: var(--iv-muted);
+  font-weight: 600;
+  text-align: center;
+}
+.seasons tbody th {
+  width: 3rem;
+  text-align: left;
+  color: var(--iv-ink);
+}
+.seasons td {
+  height: 1.9rem;
+  padding: 0.2rem;
+  border-radius: 0.375rem;
+  background: var(--iv-card);
+  text-align: center;
+  vertical-align: middle;
+}
+.seasons .seasons__winter {
+  background: color-mix(in oklab, var(--iv-series) 12%, var(--iv-card));
+}
+.seasons thead .seasons__winter {
+  color: var(--iv-ink);
+}
+.seasons .seasons__total {
+  width: 2.25rem;
+  background: none;
+  color: var(--iv-muted);
+}
+.seasons__dot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: 1px;
+  border: 2px solid var(--iv-series);
+  border-radius: 999px;
+  background: var(--iv-series);
+  vertical-align: middle;
+}
+a.seasons__dot:hover,
+a.seasons__dot:focus-visible {
+  outline: 2px solid var(--iv-ink);
+  outline-offset: 1px;
+}
+.seasons__dot--attempt {
+  background: oklch(var(--b1));
+}
+.seasons__swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--iv-series) 12%, var(--iv-card));
+  border: 1px solid var(--iv-ring);
+}
+
+.chart-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  max-width: 18rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid oklch(var(--bc) / 0.18);
+  border-radius: 0.5rem;
+  background: oklch(var(--b1));
+  box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.45);
+  color: oklch(var(--bc) / 0.75);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.chart-tip strong {
+  color: oklch(var(--bc));
+}
+
+/* ---------------------------------------------------------------------- routes table */
+
+.routes-table th,
+.routes-table td {
+  vertical-align: middle;
+}
+.routes-sort {
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  white-space: nowrap;
+}
+.routes-sort::after {
+  content: "↕";
+  margin-left: 0.25rem;
+  opacity: 0.35;
+}
+th[aria-sort="descending"] .routes-sort::after {
+  content: "↓";
+  opacity: 1;
+}
+th[aria-sort="ascending"] .routes-sort::after {
+  content: "↑";
+  opacity: 1;
+}
+.routes-table__name {
+  display: block;
+  font-weight: 600;
+}
+.routes-table__name:hover {
+  text-decoration: underline;
+}
+.routes-table__summits,
+.routes-table__days {
+  display: block;
+  color: var(--iv-muted);
+  font-size: 0.75rem;
+}
+.routes-spark {
+  display: block;
+}
+.routes-spark__area {
+  fill: color-mix(in oklab, var(--iv-series) 22%, transparent);
+}
+.routes-spark__line {
+  fill: none;
+  stroke: var(--iv-series);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.routes-note {
+  margin-top: 0.5rem;
+}

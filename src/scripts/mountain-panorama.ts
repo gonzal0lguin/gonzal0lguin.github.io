@@ -11,21 +11,28 @@ const COMPASS = {
   es: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
   en: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
 };
-/** Where the strip opens: the Andes, Aconcagua behind Mocoen and everything else worth the walk up. */
+/** Where the hill's strip opens: the Andes, Aconcagua behind Mocoen and everything else worth the walk up. */
 const OPENING_AZIMUTH = 78;
 
-let view3d: PanoramaView3D | null = null;
+/** Open 3D views, so they can be torn down when the page goes (each holds a WebGL context). */
+const views3d = new Set<PanoramaView3D>();
 document.addEventListener("astro:before-swap", () => {
-  view3d?.destroy();
-  view3d = null;
+  for (const view of views3d) view.destroy();
+  views3d.clear();
 });
 
-export function initMountainPanorama() {
-  const root = document.querySelector<HTMLElement>("[data-panorama]");
-  const scroller = root?.querySelector<HTMLElement>("[data-panorama-scroll]");
+/** Sets up every panorama on the page (or inside `scope`) that isn't set up yet. */
+export function initMountainPanorama(scope: ParentNode = document) {
+  for (const root of scope.querySelectorAll<HTMLElement>("[data-panorama]:not([data-panorama-ready])")) setUp(root);
+}
+
+function setUp(root: HTMLElement) {
+  const scroller = root.querySelector<HTMLElement>("[data-panorama-scroll]");
   const svg = scroller?.querySelector<SVGSVGElement>("svg");
-  if (!root || !scroller || !svg || root.dataset.panoramaReady) return;
+  if (!scroller || !svg) return;
   root.dataset.panoramaReady = "true";
+  const opening = Number(root.dataset.opening ?? OPENING_AZIMUTH);
+  let view3d: PanoramaView3D | null = null;
 
   const lang = document.documentElement.lang?.startsWith("en") ? "en" : "es";
   const compass = (azimuth: number) => COMPASS[lang][Math.round(azimuth / 22.5) % 16];
@@ -188,10 +195,21 @@ export function initMountainPanorama() {
     }
     const data = JSON.parse(root.querySelector("[data-panorama-data]")!.textContent!);
     const { createPanoramaView3D } = await import("./panorama-3d");
-    view3d = await createPanoramaView3D(container3d, data, facing ?? OPENING_AZIMUTH);
+    view3d = await createPanoramaView3D(container3d, data, facing ?? opening);
+    views3d.add(view3d);
   };
   for (const button of tabs) button.addEventListener("click", () => showTab(button.dataset.mpTab!));
 
-  lookAt(OPENING_AZIMUTH, "auto");
+  // A strip set up while hidden (in a tab) has no width yet: aim it when it first shows.
+  if (scroller.clientWidth) lookAt(opening, "auto");
+  else {
+    const observer = new ResizeObserver(() => {
+      if (!scroller.clientWidth) return;
+      observer.disconnect();
+      lookAt(opening, "auto");
+      showHeading();
+    });
+    observer.observe(scroller);
+  }
   showHeading();
 }

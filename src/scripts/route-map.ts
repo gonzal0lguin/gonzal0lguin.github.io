@@ -484,6 +484,8 @@ function createRouteMap(root: HTMLElement) {
       addWaypointAt(Number(button.dataset.point));
     } else if (button.dataset.action === "photo-post") {
       const target = articleImages[Number(button.dataset.photo)]?.[0];
+      // The photo may be in another tab of the post (src/scripts/ascent-tabs.ts).
+      target?.dispatchEvent(new CustomEvent("tabs:reveal", { bubbles: true }));
       target?.scrollIntoView({ behavior: "smooth", block: "center" });
       target?.closest("figure")?.animate([{ outline: "4px solid oklch(var(--p))" }, { outline: "4px solid transparent" }], { duration: 1800 });
     }
@@ -588,6 +590,10 @@ function createRouteMap(root: HTMLElement) {
         event.stopPropagation();
         if (!photosOn) setPhotos(true);
         if (is3d) toggle3d(false);
+        // The map may be in another tab of the post (src/scripts/ascent-tabs.ts).
+        root.dispatchEvent(new CustomEvent("tabs:reveal", { bubbles: true }));
+        map.invalidateSize();
+        framed = true;
         root.scrollIntoView({ behavior: "smooth", block: "start" });
         const photo = data.photos[k];
         map.setView([photo.lat, photo.lon], Math.max(map.getZoom(), 14));
@@ -1124,8 +1130,14 @@ function createRouteMap(root: HTMLElement) {
     if (document.fullscreenElement) document.exitFullscreen();
     else root.requestFullscreen();
   });
+  // Set up inside a hidden tab, the map had no size to fit the route to: do it when it shows.
+  let framed = root.clientWidth > 0;
   const onResize = () => {
     map.invalidateSize();
+    if (!framed && root.clientWidth > 0) {
+      framed = true;
+      fit();
+    }
     view3d?.resize();
     drawProfile();
   };

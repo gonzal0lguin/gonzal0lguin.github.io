@@ -1,0 +1,141 @@
+---
+// Every GPS route of the log in one table, to compare them: distance, gain, high point, time, and
+// the elevation profile of each, all drawn at the same scale so the big days look big. Sorting and
+// search run in the browser (src/scripts/log-filter.ts).
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../components/AscentsHeader.astro";
+import { langStaticPaths } from "../../../lib/paths";
+import { getOutings } from "../../../lib/log";
+import { searchText } from "../../../lib/search";
+import { formatDistance, formatDuration, formatElevation } from "../../../lib/route-format";
+import "../../../styles/inventory.css";
+import "../../../styles/summits.css";
+import { formatDate, getLang, languages, localizePath, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const routes = (await getOutings(lang)).filter((outing) => outing.route);
+
+// One scale for every sparkline: the longest route spans the width, the highest point the top.
+const W = 160;
+const H = 36;
+const longest = Math.max(...routes.map(({ route }) => route!.distance), 1);
+const lowest = Math.min(...routes.flatMap(({ route }) => route!.profile.map(([, ele]) => ele)), 0);
+const highest = Math.max(...routes.flatMap(({ route }) => route!.profile.map(([, ele]) => ele)), 1);
+const spark = (profile: [number, number][]) => {
+  if (!profile.length) return null;
+  const pts = profile.map(([d, ele]) => [(d / longest) * W, H - 2 - ((ele - lowest) / (highest - lowest || 1)) * (H - 4)]);
+  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("");
+  return { line, area: `${line}L${pts[pts.length - 1][0].toFixed(1)} ${H}L0 ${H}Z` };
+};
+const COLUMNS = [
+  { key: "date", label: t("routes.col.date") },
+  { key: "distance", label: t("routes.col.distance") },
+  { key: "gain", label: t("routes.col.gain") },
+  { key: "high", label: t("routes.col.high") },
+  { key: "time", label: t("routes.col.time") },
+];
+---
+
+<BaseLayout title={`${t("routes.title")} · ${t("ascents.title")}`} description={t("routes.intro")} sideBarActiveItemID="ascents">
+  <AscentsHeader active="routes" />
+
+  <div class="summit-ui" data-filter-root>
+    <p class="summits-intro">{t("routes.intro")}</p>
+    <div class="log-controls" role="search">
+      <label class="log-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" placeholder={t("log.search")} aria-label={t("log.search")} data-filter-search />
+      </label>
+      <label class="log-sort">
+        <span>{t("log.sort")}</span>
+        <select class="select select-sm select-bordered" data-filter-sort>
+          {COLUMNS.map((column) => <option value={`${column.key}:desc`}>{column.label}</option>)}
+        </select>
+      </label>
+    </div>
+    <p class="log-count iv-num" data-filter-count data-label-one={t("routes.countOne")} data-label-many={t("routes.countMany")} aria-live="polite"></p>
+
+    <div class="iv-table-wrap routes-table-wrap">
+      <table class="iv-table routes-table">
+        <thead>
+          <tr>
+            <th scope="col">{t("routes.col.route")}</th>
+            {
+              COLUMNS.map((column) => (
+                <th scope="col" aria-sort={column.key === "date" ? "descending" : "none"}>
+                  <button type="button" class="routes-sort" data-sort-by={column.key}>{column.label}</button>
+                </th>
+              ))
+            }
+            <th scope="col">{t("routes.col.profile")}</th>
+          </tr>
+        </thead>
+        <tbody data-filter-list>
+          {
+            routes.map(({ key, item, route, summits, attempt }) => {
+              const data = item.entry.data;
+              const r = route!;
+              const time = r.movingTime ?? r.totalTime;
+              const shape = spark(r.profile);
+              return (
+                <tr
+                  data-filter-item
+                  data-text={searchText([data.title, data.mountain, ...summits.map((summit) => summit.data.name), ...(data.tags ?? [])])}
+                  data-date={data.pubDate.valueOf()}
+                  data-distance={Math.round(r.distance)}
+                  data-gain={Math.round(r.gain ?? 0)}
+                  data-high={Math.round(r.maxEle ?? 0)}
+                  data-time={time ?? 0}
+                >
+                  <td>
+                    <a class="routes-table__name" href={localizePath(lang, `/ascents/${key}/#route`)}>{data.title}</a>
+                    {summits.length > 0 && (
+                      <span class="routes-table__summits">
+                        {summits.map((summit) => summit.data.name.replace(/^Cerro /, "")).join(" · ")}
+                        {attempt && ` · ${t("ascent.attempt").toLowerCase()}`}
+                      </span>
+                    )}
+                  </td>
+                  <td class="iv-num">{formatDate(data.pubDate, lang)}</td>
+                  <td class="iv-num">{formatDistance(r.distance, locale)}</td>
+                  <td class="iv-num">{r.gain != null ? `+${formatElevation(r.gain, locale)}` : "—"}</td>
+                  <td class="iv-num">{r.maxEle != null ? formatElevation(r.maxEle, locale) : "—"}</td>
+                  <td class="iv-num">
+                    {time ? formatDuration(time) : "—"}
+                    {r.days > 1 && <span class="routes-table__days">{t("routes.days", { n: r.days })}</span>}
+                  </td>
+                  <td>
+                    {shape ? (
+                      <svg class="routes-spark" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={t("routes.profileOf", { name: data.title })}>
+                        <path class="routes-spark__area" d={shape.area} />
+                        <path class="routes-spark__line" d={shape.line} />
+                      </svg>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="iv-note routes-note">{t("routes.note")}</p>
+    <p class="log-empty" data-filter-empty hidden>{t("log.empty")}</p>
+  </div>
+
+  <script>
+    document.addEventListener("astro:page-load", async () => {
+      if (!document.querySelector("[data-filter-root]")) return;
+      const { initLogFilter } = await import("../../../scripts/log-filter");
+      initLogFilter();
+    });
+  </script>
+</BaseLayout>

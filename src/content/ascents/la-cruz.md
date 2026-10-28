@@ -7,6 +7,7 @@ elevation: 2500
 latitude: -41.3
 longitude: -72.2
 route: "/assets/lib/la-cruz-13-06-2026.gpx"
+summits: [la-cruz]
 tags: ['Mountain']
 ---
 

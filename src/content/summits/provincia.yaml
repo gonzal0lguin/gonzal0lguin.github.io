@@ -1,0 +1,13 @@
+name: Cerro Provincia
+elevation: 2751
+lat: -33.4265
+lon: -70.4349
+osm: 373621475
+wikidata: Q5064972
+region: Santiago · Precordillera
+panorama: true
+# Fotos desde la cumbre, para ubicarlas en el panorama (azimut: hacia dónde mira la foto, en grados desde el norte):
+# photos:
+#   - src: /assets/img/cumbres/provincia-este.jpg
+#     azimuth: 80
+#     caption: El Plomo y la cordillera hacia el este

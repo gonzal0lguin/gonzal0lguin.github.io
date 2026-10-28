@@ -6,5 +6,6 @@ mountain: "Cortadera"
 elevation: 3366
 latitude: -41.1
 longitude: -72.5
+summits: [cortadera]
 tags: ['Mountain']
 ---

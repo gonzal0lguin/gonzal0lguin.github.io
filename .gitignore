@@ -22,3 +22,6 @@ pnpm-debug.log*
 .astro/
 # editor backups and trash (the /edit tool, see editing.md)
 .editor-local/
+
+# screenshots from `npm run shot` (scripts/shot.mjs)
+tmp/

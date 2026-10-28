@@ -1,0 +1,8 @@
+name: Brecherspitz
+elevation: 1683
+lat: 47.67667
+lon: 11.87083
+region: Alpes bávaros · Alemania
+# El modelo de elevación del sitio solo lee el hemisferio sur por ahora.
+panorama: false
+timezone: Europe/Berlin

@@ -1,0 +1,226 @@
+---
+// The mountaineering log: the totals and the map, my summits to scale and the months I go out,
+// then every outing, newest first, grouped by year — searchable and filterable in the browser
+// (src/scripts/log-filter.ts), so it's one page rather than a paginated list.
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../components/AscentsHeader.astro";
+import SummitsToScale from "../../../components/SummitsToScale.astro";
+import SeasonsChart from "../../../components/SeasonsChart.astro";
+import SummitSkyline from "../../../components/SummitSkyline.astro";
+import { Image } from "astro:assets";
+import { langStaticPaths } from "../../../lib/paths";
+import { getOutings } from "../../../lib/log";
+import { getSummits } from "../../../lib/summits";
+import { searchText } from "../../../lib/search";
+import { loadRoute } from "../../../lib/gpx";
+import { formatDistance, formatElevation } from "../../../lib/route-format";
+import "../../../styles/inventory.css";
+import "../../../styles/summits.css";
+import { formatDate, getLang, languages, localizePath, useTranslations } from "../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const outings = await getOutings(lang);
+const summits = (await getSummits(lang)).filter((summit) => summit.ascents.length);
+const reached = summits.filter((summit) => summit.ascents.some((ascent) => !ascent.attempt));
+const highest = reached[0];
+
+// Totals; distance and elevation gain come from the outings with a GPS route.
+const withRoutes = outings.filter((outing) => outing.route);
+const totalDistance = withRoutes.reduce((acc, { route }) => acc + route!.distance, 0);
+const totalGain = withRoutes.reduce((acc, { route }) => acc + (route!.gain ?? 0), 0);
+const routesNote = withRoutes.length === 1 ? t("ascents.statRoute") : t("ascents.statRoutes", { n: withRoutes.length });
+
+// Map: a pin per summit (several outings to one summit share it) and the line of every route.
+const markers = summits.map((summit) => ({
+  title: `${summit.data.name} · ${summit.data.elevation.toLocaleString(locale)} m`,
+  url: localizePath(lang, `/ascents/summits/${summit.id}/`),
+  lat: summit.data.lat,
+  lng: summit.data.lon,
+  img: summit.ascents.find((ascent) => ascent.heroImage)?.heroImage || "/assets/img/headers/about.JPG",
+}));
+// Outings without a registered summit keep their own pin, where the post says.
+for (const { key, item, summits: own, route } of outings) {
+  if (own.length) continue;
+  const data = item.entry.data;
+  const summit = route ? loadRoute(data.route!).summit : null;
+  const lat = summit?.lat ?? data.latitude;
+  const lng = summit?.lon ?? data.longitude;
+  if (lat != null && lng != null) markers.push({ title: data.title, url: localizePath(lang, `/ascents/${key}`), lat, lng, img: data.heroImage || "/assets/img/headers/about.JPG" });
+}
+const routeLines = withRoutes.map(({ key, item }) => ({
+  url: localizePath(lang, `/ascents/${key}`),
+  latlngs: loadRoute(item.entry.data.route!).points.filter((_, i, all) => i % Math.ceil(all.length / 250) === 0 || i === all.length - 1).map((p) => [p[0], p[1]]),
+}));
+const overview = { markers, routeLines, viewLabel: t("ascents.viewEntry") };
+
+// The list, by year.
+const years = [...new Set(outings.map(({ item }) => item.entry.data.pubDate.getUTCFullYear()))].sort((a, b) => b - a);
+const tags = [...new Set(outings.flatMap(({ item }) => item.entry.data.tags ?? []))].sort();
+const flagsOf = ({ item, route, summits: own, attempt }: (typeof outings)[number]) =>
+  [
+    route && "route",
+    own.some((summit) => summit.panorama) && "panorama",
+    attempt && "attempt",
+    ...(item.entry.data.tags ?? []).map((tag) => `tag:${tag}`),
+  ]
+    .filter(Boolean)
+    .join(" ");
+---
+
+<BaseLayout title={t("nav.mountaineering")} sideBarActiveItemID="ascents">
+  <AscentsHeader active="log" />
+
+  <div class="mb-10 text-justify">
+    <img src="/assets/img/headers/about.JPG" class="w-full max-h-[350px] object-cover rounded-xl mb-6 shadow-md" alt="" />
+    <p class="text-lg mb-8">{t("ascents.intro")}</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <div class="stats stats-vertical shadow-xl bg-base-200 w-full">
+        <div class="stat">
+          <div class="stat-figure text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 20 9 8l3.5 5L15 10l7 10z"></path></svg>
+          </div>
+          <div class="stat-title">{t("ascents.statSummits")}</div>
+          <div class="stat-value text-primary">{reached.length}</div>
+          <div class="stat-desc">{t("ascents.statSummitsDesc", { n: outings.length })}</div>
+        </div>
+
+        {
+          highest && (
+            <div class="stat">
+              <div class="stat-figure text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M5 10l7-7 7 7"></path></svg>
+              </div>
+              <div class="stat-title">{t("ascents.statHighest")}</div>
+              <div class="stat-value text-primary">{highest.data.elevation.toLocaleString(locale)} m</div>
+              <div class="stat-desc"><a class="link link-hover" href={localizePath(lang, `/ascents/summits/${highest.id}/`)}>{highest.data.name}</a></div>
+            </div>
+          )
+        }
+
+        <div class="stat">
+          <div class="stat-figure text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+          </div>
+          <div class="stat-title">{t("ascents.statVertical")}</div>
+          <div class="stat-value text-secondary">{formatElevation(totalGain, locale)}</div>
+          <div class="stat-desc">{routesNote}</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-figure text-accent">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg>
+          </div>
+          <div class="stat-title">{t("ascents.statDistance")}</div>
+          <div class="stat-value text-accent">{formatDistance(totalDistance, locale)}</div>
+          <div class="stat-desc">{routesNote}</div>
+        </div>
+      </div>
+
+      <div class="w-full h-[400px] lg:h-full min-h-[300px] bg-base-200 rounded-xl overflow-hidden shadow-xl relative z-0">
+        <div id="ascents-map" class="w-full h-full absolute inset-0"></div>
+        <script type="application/json" id="ascents-map-data" set:html={JSON.stringify(overview).replace(/</g, "\\u003c")} />
+      </div>
+    </div>
+
+    <SummitsToScale summits={summits} />
+    <SeasonsChart outings={outings} />
+
+    <div class="divider my-10"></div>
+  </div>
+
+  <section class="summit-ui" data-filter-root aria-labelledby="log-all">
+    <h2 class="text-2xl font-bold mb-4" id="log-all">{t("ascents.all")}</h2>
+    <div class="log-controls" role="search">
+      <label class="log-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" placeholder={t("log.search")} aria-label={t("log.search")} data-filter-search />
+      </label>
+      <div class="log-chips" role="group" aria-label={t("log.filters")}>
+        <button type="button" class="log-chip" aria-pressed="false" data-filter-chip="route">{t("log.withRoute")}</button>
+        <button type="button" class="log-chip" aria-pressed="false" data-filter-chip="panorama">{t("log.withPanorama")}</button>
+        {tags.map((tag) => <button type="button" class="log-chip" aria-pressed="false" data-filter-chip={`tag:${tag}`}>{tag}</button>)}
+      </div>
+    </div>
+    <p class="log-count iv-num" data-filter-count data-label-one={t("log.countOne")} data-label-many={t("log.countMany")} aria-live="polite"></p>
+
+    {
+      years.map((year) => (
+        <section class="log-year" data-filter-group>
+          <h3 class="log-year__title iv-num">{year}</h3>
+          <ul class="log-list">
+            {outings
+              .filter(({ item }) => item.entry.data.pubDate.getUTCFullYear() === year)
+              .map((outing) => {
+                const { key, item, summits: own, route, attempt } = outing;
+                const data = item.entry.data;
+                const skyline = own.find((summit) => summit.panorama)?.panorama ?? null;
+                return (
+                  <li
+                    data-filter-item
+                    data-flags={flagsOf(outing)}
+                    data-text={searchText([data.title, data.description, data.mountain, ...(data.tags ?? []), ...own.flatMap((summit) => [summit.data.name, summit.data.region])])}
+                  >
+                    <article class="log-entry">
+                      <div class="log-entry__thumb">
+                        {data.heroImage ? (
+                          <Image src={data.heroImage} width={320} height={200} format="webp" alt="" />
+                        ) : (
+                          <SummitSkyline panorama={skyline} />
+                        )}
+                      </div>
+                      <div class="log-entry__body">
+                        <h4 class="log-entry__title">
+                          <a href={localizePath(lang, `/ascents/${key}/`)}>{data.title}</a>
+                          {data.badge && <span class="badge badge-secondary badge-sm">{data.badge}</span>}
+                        </h4>
+                        <p class="log-entry__meta iv-num">
+                          <time datetime={data.pubDate.toISOString()}>{formatDate(data.pubDate, lang)}</time>
+                          {own.length > 0 && <span>{own.map((summit) => `${summit.data.name.replace(/^Cerro /, "")} ${summit.data.elevation.toLocaleString(locale)} m`).join(" · ")}</span>}
+                          {route && (
+                            <span>
+                              {formatDistance(route.distance, locale)}
+                              {route.gain != null && ` · +${formatElevation(route.gain, locale)}`}
+                            </span>
+                          )}
+                        </p>
+                        <p class="log-entry__desc">{data.description}</p>
+                        <p class="log-entry__badges">
+                          {attempt && <span class="log-badge">{t("ascent.attempt")}</span>}
+                          {route && <span class="log-badge log-badge--route">{t("log.badgeRoute")}</span>}
+                          {skyline && <span class="log-badge log-badge--panorama">{t("log.badgePanorama")}</span>}
+                          {(data.tags ?? []).map((tag) => (
+                            <a href={localizePath(lang, `/ascents/tag/${tag}`)} class="badge badge-outline badge-sm log-entry__tag">
+                              {tag}
+                            </a>
+                          ))}
+                        </p>
+                      </div>
+                    </article>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      ))
+    }
+    <p class="log-empty" data-filter-empty hidden>{t("log.empty")}</p>
+  </section>
+
+  <script>
+    import { initAscentsOverviewMap } from "../../../scripts/ascents-map";
+
+    document.addEventListener("astro:page-load", async () => {
+      initAscentsOverviewMap();
+      if (document.querySelector("[data-filter-root]")) (await import("../../../scripts/log-filter")).initLogFilter();
+      if (document.querySelector("[data-chart]")) (await import("../../../scripts/chart-tooltip")).initChartTooltips();
+    });
+  </script>
+</BaseLayout>

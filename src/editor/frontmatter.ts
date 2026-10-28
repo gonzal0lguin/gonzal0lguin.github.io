@@ -23,6 +23,8 @@ const KEY_ORDER = [
   "updatedDate",
   "mountain",
   "elevation",
+  "summits",
+  "attempt",
   "latitude",
   "longitude",
   "greeting",
@@ -222,7 +224,7 @@ const quote = (value: string) => `"${String(value).replace(/\\/g, "\\\\").replac
 const quoteSingle = (value: string) => `'${String(value).replace(/'/g, "''")}'`;
 
 /** Keys written as a single-quoted flow list, the way every post writes its tags. */
-const FLOW_LIST_KEYS = new Set(["tags"]);
+const FLOW_LIST_KEYS = new Set(["tags", "summits"]);
 /** Keys whose values are never quoted. */
 const BARE_KEYS = new Set(["elevation", "latitude", "longitude"]);
 /** Order of a waypoint's fields, matching the example in src/content/config.ts. */

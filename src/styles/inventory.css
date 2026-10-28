@@ -8,7 +8,8 @@
    alone: every one of them ships with a glyph and a label. */
 
 .plant-inventory,
-.mountain-panorama {
+.mountain-panorama,
+.summit-ui {
   --iv-card: oklch(var(--b2));
   --iv-sunken: oklch(var(--b3));
   --iv-ink: oklch(var(--bc));
@@ -41,7 +42,8 @@
 }
 
 [data-theme="light"] .plant-inventory,
-[data-theme="light"] .mountain-panorama {
+[data-theme="light"] .mountain-panorama,
+[data-theme="light"] .summit-ui {
   --iv-series: #2a78d6;
   --iv-step-1: #86b6ef;
   --iv-step-2: #5598e7;
@@ -856,6 +858,23 @@
   fill: var(--iv-series);
   stroke: var(--mp-label-halo);
   stroke-width: 1;
+}
+/* Glacier ice in view: a pale diamond, so it doesn't read as one more summit. */
+.mp-glacier {
+  fill: #e3f4ff;
+  stroke: #1b8fd0;
+  stroke-width: 1.25;
+}
+.mp-photo-pin rect {
+  fill: var(--iv-ink);
+}
+.mp-photo-pin circle {
+  fill: none;
+  stroke: var(--mp-label-halo);
+  stroke-width: 1.6;
+}
+.mp-photo-pin:hover rect {
+  fill: var(--mp-route);
 }
 .mp-name,
 .mp-meta {

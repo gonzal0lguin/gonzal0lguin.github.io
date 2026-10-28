@@ -7,5 +7,6 @@ elevation: 2750
 latitude: -33.4
 longitude: -70.3
 route: "/assets/lib/provincia-09-08-2026.gpx"
+summits: [provincia]
 tags: ['Mountain']
 ---

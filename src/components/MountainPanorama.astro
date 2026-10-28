@@ -10,15 +10,51 @@
 // sight lines over the Copernicus 30 m elevation model. Colour is saved for the summits:
 // solid when the model clears them, hollow when they land within 0.06° of the ground in front
 // (inside the model's own error), and a dashed ghost when a nearer ridge hides them.
-import { PANORAMA, PEAKS, ROUTES, VIEW_STATS, VIEWPOINT, type Peak } from "../data/hill";
+//
+// With no props it draws the hill of the reforestation post. Given `data` (a summit's
+// src/data/panoramas/<id>.json) it draws that summit's view instead, with its glaciers and the
+// photos taken from the top; several can live on one page, each with its own `uid`.
+import { PANORAMA as HILL_PANORAMA, type Peak } from "../data/hill";
+import type { PanoramaData } from "../lib/summits";
 import "../styles/inventory.css";
 import { languages, getLangFromUrl, localizePath, useTranslations, type UIKey } from "../i18n/ui";
+
+export interface Props {
+  data?: PanoramaData;
+  /** Prefix for the ids inside the drawing, unique on the page. */
+  uid?: string;
+  title?: string;
+  note?: string;
+  /** The hill's headline numbers; summit pages show their own facts instead. */
+  stats?: boolean;
+  /** Bearing the strip opens at. */
+  opening?: number;
+  routeLegend?: string;
+  snowlines?: Record<string, number>;
+  photos?: { src: string; azimuth?: number; caption?: string }[];
+}
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const locale = languages[lang].locale;
 const number = (value: number, digits = 0) =>
   value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+const {
+  data: PANORAMA = HILL_PANORAMA as unknown as PanoramaData,
+  uid = "mp",
+  title = t("cerro.panorama.title"),
+  note = t("cerro.panorama.note"),
+  stats: showStats = true,
+  opening = 78,
+  routeLegend = t("cerro.panorama.legend.route"),
+  snowlines,
+  photos = [],
+} = Astro.props;
+const PEAKS = PANORAMA.peaks;
+const ROUTES = PANORAMA.routes;
+const VIEW_STATS = PANORAMA.stats;
+const VIEWPOINT = PANORAMA.viewpoint;
 
 // ---------------------------------------------------------------------------- geometry
 
@@ -28,7 +64,12 @@ const WIDTH = 360 * PX;
 /** Strip of the 360° repeated on each side, so north has no seam (the script wraps the scroll). */
 const OVERLAP = 120 * PX;
 const A_TOP = VIEW_STATS.highestSkyline;
-const A_MIN = -1.5;
+/** Down to just below the lowest skyline: from a high summit the far horizon dips under 0°. */
+/** And down to the trails in view: from a summit, a valley trailhead a few km off sits well below 0°. */
+const lowestTrail = Math.min(
+  ...PANORAMA.routes.flatMap((route) => route.runs.filter((run) => run.visible).flatMap((run) => run.points.map(([, angle]) => angle))),
+);
+const A_MIN = Math.max(-8, Math.min(-1.5, VIEW_STATS.lowestSkyline - 0.8, lowestTrail - 0.5));
 const LABEL_ROOM = 236;
 const RULER = 34;
 const y = (angle: number) => LABEL_ROOM + (A_TOP - angle) * PX;
@@ -84,7 +125,9 @@ const slug = (name: string) =>
 /** Without the "Cerro" every other name starts with, so labels stay short. */
 const short = (name: string) => name.replace(/^(Cerro|Volcán) /, "");
 const height = (peak: Peak) => peak.ele ?? peak.model;
-const ascentUrl = (peak: Peak) => (peak.ascent ? localizePath(lang, `/ascents/${peak.ascent.slug}/`) : null);
+/** My summits link to their page (all my ascents of it); otherwise to the ascent post. */
+const ascentUrl = (peak: Peak) =>
+  peak.summit ? localizePath(lang, `/ascents/summits/${peak.summit}/`) : peak.ascent ? localizePath(lang, `/ascents/${peak.ascent.slug}/`) : null;
 const km = (distance: number) => number(distance, distance < 10 ? 1 : 0);
 
 // What goes on the drawing: everything in view, plus the hidden summits the post talks about.
@@ -134,6 +177,15 @@ const routes = ROUTES.filter((route) => route.visibleShare > 0);
 const inView = PEAKS.filter((peak) => peak.status !== "hidden");
 const tableRows = PEAKS.filter((peak) => peak.status !== "hidden" || peak.named).sort((a, b) => a.distance - b.distance);
 const aconcagua = PEAKS.find((peak) => peak.name === "Cerro Aconcagua" && peak.named);
+/** The jump button besides the compass: Aconcagua when it's named, else the highest summit in view. */
+const landmark =
+  aconcagua ?? [...PEAKS].filter((peak) => peak.status !== "hidden").sort((a, b) => height(b) - height(a))[0];
+
+// Glaciers in view (summit panoramas): a mark where the highest ice shows, named ones first.
+const glaciers = (PANORAMA.glaciers?.list ?? [])
+  .filter((glacier) => glacier.name || glacier.visibleArea >= 0.3)
+  .slice(0, 24);
+const pinnedPhotos = photos.filter((photo) => photo.azimuth !== undefined);
 
 const STATUS_GLYPH: Record<Peak["status"], string> = { visible: "✓", borderline: "~", hidden: "✕" };
 const statusLabel = (status: Peak["status"]) => t(`cerro.panorama.${status}` as UIKey);
@@ -142,6 +194,7 @@ const statusLabel = (status: Peak["status"]) => t(`cerro.panorama.${status}` as 
 const viewData = {
   viewpoint: VIEWPOINT,
   mesh: PANORAMA.mesh,
+  snowlines,
   peaks: placed.map((peak) => ({
     id: peak.id,
     name: peak.name,
@@ -166,11 +219,11 @@ const TICKS = Array.from({ length: 72 }, (_, i) => i * 5);
 const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
 ---
 
-<section class="mountain-panorama not-prose iv-block" data-panorama>
-  <h3 class="iv-block__title">{t("cerro.panorama.title")}</h3>
-  <p class="iv-note">{t("cerro.panorama.note")}</p>
+<section class="mountain-panorama not-prose iv-block" data-panorama data-opening={opening}>
+  {title && <h3 class="iv-block__title">{title}</h3>}
+  {note && <p class="iv-note">{note}</p>}
 
-  <div class="iv-stats mp-stats">
+  {showStats && <div class="iv-stats mp-stats">
     <div class="iv-stat">
       <span class="iv-stat__value iv-num">{inView.length}</span>
       <span class="iv-stat__label">{t("cerro.panorama.stat.peaks")}</span>
@@ -197,7 +250,7 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
         </div>
       )
     }
-  </div>
+  </div>}
 
   <div class="mp-toolbar">
     <div class="mp-tabs" role="tablist">
@@ -214,9 +267,9 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
         ))
       }
       {
-        aconcagua && (
-          <button type="button" class="mp-jump__btn" data-jump={aconcagua.azimuth}>
-            Aconcagua
+        landmark && (
+          <button type="button" class="mp-jump__btn" data-jump={landmark.azimuth}>
+            {aconcagua ? "Aconcagua" : short(landmark.name)}
           </button>
         )
       }
@@ -234,20 +287,20 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
       <svg
         viewBox={`${-OVERLAP} 0 ${WIDTH + 2 * OVERLAP} ${HEIGHT}`}
         role="img"
-        aria-label={t("cerro.panorama.title")}
+        aria-label={title || t("cerro.panorama.scrollLabel")}
         data-px={PX}
         data-overlap={OVERLAP}
         style={`--mp-w:${WIDTH + 2 * OVERLAP};--mp-h:${HEIGHT}`}
       >
         <defs>
-          <linearGradient id="mp-sky" x1="0" y1="0" x2="0" y2={y(0)} gradientUnits="userSpaceOnUse">
+          <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2={y(0)} gradientUnits="userSpaceOnUse">
             <stop offset="0" class="mp-sky__top" />
             <stop offset="1" class="mp-sky__horizon" />
           </linearGradient>
         </defs>
-        <rect x={-OVERLAP} y="0" width={WIDTH + 2 * OVERLAP} height={HEIGHT} fill="url(#mp-sky)" />
+        <rect x={-OVERLAP} y="0" width={WIDTH + 2 * OVERLAP} height={HEIGHT} fill={`url(#${uid}-sky)`} />
 
-        <g id="mp-scene">
+        <g id={`${uid}-scene`}>
           {/* Apparent height, every 2°. */}
           {GRID_ANGLES.map((a) => <line class="mp-grid" x1="0" x2={WIDTH} y1={y(a)} y2={y(a)} />)}
 
@@ -278,8 +331,29 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
 
           {flanks.map((peak) => <path class="mp-flank" d={`M${f1(x(peak.flank!.azimuth))} ${f1(y(peak.flank!.angle) - 4)}l-5 -9h10z`} />)}
 
-          {/* Bearing ruler. */}
+          {
+            glaciers.map((glacier) => (
+              <path class="mp-glacier" d={`M${f1(x(glacier.azimuth))} ${f1(y(glacier.angle) - 3)}l4.5 4.5l-4.5 4.5l-4.5 -4.5z`}>
+                <title>
+                  {glacier.name ?? t("summit.glacier.unnamed")} — {t("summit.glacier.tooltip", { visible: number(glacier.visibleArea, 2), area: number(glacier.area, 2), km: km(glacier.distance) })}
+                </title>
+              </path>
+            ))
+          }
+
+          {/* Bearing ruler, with the photos taken from the top pinned on it. */}
           <rect class="mp-ruler" x="0" y={HEIGHT - RULER} width={WIDTH} height={RULER} />
+          {
+            pinnedPhotos.map((photo) => (
+              <a href={photo.src} target="_blank" rel="noopener">
+                <g class="mp-photo-pin" transform={`translate(${f1(x(photo.azimuth!))} ${HEIGHT - RULER - 12})`}>
+                  <title>{photo.caption ?? t("summit.photo")}</title>
+                  <rect x="-9" y="-7" width="18" height="13" rx="2.5" />
+                  <circle cx="0" cy="-0.5" r="3.6" />
+                </g>
+              </a>
+            ))
+          }
           {
             TICKS.map((azimuth) => (
               <g>
@@ -301,8 +375,8 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
         </g>
 
         {/* The same scene again on each side of the seam; the summits stay single and interactive. */}
-        <use href="#mp-scene" x={-WIDTH} class="mp-clone" aria-hidden="true" />
-        <use href="#mp-scene" x={WIDTH} class="mp-clone" aria-hidden="true" />
+        <use href={`#${uid}-scene`} x={-WIDTH} class="mp-clone" aria-hidden="true" />
+        <use href={`#${uid}-scene`} x={WIDTH} class="mp-clone" aria-hidden="true" />
 
         <g>
           {
@@ -382,7 +456,17 @@ const GRID_ANGLES = [0, 2, 4, 6, 8].filter((a) => a <= A_TOP);
           <svg width="22" height="12" aria-hidden="true">
             <path class="mp-route__run" d="M1 6h20" />
           </svg>
-          {t("cerro.panorama.legend.route")}
+          {routeLegend}
+        </span>
+      )
+    }
+    {
+      glaciers.length > 0 && (
+        <span class="iv-legend__item">
+          <svg width="16" height="12" aria-hidden="true">
+            <path class="mp-glacier" d="M8 1.5l4.5 4.5l-4.5 4.5l-4.5 -4.5z" />
+          </svg>
+          {t("summit.glacier.legend")}
         </span>
       )
     }

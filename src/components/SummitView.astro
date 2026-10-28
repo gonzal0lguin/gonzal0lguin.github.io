@@ -1,0 +1,237 @@
+---
+// The view from the top of one summit: what's worth knowing about it (how far it reaches, the
+// glaciers, towns and lakes in sight, which of my other summits show), then the 360° panorama
+// and the viewshed map. It's the core of each summit page, and ascent posts load it into their
+// "Summit panorama" tab from there (src/scripts/ascent-tabs.ts), which is why it carries the
+// data-summit-view hook and nothing that depends on the page around it.
+import MountainPanorama from "./MountainPanorama.astro";
+import ViewshedMap from "./ViewshedMap.astro";
+import { snowlines, type Summit } from "../lib/summits";
+import "../styles/inventory.css";
+import "../styles/summits.css";
+import { languages, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  summit: Summit;
+}
+
+const { summit } = Astro.props;
+const panorama = summit.panorama!;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const number = (value: number, digits = 0) =>
+  value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const km = (value: number) => number(value, value < 10 ? 1 : 0);
+
+const COMPASS = {
+  es: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
+  en: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
+};
+const compass = (azimuth: number) => COMPASS[lang][Math.round(azimuth / 22.5) % 16];
+const short = (name: string) => name.replace(/^(Cerro|Volcán|Nevado) /, "");
+
+const { stats } = panorama;
+const glaciers = panorama.glaciers;
+const places = panorama.places ?? [];
+const lakes = (panorama.lakes ?? []).filter((lake) => lake.visible).slice(0, 6);
+const mine = panorama.mine ?? [];
+const mineSeen = mine.filter((other) => other.status !== "hidden");
+const mineHidden = mine.filter((other) => other.status === "hidden");
+const townsSeen = places.filter((place) => place.visible).slice(0, 8);
+// Big places you might expect to see but can't: a fact in its own right ("Santiago doesn't show").
+const citiesHidden = places.filter((place) => !place.visible && (place.population ?? 0) >= 50_000).slice(0, 5);
+const iceList = (glaciers?.list ?? []).slice(0, 6);
+
+// Open the strip on the most striking thing in view: the highest summit.
+const opening = stats.highest?.azimuth ?? 90;
+const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
+---
+
+<div class="summit-view summit-ui not-prose" data-summit-view>
+  <h3 class="summit-view__heading">{t("summit.facts.title")}</h3>
+  <div class="iv-stats summit-view__stats">
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{stats.peaksInView}</span>
+      <span class="iv-stat__label">{t("summit.facts.peaks")}</span>
+      <span class="iv-stat__hint">{t("summit.facts.peaksNote", { n: number(stats.peaksAround ?? 0) })}</span>
+    </div>
+    {
+      stats.highest && (
+        <div class="iv-stat">
+          <span class="iv-stat__value iv-num">{number(stats.highest.ele)} m</span>
+          <span class="iv-stat__label">{t("summit.facts.highest")}</span>
+          <span class="iv-stat__hint">
+            {t("summit.facts.highestNote", { name: stats.highest.name, km: km(stats.highest.distance), dir: compass(stats.highest.azimuth) })}
+          </span>
+        </div>
+      )
+    }
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{number(stats.visibleArea)} km²</span>
+      <span class="iv-stat__label">{t("cerro.panorama.stat.area")}</span>
+      <span class="iv-stat__hint">{t("cerro.panorama.stat.areaNote", { n: number(stats.above3000) })}</span>
+    </div>
+    <div class="iv-stat">
+      <span class="iv-stat__value iv-num">{km(stats.farthest.distance)} km</span>
+      <span class="iv-stat__label">{t("cerro.panorama.stat.farthest")}</span>
+      <span class="iv-stat__hint">
+        {t("cerro.panorama.stat.farthestNote", { ele: number(stats.farthest.elevation), dir: compass(stats.farthest.azimuth) })}
+      </span>
+    </div>
+    {
+      glaciers && glaciers.count > 0 && (
+        <div class="iv-stat">
+          <span class="iv-stat__value iv-num">{glaciers.visibleCount}</span>
+          <span class="iv-stat__label">{t("summit.facts.glaciers")}</span>
+          <span class="iv-stat__hint">
+            {t("summit.facts.glaciersNote", { area: number(glaciers.visibleArea, 1), n: number(glaciers.count) })}
+          </span>
+        </div>
+      )
+    }
+    {
+      stats.sea && (
+        <div class="iv-stat">
+          <span class="iv-stat__value iv-num">{km(stats.sea.distance)} km</span>
+          <span class="iv-stat__label">{t("summit.facts.sea")}</span>
+          <span class="iv-stat__hint">{t("summit.facts.seaNote", { dir: compass(stats.sea.azimuth) })}</span>
+        </div>
+      )
+    }
+  </div>
+
+  <div class="summit-view__lists">
+    {
+      mine.length > 0 && (
+        <div class="iv-card summit-list">
+          <h4 class="summit-list__title">{t("summit.facts.mine")}</h4>
+          {mineSeen.length ? (
+            <ul>
+              {mineSeen.map((other) => (
+                <li>
+                  <a href={summitUrl(other.id)}>{other.name}</a>
+                  <span class="summit-list__meta iv-num">
+                    {km(other.distance)} km · {compass(other.azimuth)}
+                    {other.status === "borderline" && ` · ${t("cerro.panorama.borderline").toLowerCase()}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="summit-list__empty">{t("summit.facts.mineNone")}</p>
+          )}
+          {mineHidden.length > 0 && (
+            <p class="summit-list__hidden">
+              {t("summit.facts.mineHidden")}{" "}
+              {mineHidden.map((other, i) => (
+                <>
+                  {i > 0 && ", "}
+                  <a href={summitUrl(other.id)}>{short(other.name)}</a>
+                </>
+              ))}
+            </p>
+          )}
+        </div>
+      )
+    }
+    {
+      iceList.length > 0 && (
+        <div class="iv-card summit-list">
+          <h4 class="summit-list__title">{t("summit.facts.ice")}</h4>
+          <ul>
+            {iceList.map((glacier) => (
+              <li>
+                <span>{glacier.name ?? t("summit.glacier.unnamed")}</span>
+                <span class="summit-list__meta iv-num">
+                  {t("summit.facts.iceMeta", { visible: number(glacier.visibleArea, 2), km: km(glacier.distance), dir: compass(glacier.azimuth) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+    {
+      (townsSeen.length > 0 || citiesHidden.length > 0) && (
+        <div class="iv-card summit-list">
+          <h4 class="summit-list__title">{t("summit.facts.towns")}</h4>
+          {townsSeen.length ? (
+            <ul>
+              {townsSeen.map((place) => (
+                <li>
+                  <span>{place.name}</span>
+                  <span class="summit-list__meta iv-num">
+                    {km(place.distance)} km · {compass(place.azimuth)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="summit-list__empty">{t("summit.facts.townsNone")}</p>
+          )}
+          {citiesHidden.length > 0 && (
+            <p class="summit-list__hidden">
+              {t("summit.facts.townsHidden")} {citiesHidden.map((place) => place.name).join(", ")}
+            </p>
+          )}
+        </div>
+      )
+    }
+    {
+      lakes.length > 0 && (
+        <div class="iv-card summit-list">
+          <h4 class="summit-list__title">{t("summit.facts.lakes")}</h4>
+          <ul>
+            {lakes.map((lake) => (
+              <li>
+                <span>{lake.name}</span>
+                <span class="summit-list__meta iv-num">
+                  {km(lake.distance)} km · {compass(lake.azimuth)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </div>
+
+  <MountainPanorama
+    data={panorama}
+    uid={`mp-${summit.id}`}
+    title={t("summit.panorama.title")}
+    note={t("summit.panorama.note", { name: summit.data.name })}
+    stats={false}
+    opening={opening}
+    routeLegend={t("summit.panorama.route")}
+    snowlines={snowlines(summit.data.lat)}
+    photos={summit.data.photos}
+  />
+
+  {
+    summit.data.photos && summit.data.photos.length > 0 && (
+      <div class="summit-photos">
+        <h3 class="iv-block__title">{t("summit.photos.title")}</h3>
+        <ul class="summit-photos__strip">
+          {summit.data.photos.map((photo) => (
+            <li>
+              <a href={photo.src} target="_blank" rel="noopener">
+                <img src={photo.src} alt={photo.caption ?? ""} loading="lazy" />
+              </a>
+              {photo.caption && <span>{photo.caption}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  <ViewshedMap
+    data={panorama}
+    title={t("summit.viewshed.title")}
+    note={t("summit.viewshed.note", { area: number(stats.visibleArea), share: number(stats.visibleShare * 100, 1), far: km(stats.farthest.distance) })}
+    summitLabel={summit.data.name}
+  />
+  <p class="iv-note summit-view__source">{t("summit.source", { date: panorama.generated })}</p>
+</div>

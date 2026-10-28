@@ -1,0 +1,86 @@
+---
+// One summit of the log: every time I went up it, and the view from the top (src/components/SummitView.astro).
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../../components/AscentsHeader.astro";
+import SummitView from "../../../../components/SummitView.astro";
+import SummitSkyline from "../../../../components/SummitSkyline.astro";
+import { getSummits, type Summit } from "../../../../lib/summits";
+import { formatDistance, formatElevation } from "../../../../lib/route-format";
+import "../../../../styles/inventory.css";
+import "../../../../styles/summits.css";
+import { formatDate, getLang, getLangFromUrl, langParams, languages, localizePath, useTranslations } from "../../../../i18n/ui";
+
+export async function getStaticPaths() {
+  const perLang = await Promise.all(
+    langParams.map(async (lang) => (await getSummits(getLang(lang))).map((summit) => ({ params: { lang, id: summit.id }, props: { summit } }))),
+  );
+  return perLang.flat();
+}
+
+const { summit } = Astro.props as { summit: Summit };
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const { data, ascents, panorama } = summit;
+const reached = ascents.filter((ascent) => !ascent.attempt);
+const coords = `${Math.abs(data.lat).toFixed(4)}° ${data.lat < 0 ? "S" : "N"}, ${Math.abs(data.lon).toFixed(4)}° ${data.lon < 0 ? (lang === "es" ? "O" : "W") : "E"}`;
+const description = t("summit.page.description", { name: data.name, ele: data.elevation.toLocaleString(locale) });
+---
+
+<BaseLayout title={`${data.name} · ${t("ascents.title")}`} description={description} sideBarActiveItemID="ascents">
+  <AscentsHeader active="summits" />
+
+  <div class="summit-ui summit-page">
+    <a class="summit-page__back" href={localizePath(lang, "/ascents/summits/")}>← {t("summit.page.back")}</a>
+    <header class="summit-page__head">
+      {panorama && <SummitSkyline panorama={panorama} class="summit-page__skyline" />}
+      <div>
+        <h1 class="text-4xl font-bold">{data.name}</h1>
+        <p class="summit-page__meta">
+          <strong class="iv-num">{data.elevation.toLocaleString(locale)} m</strong>
+          {data.region && <span>{data.region}</span>}
+          <span class="iv-num">{coords}</span>
+        </p>
+      </div>
+    </header>
+
+    <section class="summit-page__ascents">
+      <h2 class="summit-section-title">
+        {reached.length === ascents.length
+          ? t("summit.page.ascents", { n: ascents.length })
+          : t("summit.page.ascentsAttempts", { n: reached.length, m: ascents.length - reached.length })}
+      </h2>
+      {
+        ascents.length ? (
+          <ol class="ascent-rows">
+            {ascents.map((ascent) => (
+              <li class="ascent-row">
+                <time class="ascent-row__date iv-num" datetime={ascent.date.toISOString()}>{formatDate(ascent.date, lang)}</time>
+                <a class="ascent-row__title" href={localizePath(lang, `/ascents/${ascent.key}/`)}>{ascent.title}</a>
+                <span class="ascent-row__meta iv-num">
+                  {ascent.attempt && <span class="badge badge-outline badge-sm">{t("ascent.attempt")}</span>}
+                  {ascent.route && (
+                    <>
+                      {formatDistance(ascent.route.distance, locale)}
+                      {ascent.route.gain != null && ` · +${formatElevation(ascent.route.gain, locale)}`}
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p class="iv-note">{t("summit.page.noAscents")}</p>
+        )
+      }
+    </section>
+
+    {
+      panorama ? (
+        <SummitView summit={summit} />
+      ) : (
+        <p class="iv-note summit-page__nopanorama">{t("summit.page.noPanorama")}</p>
+      )
+    }
+  </div>
+</BaseLayout>

@@ -1,6 +1,7 @@
-// The viewshed map in src/components/ViewshedMap.astro: OpenTopoMap, the computed viewshed
+// The viewshed maps of src/components/ViewshedMap.astro: a grey relief, the computed viewshed
 // as an image overlay (it was rasterised in Web Mercator, so it lands exactly), rings every
-// 25 km and the summits the post names.
+// 25 km and the summits worth naming. Any number per page; a map set up inside a hidden tab
+// frames itself the first time it shows.
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -12,24 +13,31 @@ interface Data {
   labels: Record<string, string>;
 }
 
-let map: L.Map | null = null;
+const maps = new Set<L.Map>();
 document.addEventListener("astro:before-swap", () => {
-  map?.remove();
-  map = null;
+  for (const map of maps) map.remove();
+  maps.clear();
 });
 
 const esc = (value: unknown) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-export function initViewshedMap() {
-  const container = document.getElementById("viewshed-map");
-  const source = document.getElementById("viewshed-map-data");
-  if (!container || !source || map) return;
-  const data: Data = JSON.parse(source.textContent!);
+/** Sets up every viewshed map on the page (or inside `scope`) that isn't set up yet. */
+export function initViewshedMap(scope: ParentNode = document) {
+  for (const root of scope.querySelectorAll<HTMLElement>("[data-viewshed]:not([data-viewshed-ready])")) {
+    root.dataset.viewshedReady = "";
+    const container = root.querySelector<HTMLElement>("[data-viewshed-map]");
+    const source = root.querySelector("[data-viewshed-data]");
+    if (container && source) createMap(container, JSON.parse(source.textContent!));
+  }
+}
+
+function createMap(container: HTMLElement, data: Data) {
   const { viewpoint, overlay, labels } = data;
 
-  map = L.map(container, { scrollWheelZoom: false, zoomSnap: 0.5 });
-  map.on("click", () => map?.scrollWheelZoom.enable());
-  container.addEventListener("mouseleave", () => map?.scrollWheelZoom.disable());
+  const map = L.map(container, { scrollWheelZoom: false, zoomSnap: 0.5 });
+  maps.add(map);
+  map.on("click", () => map.scrollWheelZoom.enable());
+  container.addEventListener("mouseleave", () => map.scrollWheelZoom.disable());
 
   // A grey relief underneath, so the one colour on the map is the viewshed; place names on top.
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}", {
@@ -58,7 +66,9 @@ export function initViewshedMap() {
 
   L.circleMarker(centre, { radius: 7, color: "#fff", weight: 2, fillColor: "#d03b3b", fillOpacity: 1 })
     .addTo(map)
-    .bindTooltip(`${labels.summit} · ${viewpoint.elevation} m`, { permanent: true, direction: "right", offset: [8, 0] });
+    // On hover (a tap on a phone) only: the red dot is plainly the viewpoint, and a standing
+    // label covers the very ground the map is about.
+    .bindTooltip(`${labels.summit} · ${viewpoint.elevation} m`, { direction: "right", offset: [8, 0] });
 
   for (const peak of data.peaks) {
     const hidden = peak.status === "hidden";
@@ -79,5 +89,15 @@ export function initViewshedMap() {
     );
   }
 
-  map.fitBounds(L.latLngBounds([viewpoint.lat - 0.45, viewpoint.lon - 0.55], [viewpoint.lat + 0.45, viewpoint.lon + 0.75]));
+  const frame = () => map.fitBounds(L.latLngBounds([viewpoint.lat - 0.45, viewpoint.lon - 0.55], [viewpoint.lat + 0.45, viewpoint.lon + 0.75]));
+  frame();
+  if (!container.clientWidth) {
+    const observer = new ResizeObserver(() => {
+      if (!container.clientWidth) return;
+      observer.disconnect();
+      map.invalidateSize();
+      frame();
+    });
+    observer.observe(container);
+  }
 }

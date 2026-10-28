@@ -7,6 +7,7 @@ elevation: 0
 latitude: -33.4
 longitude: -70.3
 route: "/assets/lib/travesia-algarrobo-11-10-2025.gpx"
+summits: [guanaco, algarrobo]
 tags: ['Traverse']
 ---
 

@@ -1,4 +1,4 @@
-import { z, defineCollection } from "astro:content";
+import { z, defineCollection, reference } from "astro:content";
 import { WAYPOINT_KIND_IDS, type WaypointKind } from "../lib/waypoint-kinds";
 
 const tags = z.array(z.string()).refine(items => new Set(items).size === items.length, {
@@ -47,11 +47,40 @@ const ascentsSchema = z.object({
     })).optional(),
     // IANA timezone for the route's clock times (default America/Santiago)
     timezone: z.string().optional(),
+    // The summits of this outing, by file name in src/content/summits/, e.g. [provincia] or, for
+    // a traverse, [manquehue, manquehuito]. They give the post its summit panorama tab and put
+    // it on each summit's page.
+    summits: z.array(reference("summits")).optional(),
+    // The summit wasn't reached (the summits above are the ones attempted)
+    attempt: z.boolean().optional(),
     heroImage: z.string().optional(),
     badge: z.string().optional(),
     category: z.string().optional(),
     tags,
     translationHash,
+});
+
+// One file per summit of the log: where it is, and whether `npm run panoramas` computes the view
+// from its top (written to src/data/panoramas/<file name>.json).
+const summitsSchema = z.object({
+    name: z.string(),
+    // Official height, m
+    elevation: z.number(),
+    lat: z.number().min(-90).max(90),
+    lon: z.number().min(-180).max(180),
+    // OpenStreetMap node of the summit, to recognise it in other summits' panoramas
+    osm: z.number().optional(),
+    wikidata: z.string().optional(),
+    region: z.string().optional(),
+    panorama: z.boolean().default(false),
+    timezone: z.string().optional(),
+    // Photos taken from the top; `azimuth` (degrees from north, where the camera points) places
+    // them on the panorama
+    photos: z.array(z.object({
+        src: z.string(),
+        azimuth: z.number().min(0).max(360).optional(),
+        caption: z.string().optional(),
+    })).optional(),
 });
 
 const blogSchema = z.object({
@@ -78,10 +107,12 @@ const pagesSchema = z.object({
 export type ProjectsSchema = z.infer<typeof projectsSchema>;
 export type AscentsSchema = z.infer<typeof ascentsSchema>;
 export type BlogSchema = z.infer<typeof blogSchema>;
+export type SummitsSchema = z.infer<typeof summitsSchema>;
 
 export const collections = {
     'projects': defineCollection({ schema: projectsSchema }),
     'ascents': defineCollection({ schema: ascentsSchema }),
     'blog': defineCollection({ schema: blogSchema }),
     'pages': defineCollection({ schema: pagesSchema }),
+    'summits': defineCollection({ type: 'data', schema: summitsSchema }),
 }

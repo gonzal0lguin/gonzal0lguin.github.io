@@ -11,6 +11,8 @@ route:
   - "/assets/lib/punta-canaleta-17-10-2026_1.gpx"
   - "/assets/lib/punta-canaleta-18-10-2026_1.gpx"
   - "/assets/lib/punta-canaleta-18-10-2026_2.gpx"
+summits: [punta-canaletas]
+attempt: true
 tags: ['Mountain']
 ---
 

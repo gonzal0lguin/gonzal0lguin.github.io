@@ -6,5 +6,6 @@ mountain: "Cerro Mocoén"
 elevation: 2696
 latitude: -33.4
 longitude: -70.3
+summits: [mocoen]
 tags: ['Mountain']
 ---

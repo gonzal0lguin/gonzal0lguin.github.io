@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "firefox-devtools": {
+      "type": "stdio",
+      "command": "/home/amtcg/.local/share/node24/bin/node",
+      "args": [
+        "/home/amtcg/.local/share/firefox-devtools-mcp/node_modules/@mozilla/firefox-devtools-mcp/dist/index.js",
+        "--firefox-path",
+        "/home/amtcg/.local/share/firefox/firefox"
+      ],
+      "env": {
+        "PATH": "/home/amtcg/.local/bin:/usr/local/bin:/usr/bin:/bin",
+        "MOZ_DISABLE_CONTENT_SANDBOX": "1",
+        "FIREFOX_HEADLESS": "1"
+      }
+    }
+  }
+}

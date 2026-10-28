@@ -1,0 +1,28 @@
+---
+// A summit's whole horizon as a small silhouette: the computed skyline from its top, north to
+// north, at one shared vertical scale so a dramatic view looks dramatic next to a flat one.
+// Without a panorama it's a plain mountain glyph.
+import { skylineProfile, type PanoramaData } from "../lib/summits";
+
+export interface Props {
+  panorama: PanoramaData | null;
+  class?: string;
+}
+
+const { panorama, class: className } = Astro.props;
+const W = 240;
+const H = 60;
+/** Degrees shown, bottom to top: the far horizon from these summits sits between −3° and +9°. */
+const LOW = -3;
+const HIGH = 9;
+const profile = panorama ? skylineProfile(panorama, 120) : null;
+const yOf = (angle: number) => H - ((Math.min(HIGH, Math.max(LOW, angle)) - LOW) / (HIGH - LOW)) * H;
+const path = profile
+  ? `M0 ${H}` + profile.map((angle, i) => `L${((i + 0.5) * W) / profile.length} ${yOf(angle).toFixed(1)}`).join("") + `L${W} ${H}Z`
+  : `M0 ${H}L70 34L92 44L132 12L170 40L188 32L240 ${H}Z`;
+---
+
+<svg class:list={["summit-skyline", className, { "summit-skyline--glyph": !profile }]} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+  <path d={path} />
+  {profile && <line x1="0" x2={W} y1={yOf(0)} y2={yOf(0)} class="summit-skyline__horizon" />}
+</svg>

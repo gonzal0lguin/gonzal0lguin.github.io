@@ -6,5 +6,6 @@ mountain: "Brecherspitz"
 elevation: 1683
 latitude: 47.67667
 longitude: 11.87083
+summits: [brecherspitze]
 tags: ['Mountain']
 ---

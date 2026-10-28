@@ -1,0 +1,99 @@
+---
+// Every summit of the log once, however many times I went up it: a card with the horizon from
+// its top, how high it is and when I was last there. Search and sorting run in the browser
+// (src/scripts/log-filter.ts) over what's already on the page.
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../../components/AscentsHeader.astro";
+import SummitSkyline from "../../../../components/SummitSkyline.astro";
+import { getSummits } from "../../../../lib/summits";
+import { searchText } from "../../../../lib/search";
+import "../../../../styles/inventory.css";
+import "../../../../styles/summits.css";
+import { langStaticPaths } from "../../../../lib/paths";
+import { formatDate, getLangFromUrl, languages, localizePath, useTranslations } from "../../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const summits = await getSummits(lang);
+const panoramas = summits.filter((summit) => summit.panorama).length;
+---
+
+<BaseLayout title={`${t("summits.title")} · ${t("ascents.title")}`} description={t("summits.intro")} sideBarActiveItemID="ascents">
+  <AscentsHeader active="summits" />
+
+  <div class="summit-ui" data-filter-root>
+    <p class="summits-intro">{t("summits.intro")}</p>
+
+    <div class="log-controls" role="search">
+      <label class="log-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" placeholder={t("summits.search")} aria-label={t("summits.search")} data-filter-search />
+      </label>
+      <label class="log-sort">
+        <span>{t("log.sort")}</span>
+        <select class="select select-sm select-bordered" data-filter-sort>
+          <option value="ele:desc">{t("summits.sort.elevation")}</option>
+          <option value="last:desc">{t("summits.sort.last")}</option>
+          <option value="count:desc">{t("summits.sort.count")}</option>
+          <option value="name:asc">{t("summits.sort.name")}</option>
+        </select>
+      </label>
+      <button type="button" class="log-chip" aria-pressed="false" data-filter-chip="panorama">
+        {t("summits.withPanorama", { n: panoramas })}
+      </button>
+    </div>
+    <p class="log-count iv-num" data-filter-count data-label-one={t("summits.countOne")} data-label-many={t("summits.countMany")} aria-live="polite"></p>
+
+    <ul class="summit-grid" data-filter-list>
+      {
+        summits.map((summit) => {
+          const reached = summit.ascents.filter((ascent) => !ascent.attempt).length;
+          return (
+            <li
+              data-filter-item
+              data-text={searchText([summit.data.name, summit.data.region, ...summit.ascents.map((ascent) => ascent.title)])}
+              data-flags={summit.panorama ? "panorama" : ""}
+              data-ele={summit.data.elevation}
+              data-last={summit.last?.valueOf() ?? 0}
+              data-count={summit.ascents.length}
+              data-name={summit.data.name}
+            >
+              <a class="summit-card" href={localizePath(lang, `/ascents/summits/${summit.id}/`)}>
+                <SummitSkyline panorama={summit.panorama} class="summit-card__skyline" />
+                <span class="summit-card__ele iv-num">{summit.data.elevation.toLocaleString(locale)} m</span>
+                <span class="summit-card__name">{summit.data.name}</span>
+                {summit.data.region && <span class="summit-card__region">{summit.data.region}</span>}
+                <span class="summit-card__meta iv-num">
+                  {reached === summit.ascents.length
+                    ? t(summit.ascents.length === 1 ? "summits.visitsOne" : "summits.visitsMany", { n: summit.ascents.length })
+                    : t("summits.visitsAttempts", { n: reached, m: summit.ascents.length - reached })}
+                  {summit.last && ` · ${formatDate(summit.last, lang)}`}
+                </span>
+                {summit.panorama && (
+                  <span class="summit-card__badge">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18l5-7 3 4 4-7 8 10z" /></svg>
+                    {t("summits.panoramaBadge", { n: summit.panorama.stats.peaksInView ?? 0 })}
+                  </span>
+                )}
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+    <p class="log-empty" data-filter-empty hidden>{t("log.empty")}</p>
+  </div>
+
+  <script>
+    document.addEventListener("astro:page-load", async () => {
+      if (!document.querySelector("[data-filter-root]")) return;
+      const { initLogFilter } = await import("../../../../scripts/log-filter");
+      initLogFilter();
+    });
+  </script>
+</BaseLayout>
