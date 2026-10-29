@@ -15,7 +15,7 @@ interface KeyBlock {
 }
 
 /** Where a key the file does not have yet is inserted, so new files read like the old ones. */
-const KEY_ORDER = [
+export const KEY_ORDER = [
   "translationHash",
   "title",
   "description",
@@ -38,16 +38,25 @@ const KEY_ORDER = [
   "tags",
 ];
 
+/**
+ * The same, for a summit of the registry (src/content/summits/*.yaml). Those files are not
+ * frontmatter at all — the whole file is the mapping — but it is the same shape, so they are
+ * read and written by this same class with their own key order.
+ */
+export const SUMMIT_KEY_ORDER = ["name", "elevation", "lat", "lon", "osm", "wikidata", "region", "panorama", "timezone", "photos"];
+
 export class Frontmatter {
   private blocks: KeyBlock[];
   private edited = new Map<string, FmValue>();
   /** Lines before the first key (a leading comment), kept as they are. */
   private preamble: string[];
+  private order: string[];
 
-  constructor(yaml: string) {
+  constructor(yaml: string, order: string[] = KEY_ORDER) {
     const { blocks, preamble } = split(yaml);
     this.blocks = blocks;
     this.preamble = preamble;
+    this.order = order;
   }
 
   keys() {
@@ -106,21 +115,30 @@ export class Frontmatter {
         continue;
       }
       const value = this.edited.get(block.key) ?? null;
-      if (value != null) out.push({ key: block.key, lines: emit(block.key, value) });
+      // A comment under a key explains it (the photo example in a summit file); it outlives
+      // the value above it, so it is carried over when the key is re-serialized.
+      if (value != null) out.push({ key: block.key, lines: [...emit(block.key, value), ...trailingComment(block.lines)] });
     }
     for (const [key, value] of this.edited) {
       if (value == null || out.some((block) => block.key === key)) continue;
-      const rank = orderOf(key);
-      const at = out.findIndex((block) => orderOf(block.key) > rank);
+      const rank = orderOf(key, this.order);
+      const at = out.findIndex((block) => orderOf(block.key, this.order) > rank);
       out.splice(at === -1 ? out.length : at, 0, { key, lines: emit(key, value) });
     }
     return [...this.preamble, ...out.flatMap((block) => block.lines)].join("\n");
   }
 }
 
-const orderOf = (key: string) => {
-  const index = KEY_ORDER.indexOf(key);
-  return index === -1 ? KEY_ORDER.length : index;
+/** The blank and comment lines at the end of a key's block, which belong to no value. */
+function trailingComment(lines: string[]) {
+  let at = lines.length;
+  while (at > 1 && (lines[at - 1].trim() === "" || lines[at - 1].trim().startsWith("#"))) at--;
+  return lines.slice(at);
+}
+
+const orderOf = (key: string, order: string[]) => {
+  const index = order.indexOf(key);
+  return index === -1 ? order.length : index;
 };
 
 /** Split the YAML into one block per top-level key: its own line plus the indented lines under it. */
@@ -143,9 +161,7 @@ function parseBlock(lines: string[]): FmValue {
   if (inline && !inline.startsWith("#")) return parseInline(inline);
   if (rest.length === 0) return null;
 
-  if (rest.every((line) => line.trim().startsWith("-"))) {
-    return rest.map((line) => parseInline(line.trim().slice(1).trim())) as Scalar[] | Record<string, Scalar>[];
-  }
+  if (rest.some((line) => line.trim().startsWith("-"))) return parseList(rest);
   // A nested map (nothing in this site uses one, but it round-trips as an object).
   const map: Record<string, Scalar> = {};
   for (const line of rest) {
@@ -153,6 +169,31 @@ function parseBlock(lines: string[]): FmValue {
     if (at > 0) map[line.slice(0, at).trim()] = parseInline(line.slice(at + 1).trim()) as Scalar;
   }
   return [map];
+}
+
+/**
+ * A block list. An item is one `-` line plus the indented lines under it, so a list of maps
+ * written either way round-trips: inline (`- { src: a, azimuth: 80 }`), the form this file
+ * writes, and over several lines (`- src: a` then `  azimuth: 80`), the form a person writes.
+ */
+function parseList(lines: string[]): Scalar[] | Record<string, Scalar>[] {
+  const items: string[][] = [];
+  for (const line of lines) {
+    const text = line.trim();
+    if (text.startsWith("-")) items.push([text.slice(1).trim()]);
+    else if (items.length) items[items.length - 1].push(text);
+  }
+  const value = items.map((item) => {
+    const [first, ...more] = item;
+    if (more.length === 0 && !/^[A-Za-z_][\w-]*\s*:/.test(first)) return parseInline(first);
+    const map: Record<string, Scalar> = {};
+    for (const entry of [first, ...more]) {
+      const at = entry.indexOf(":");
+      if (at > 0) map[entry.slice(0, at).trim()] = parseInline(entry.slice(at + 1).trim()) as Scalar;
+    }
+    return map;
+  });
+  return value as Scalar[] | Record<string, Scalar>[];
 }
 
 function parseInline(text: string): FmValue {
@@ -226,21 +267,36 @@ const quoteSingle = (value: string) => `'${String(value).replace(/'/g, "''")}'`;
 /** Keys written as a single-quoted flow list, the way every post writes its tags. */
 const FLOW_LIST_KEYS = new Set(["tags", "summits"]);
 /** Keys whose values are never quoted. */
-const BARE_KEYS = new Set(["elevation", "latitude", "longitude"]);
-/** Order of a waypoint's fields, matching the example in src/content/config.ts. */
-const WAYPOINT_FIELDS = ["name", "kind", "lat", "lon", "ele", "note"];
+const BARE_KEYS = new Set(["elevation", "latitude", "longitude", "lat", "lon", "osm"]);
+/**
+ * Keys of a summit file whose text is written without quotes when it can be: those files are
+ * written by hand as plain YAML (`region: Santiago · Precordillera`), and an edit here should
+ * not turn them into quoted strings. Anything that could be read as something else is quoted.
+ */
+const PLAIN_KEYS = new Set(["name", "region", "wikidata"]);
+/** Text with no character that changes a plain scalar's meaning, and no leading indicator. */
+const PLAIN = /^[\p{L}\p{N}][^:#\n"'`]*[\p{L}\p{N}.)\]]$/u;
+/**
+ * Field order inside the maps of a list, matching the examples in src/content/config.ts: a
+ * waypoint of an ascent, and a photo taken from a summit.
+ */
+const MAP_FIELDS: Record<string, string[]> = {
+  waypoints: ["name", "kind", "lat", "lon", "ele", "note"],
+  photos: ["src", "azimuth", "caption"],
+};
 
 function scalar(key: string, value: Scalar) {
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   const text = String(value);
   if (BARE_KEYS.has(key) && /^-?\d+(\.\d+)?$/.test(text)) return text;
+  if (PLAIN_KEYS.has(key) && PLAIN.test(text) && !/^(true|false|null|~|-?\d+(\.\d+)?)$/i.test(text)) return text;
   return quote(text);
 }
 
 function emit(key: string, value: FmValue): string[] {
   if (Array.isArray(value)) {
     if (value.length && typeof value[0] === "object") {
-      return [`${key}:`, ...(value as Record<string, Scalar>[]).map((item) => `  - ${flowMap(item)}`)];
+      return [`${key}:`, ...(value as Record<string, Scalar>[]).map((item) => `  - ${flowMap(key, item)}`)];
     }
     const items = value as Scalar[];
     if (FLOW_LIST_KEYS.has(key)) return [`${key}: [${items.map((item) => (typeof item === "number" ? item : quoteSingle(String(item)))).join(", ")}]`];
@@ -250,8 +306,9 @@ function emit(key: string, value: FmValue): string[] {
   return [`${key}: ${scalar(key, value as Scalar)}`];
 }
 
-function flowMap(item: Record<string, Scalar>) {
-  const keys = [...WAYPOINT_FIELDS.filter((field) => field in item), ...Object.keys(item).filter((field) => !WAYPOINT_FIELDS.includes(field))];
+function flowMap(key: string, item: Record<string, Scalar>) {
+  const order = MAP_FIELDS[key] ?? [];
+  const keys = [...order.filter((field) => field in item), ...Object.keys(item).filter((field) => !order.includes(field))];
   const pairs = keys
     .filter((field) => item[field] != null && item[field] !== "")
     .map((field) => {

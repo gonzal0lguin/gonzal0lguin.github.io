@@ -96,7 +96,18 @@ export function dashboardView(ctx: Ctx): Node {
 
 function entryRow(ctx: Ctx, collection: CollectionInfo, entry: EntrySummary) {
   const translation = entry.translation;
+  const summits = ctx.state.summits;
   const badges = [
+    entry.attempt && el("span", { class: "ed-chip ed-chip--soft", title: "No se hizo cumbre" }, "intento"),
+    // The summits of an ascent, so the registry's name shows instead of the file name.
+    ...entry.summits.map((id) => {
+      const summit = summits.find((item) => item.id === id);
+      return el(
+        "a",
+        { class: `ed-chip ${summit ? "ed-chip--soft" : "ed-chip--warn"}`, href: `#/summits/${id}`, title: summit ? `${summit.name}${summit.panorama ? " · con panorama" : ""}` : `No hay ningún ${id}.yaml en src/content/summits` },
+        summit?.name ?? id,
+      );
+    }),
     entry.route.length > 0 &&
       el("span", { class: "ed-chip ed-chip--route", title: entry.route.join("\n") }, `GPX ${entry.route.length > 1 ? `×${entry.route.length}` : ""}`),
     ...entry.tags.map((tag) => el("span", { class: "ed-chip ed-chip--soft" }, tag)),

@@ -4,6 +4,7 @@ import { createEntry, deleteEntry, listEntries, readEntry, renameEntry, saveEntr
 import * as git from "./git.mjs";
 import { health } from "./health.mjs";
 import { deleteMedia, listGpx, listMedia, readGpx, replaceFile, saveGpx, siteAssets, upload } from "./media.mjs";
+import { createSummit, deleteSummit, listSummits, readSummit, saveSummit } from "./summits.mjs";
 import { runTask } from "./tasks.mjs";
 import { HttpError, LOCAL_DIR, bad, readBody, readJson, sendJson } from "./util.mjs";
 
@@ -11,20 +12,32 @@ export function createEditorApi({ root, mediaBaseUrl }) {
   const routes = {
     "GET /ping": () => ({ ok: true, root, mediaBaseUrl: mediaBaseUrl ?? null }),
 
-    "GET /state": async () => ({
-      root,
-      mediaBaseUrl: mediaBaseUrl ?? null,
-      localDir: LOCAL_DIR,
-      collections: await listEntries(root),
-      gpx: await listGpx(root),
-      git: await git.status(root).catch((error) => ({ error: error.message, files: [], log: [] })),
-    }),
+    "GET /state": async () => {
+      const collections = await listEntries(root);
+      return {
+        root,
+        mediaBaseUrl: mediaBaseUrl ?? null,
+        localDir: LOCAL_DIR,
+        collections,
+        // The summit registry reads the ascents to know which post climbs what, so it is
+        // handed the list instead of walking src/content again.
+        summits: await listSummits(root, collections),
+        gpx: await listGpx(root),
+        git: await git.status(root).catch((error) => ({ error: error.message, files: [], log: [] })),
+      };
+    },
 
     "GET /entry": ({ query }) => readEntry(root, query.get("path")),
     "POST /entry/save": async ({ json }) => saveEntry(root, await json()),
     "POST /entry/create": async ({ json }) => createEntry(root, await json()),
     "POST /entry/delete": async ({ json }) => deleteEntry(root, await json()),
     "POST /entry/rename": async ({ json }) => renameEntry(root, await json()),
+
+    "GET /summits": () => listSummits(root),
+    "GET /summit": ({ query }) => readSummit(root, query.get("path")),
+    "POST /summit/save": async ({ json }) => saveSummit(root, await json()),
+    "POST /summit/create": async ({ json }) => createSummit(root, await json()),
+    "POST /summit/delete": async ({ json }) => deleteSummit(root, await json()),
 
     "GET /media": () => listMedia(root, mediaBaseUrl),
     "POST /media/upload": async ({ query, body }) =>

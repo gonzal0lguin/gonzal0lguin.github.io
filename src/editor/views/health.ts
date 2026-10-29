@@ -4,6 +4,7 @@ import * as api from "../api";
 import { actionsSlot, type Ctx } from "../app";
 import { button, confirmDialog, el, fail, fill, ICONS, toast } from "../dom";
 import { entryRoute, runTask } from "./dashboard";
+import { summitRoute } from "./summits";
 
 const LEVELS = { error: "Errores", warn: "Avisos", info: "Sugerencias" } as const;
 
@@ -33,7 +34,13 @@ export async function healthView(ctx: Ctx): Promise<Node> {
                 "li",
                 { class: "ed-list__row" },
                 el("span", { class: "ed-chip ed-chip--soft" }, issue.kind),
-                el("a", { class: "ed-list__main", href: `#/${entryRoute(issue.path)}` }, el("span", { class: "ed-list__title" }, issue.title ?? issue.path), el("span", { class: "ed-list__meta" }, issue.message)),
+                // A summit is not an entry: its file opens in the registry, not the post editor.
+                el(
+                  "a",
+                  { class: "ed-list__main", href: `#/${issue.collection === "summits" && issue.key ? summitRoute(issue.key) : entryRoute(issue.path)}` },
+                  el("span", { class: "ed-list__title" }, issue.title ?? issue.path),
+                  el("span", { class: "ed-list__meta" }, issue.message),
+                ),
               ),
             ),
           ),

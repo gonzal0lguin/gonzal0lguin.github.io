@@ -65,7 +65,7 @@ export async function runTask(task: TaskName, files: string[], onOutput: (chunk:
   }
 }
 
-export type TaskName = "photos" | "translate" | "stamp" | "build";
+export type TaskName = "photos" | "translate" | "stamp" | "panoramas" | "profiles" | "build";
 
 export interface UploadResult {
   path: string;
@@ -93,6 +93,9 @@ export interface EntrySummary {
   tags: string[];
   heroImage: string | null;
   route: string[];
+  /** File names in src/content/summits this ascent reaches, from the Spanish post. */
+  summits: string[];
+  attempt: boolean;
   translation: TranslationInfo | null;
 }
 
@@ -102,6 +105,59 @@ export interface CollectionInfo {
   urlBase: string | null;
   mediaFolder: boolean;
   entries: EntrySummary[];
+}
+
+/** One of the two images `npm run panoramas` draws for a summit. */
+export interface PanoramaImage {
+  kind: "terrain" | "viewshed";
+  path: string;
+  publicPath: string;
+  size: number;
+  mtime: number;
+  missing?: boolean;
+}
+
+/** What was computed for a summit, and whether it still matches the file it came from. */
+export interface PanoramaState {
+  path: string;
+  broken: boolean;
+  generated: string | null;
+  mtime: number;
+  /** The YAML file was edited after the panorama was computed. */
+  stale: boolean;
+  /** The coordinates now point somewhere else entirely. */
+  moved: boolean;
+  images: PanoramaImage[];
+}
+
+export interface SummitAscentRef {
+  key: string;
+  path: string;
+  title: string;
+  pubDate: string | null;
+  attempt: boolean;
+}
+
+export interface SummitInfo {
+  id: string;
+  path: string;
+  mtime: number;
+  /** The YAML could not be parsed; nothing else here is trustworthy. */
+  error: string | null;
+  name: string;
+  elevation: number | null;
+  lat: number | null;
+  lon: number | null;
+  region: string | null;
+  osm: number | string | null;
+  wikidata: string | null;
+  /** `panorama: true` in the file — whether the view should be computed at all. */
+  wants: boolean;
+  timezone: string | null;
+  photos: number;
+  ascents: SummitAscentRef[];
+  panorama: PanoramaState | null;
+  profile: { from: number | null; side: string | null; points: number } | null;
 }
 
 export interface GpxInfo {
@@ -132,6 +188,7 @@ export interface EditorState {
   mediaBaseUrl: string | null;
   localDir: string;
   collections: CollectionInfo[];
+  summits: SummitInfo[];
   gpx: GpxInfo[];
   git: GitStatus;
 }

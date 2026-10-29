@@ -12,6 +12,7 @@ import { healthView } from "./views/health";
 import { mediaView } from "./views/media";
 import { routesView } from "./views/routes";
 import { siteView } from "./views/site";
+import { summitsView } from "./views/summits";
 
 export interface Ctx {
   state: EditorState;
@@ -32,6 +33,7 @@ interface Route {
 const NAV = [
   { route: "", label: "Contenido", iconPath: ICONS.save },
   { route: "site", label: "Sitio", iconPath: ICONS.home },
+  { route: "summits", label: "Cumbres", iconPath: ICONS.mountain },
   { route: "media", label: "Fotos", iconPath: ICONS.image },
   { route: "routes", label: "Rutas GPX", iconPath: ICONS.map },
   { route: "git", label: "Cambios", iconPath: ICONS.check },
@@ -80,6 +82,7 @@ export async function startEditor(root: HTMLElement) {
     "": dashboardView,
     entry: entryView,
     site: siteView,
+    summits: summitsView,
     media: mediaView,
     routes: routesView,
     git: gitView,

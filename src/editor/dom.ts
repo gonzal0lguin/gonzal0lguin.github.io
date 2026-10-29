@@ -82,6 +82,7 @@ export const ICONS = {
   drag: "M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01",
   rename: "M4 20h4L20 8l-4-4L4 16zM14 6l4 4",
   home: "M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6",
+  mountain: "M2 18l5-7 3 4 4-7 8 10zM2 21h20",
   left: "M19 12H5m7-7-7 7 7 7",
   right: "M5 12h14m-7-7 7 7-7 7",
 };

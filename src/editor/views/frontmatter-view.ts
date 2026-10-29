@@ -80,6 +80,23 @@ function renderField(entry: EntryCtx, spec: Field): Node {
       select.addEventListener("change", () => set((select as HTMLSelectElement).value || null));
       return field(spec.label, select, spec.hint);
     }
+    case "checkbox": {
+      const input = el("input", { type: "checkbox", class: "ed-check__box", checked: entry.fm.get(spec.key) === true }) as HTMLInputElement;
+      // An unticked box removes the key rather than writing `false`, except where the file
+      // states it either way (a summit's `panorama`, which the scripts read as a switch).
+      const explicit = spec.key === "panorama";
+      input.addEventListener("change", () => set(input.checked ? true : explicit ? false : null));
+      return el(
+        "div",
+        { class: "ed-field" },
+        el("label", { class: "ed-check" }, input, el("span", { class: "ed-field__label" }, spec.label)),
+        spec.hint && el("span", { class: "ed-field__hint" }, spec.hint),
+      );
+    }
+    case "summits":
+      return field(spec.label, summitsField(entry, spec.key), spec.hint);
+    case "photos":
+      return field(spec.label, photosField(entry, spec.key), spec.hint);
     case "tags":
       return field(spec.label, tagsEditor(entry, spec.key), spec.hint);
     case "image":
@@ -244,11 +261,12 @@ export async function chooseImage(entry: EntryCtx): Promise<string | null> {
 // --- Coordinates
 
 function coordsField(entry: EntryCtx, spec: Field) {
-  const lat = el("input", { class: "ed-input", type: "number", step: 0.00001, value: entry.fm.number("latitude") ?? "", placeholder: "lat" });
-  const lon = el("input", { class: "ed-input", type: "number", step: 0.00001, value: entry.fm.number("longitude") ?? "", placeholder: "lon" });
+  const [latKey, lonKey] = spec.keys ?? ["latitude", "longitude"];
+  const lat = el("input", { class: "ed-input", type: "number", step: 0.00001, value: entry.fm.number(latKey) ?? "", placeholder: latKey });
+  const lon = el("input", { class: "ed-input", type: "number", step: 0.00001, value: entry.fm.number(lonKey) ?? "", placeholder: lonKey });
   const sync = () => {
-    entry.fm.set("latitude", lat.value === "" ? null : Number(lat.value));
-    entry.fm.set("longitude", lon.value === "" ? null : Number(lon.value));
+    entry.fm.set(latKey, lat.value === "" ? null : Number(lat.value));
+    entry.fm.set(lonKey, lon.value === "" ? null : Number(lon.value));
     entry.markDirty();
   };
   lat.addEventListener("input", sync);
@@ -260,8 +278,8 @@ function coordsField(entry: EntryCtx, spec: Field) {
       if (!holder.hidden && holder.childElementCount === 0) {
         holder.appendChild(
           mapPicker({
-            lat: entry.fm.number("latitude"),
-            lon: entry.fm.number("longitude"),
+            lat: entry.fm.number(latKey),
+            lon: entry.fm.number(lonKey),
             onPick: (a, b) => {
               lat.value = String(a);
               lon.value = String(b);
@@ -376,6 +394,130 @@ function waypointsSummary(entry: EntryCtx) {
         ),
       ),
       points.length ? button("Editar en el mapa", () => entry.openTab("route"), { variant: "ghost", iconPath: ICONS.map }) : null,
+    );
+  };
+  draw();
+  return wrap;
+}
+
+// --- summits: which tops of the registry an ascent reached
+
+/**
+ * The `summits` of an ascent, chosen from the registry rather than typed: the id has to match a
+ * file in src/content/summits or the build fails, and the list is short. An id the registry does
+ * not have is still shown, so a typo (or a summit deleted from under the post) is visible.
+ */
+function summitsField(entry: EntryCtx, key: string) {
+  const registry = entry.app.state.summits;
+  const wrap = el("div", { class: "ed-stack ed-stack--tight" });
+
+  const draw = () => {
+    const chosen = entry.fm.list(key);
+    const update = (next: string[]) => {
+      entry.fm.set(key, next);
+      entry.markDirty();
+      draw();
+    };
+    const missing = chosen.filter((id) => !registry.some((summit) => summit.id === id));
+    const options = registry.filter((summit) => !chosen.includes(summit.id));
+
+    fill(
+      wrap,
+      ...chosen.map((id) => {
+        const summit = registry.find((item) => item.id === id);
+        return el(
+          "div",
+          { class: "ed-row ed-row--tight" },
+          el("a", { class: "ed-chip", href: `#/summits/${id}`, title: "Abrir la cumbre en el registro" }, id),
+          summit
+            ? el("span", { class: "ed-grow" }, `${summit.name} · ${summit.elevation?.toLocaleString("es-CL") ?? "?"} m`)
+            : el("span", { class: "ed-grow ed-warn" }, "no existe en src/content/summits"),
+          summit?.panorama ? el("span", { class: "ed-chip ed-chip--ok", title: "Tiene panorama calculado" }, "panorama") : null,
+          summit?.wants && !summit.panorama ? el("span", { class: "ed-chip ed-chip--warn", title: "panorama: true, pero todavía sin calcular" }, "sin calcular") : null,
+          button("", () => update(chosen.filter((item) => item !== id)), { variant: "ghost", iconPath: ICONS.trash, title: "Quitar del post" }),
+        );
+      }),
+      options.length
+        ? (() => {
+            const select = el(
+              "select",
+              { class: "ed-select" },
+              el("option", { value: "" }, "Añadir una cumbre del registro…"),
+              ...options.map((summit) => el("option", { value: summit.id }, `${summit.name} — ${summit.elevation ?? "?"} m (${summit.id})`)),
+            ) as HTMLSelectElement;
+            select.addEventListener("change", () => {
+              if (select.value) update([...chosen, select.value]);
+            });
+            return select;
+          })()
+        : el("p", { class: "ed-note" }, "Todas las cumbres del registro ya están en este post."),
+      chosen.length > 1 ? el("p", { class: "ed-note" }, "Varias cumbres: una travesía. Se muestran en este orden.") : null,
+      missing.length ? el("p", { class: "ed-note ed-warn" }, `Sin archivo en el registro: ${missing.join(", ")}. El build falla hasta crearlas o quitarlas.`) : null,
+      entry.lang === "en"
+        ? el("p", { class: "ed-note" }, "El sitio lee las cumbres del post en español; lo que se ponga aquí no se usa.")
+        : el("p", { class: "ed-note" }, "¿Falta una cumbre? ", el("a", { href: "#/summits" }, "Créala en el registro")),
+    );
+  };
+  draw();
+  return wrap;
+}
+
+// --- photos: the ones taken from a summit, placed on its panorama by bearing
+
+function photosField(entry: EntryCtx, key: string) {
+  const wrap = el("div", { class: "ed-stack ed-stack--tight" });
+
+  const draw = () => {
+    const photos = entry.fm.maps(key);
+    const update = (next: Record<string, string | number | boolean>[]) => {
+      entry.fm.set(key, next);
+      entry.markDirty();
+      draw();
+    };
+    const edit = (i: number, field2: string, value: string | number | null) => {
+      const next = photos.map((photo) => ({ ...photo }));
+      if (value == null || value === "") delete next[i][field2];
+      else next[i][field2] = value;
+      entry.fm.set(key, next);
+      entry.markDirty();
+    };
+
+    fill(
+      wrap,
+      photos.length === 0 ? el("p", { class: "ed-note" }, "Ninguna. Una foto con azimut queda marcada en la regla del panorama.") : null,
+      ...photos.map((photo, i) => {
+        const src = String(photo.src ?? "");
+        const path = el("input", { class: "ed-input ed-grow", value: src, placeholder: "/assets/img/cumbres/…" });
+        path.addEventListener("input", () => edit(i, "src", path.value));
+        const azimuth = el("input", { class: "ed-input ed-input--sm", type: "number", min: 0, max: 360, step: 1, value: photo.azimuth ?? "", placeholder: "azimut" });
+        azimuth.addEventListener("input", () => edit(i, "azimuth", azimuth.value === "" ? null : Number(azimuth.value)));
+        const caption = el("input", { class: "ed-input", value: String(photo.caption ?? ""), placeholder: "Pie de foto" });
+        caption.addEventListener("input", () => edit(i, "caption", caption.value));
+
+        return el(
+          "div",
+          { class: "ed-photo ed-photo--summit" },
+          src ? el("img", { class: "ed-thumb", src, alt: "", loading: "lazy" }) : null,
+          el(
+            "div",
+            { class: "ed-stack ed-stack--tight ed-grow" },
+            el("div", { class: "ed-row ed-row--tight" }, path, button("Elegir…", () => void chooseImage(entry).then((picked) => picked && update(photos.map((item, j) => (j === i ? { ...item, src: picked } : item)))), { iconPath: ICONS.image })),
+            el("div", { class: "ed-row ed-row--tight" }, el("span", { class: "ed-field__label" }, "Azimut °"), azimuth, caption),
+          ),
+          el(
+            "div",
+            { class: "ed-photo__tools" },
+            button("", () => {
+                if (i === 0) return;
+                const next = photos.map((item) => ({ ...item }));
+                [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                update(next);
+              }, { variant: "ghost", iconPath: ICONS.up, title: "Subir" }),
+            button("", () => update(photos.filter((_, j) => j !== i)), { variant: "ghost", iconPath: ICONS.trash, title: "Quitar la foto" }),
+          ),
+        );
+      }),
+      button("Añadir una foto", () => update([...photos.map((photo) => ({ ...photo })), { src: "" }]), { iconPath: ICONS.plus }),
     );
   };
   draw();

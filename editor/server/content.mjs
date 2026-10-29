@@ -61,6 +61,10 @@ export async function listEntries(root) {
         tags: Array.isArray(data.tags) ? data.tags : [],
         heroImage: data.heroImage ?? null,
         route: data.route ? (Array.isArray(data.route) ? data.route : [data.route]) : [],
+        // The summits of an ascent, by file name in src/content/summits; set in the Spanish post,
+        // so a translation shows the ones its source points at.
+        summits: data.summits ? (Array.isArray(data.summits) ? data.summits : [data.summits]) : [],
+        attempt: data.attempt === true || data.attempt === "true",
         translation,
       });
     }

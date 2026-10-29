@@ -642,6 +642,16 @@ body {
 .ed-photo.is-dragging {
   opacity: 0.4;
 }
+/* A photo taken from a summit: path, bearing and caption in a row, not a card in a grid. */
+.ed-photo--summit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.ed-photo--summit .ed-input--sm {
+  width: 5.5rem;
+}
 .ed-photo.is-over {
   outline: 2px solid oklch(var(--p));
 }
@@ -790,6 +800,21 @@ body {
 .ed-field__hint {
   font-size: 0.72rem;
   color: oklch(var(--bc) / 0.55);
+}
+/* A switch of the frontmatter: `attempt` on an ascent, `panorama` on a summit. */
+.ed-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+.ed-check__box {
+  width: 1rem;
+  height: 1rem;
+  accent-color: oklch(var(--p));
+}
+.ed-check .ed-field__label {
+  cursor: pointer;
 }
 .ed-form__footer {
   border-top: 1px solid var(--ed-line);
