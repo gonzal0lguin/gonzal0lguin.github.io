@@ -833,6 +833,10 @@ a.seasons__dot:focus-visible {
   line-height: 1.35;
   pointer-events: none;
 }
+/* The display above outranks the browser's own [hidden] rule, so hiding needs saying again. */
+.chart-tip[hidden] {
+  display: none;
+}
 .chart-tip strong {
   color: oklch(var(--bc));
 }
