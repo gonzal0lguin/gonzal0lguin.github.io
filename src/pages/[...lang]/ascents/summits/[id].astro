@@ -4,6 +4,8 @@ import BaseLayout from "../../../../layouts/BaseLayout.astro";
 import AscentsHeader from "../../../../components/AscentsHeader.astro";
 import SummitView from "../../../../components/SummitView.astro";
 import SummitSkyline from "../../../../components/SummitSkyline.astro";
+import Conditions from "../../../../components/Conditions.astro";
+import { ogImagePath } from "../../../../lib/seo";
 import { getSummits, type Summit } from "../../../../lib/summits";
 import { formatDistance, formatElevation } from "../../../../lib/route-format";
 import "../../../../styles/inventory.css";
@@ -27,7 +29,7 @@ const coords = `${Math.abs(data.lat).toFixed(4)}° ${data.lat < 0 ? "S" : "N"}, 
 const description = t("summit.page.description", { name: data.name, ele: data.elevation.toLocaleString(locale) });
 ---
 
-<BaseLayout title={`${data.name} · ${t("ascents.title")}`} description={description} sideBarActiveItemID="ascents">
+<BaseLayout title={`${data.name} · ${t("ascents.title")}`} description={description} image={ogImagePath(Astro.url)} sideBarActiveItemID="ascents" width="wide">
   <AscentsHeader active="summits" />
 
   <div class="summit-ui summit-page">
@@ -74,6 +76,8 @@ const description = t("summit.page.description", { name: data.name, ele: data.el
         )
       }
     </section>
+
+    <Conditions summits={[summit]} compact />
 
     {
       panorama ? (

@@ -15,7 +15,9 @@ the things that cost an afternoon to find out once.
 | `npm run shot -- /en/ascents` | screenshot built pages — see below |
 | `npm run translate` | Spanish → English with Claude, needs `ANTHROPIC_API_KEY` |
 | `npm run photos` | EXIF of post photos → `src/data/photo-locations.json` (runs on pre-dev/pre-build) |
+| `npm run images` | resized WebP copies of every photo → `public/assets/opt/`, gitignored (runs on pre-dev/pre-build) |
 | `npm run panoramas` | summit views; `-- provincia` for one, `-- --all` for all (~30 s each) |
+| `npm run figures` | figures of the robot post: fits a photo's camera to the terrain, walks one ray → `src/data/robot-figures.json` (~20 s) |
 | `npm run profiles` | every summit's outline for the to-scale chart → `src/data/profiles.json` (seconds) |
 | `npm run terrain` / `climate` / `inventory` | data for the reforestation post |
 

@@ -32,6 +32,7 @@
 // src/styles/media.css.
 import { visit } from "unist-util-visit";
 import { DEFAULT_MEDIA_BASE_URL, resolveMediaUrl } from "../lib/media.mjs";
+import { variantsOf } from "../lib/image-variants.mjs";
 
 const MAX_COLS = 4;
 const DEFAULT_COLS = 3;
@@ -89,7 +90,11 @@ export default function remarkMedia(options = {}) {
         // the rendered attribute, so that Astro's own image handling sees the final path.
         visit(tree, "image", (image) => {
             image.url = resolveMediaUrl(image.url, baseUrl);
-            image.data = { ...image.data, hProperties: { ...image.data?.hProperties, loading: "lazy", decoding: "async" } };
+            // The browser takes the copy that fits the column; the lightbox always wants the largest.
+            const variants = variantsOf(image.url);
+            if (variants) image.url = variants.src;
+            const sized = variants ? { srcSet: variants.srcset, sizes: "(min-width: 800px) 750px, 100vw", width: variants.width, height: variants.height, dataFull: variants.src } : {};
+            image.data = { ...image.data, hProperties: { ...image.data?.hProperties, ...sized, loading: "lazy", decoding: "async" } };
         });
     };
 }

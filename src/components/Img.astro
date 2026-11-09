@@ -1,0 +1,31 @@
+---
+// A photo from public/ at the size the layout needs: the browser picks from the copies
+// scripts/images.mjs made. `sizes` says how wide it is on screen; get it roughly right and a
+// phone stops downloading what a desktop needs. Falls back to the original when there are none.
+import { variantsOf } from "../lib/image-variants.mjs";
+
+export interface Props {
+  src: string;
+  alt?: string;
+  sizes?: string;
+  class?: string;
+  /** Above the fold: load now and first. */
+  priority?: boolean;
+}
+
+const { src, alt = "", sizes = "100vw", class: className, priority = false } = Astro.props;
+const variants = variantsOf(src);
+---
+
+<img
+  src={variants?.src ?? src}
+  srcset={variants?.srcset}
+  sizes={variants ? sizes : undefined}
+  width={variants?.width}
+  height={variants?.height}
+  alt={alt}
+  class={className}
+  loading={priority ? "eager" : "lazy"}
+  decoding="async"
+  fetchpriority={priority ? "high" : undefined}
+/>

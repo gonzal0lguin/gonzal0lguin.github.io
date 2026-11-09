@@ -2,7 +2,8 @@
 import { type ProjectsSchema } from "../content/config";
 import BaseLayout from "./BaseLayout.astro";
 import UntranslatedNotice from "../components/UntranslatedNotice.astro";
-import { Image } from "astro:assets";
+import Img from "../components/Img.astro";
+import { ogImagePath, articleJsonLd } from "../lib/seo";
 import { formatDate, getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
 
 export interface Props extends ProjectsSchema {
@@ -15,13 +16,15 @@ export interface Props extends ProjectsSchema {
 const { title, description, pubDate, updatedDate, heroImage, badge, tags = [], tagBasePath, sideBarActiveItemID, fallback } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
+const image = ogImagePath(Astro.url);
+const jsonLd = articleJsonLd({ title, description, published: pubDate, modified: updatedDate, image, url: Astro.url, site: Astro.site, lang });
 ---
 
-<BaseLayout title={title} description={description} image={heroImage} ogType="article" sideBarActiveItemID={sideBarActiveItemID}>
-  <main class="md:flex md:justify-center">
+<BaseLayout title={title} description={description} image={image} ogType="article" published={pubDate} modified={updatedDate} fallback={fallback} jsonLd={jsonLd} sideBarActiveItemID={sideBarActiveItemID}>
+  <div class="md:flex md:justify-center">
     <article class="prose prose-lg max-w-[750px] prose-img:mx-auto" lang={fallback ? "es" : undefined}>
       {fallback && <UntranslatedNotice />}
-      {heroImage && <Image width={750} height={422} format="webp" src={heroImage} alt="" class="w-full mb-6" />}
+      {heroImage && <Img src={heroImage} sizes="(min-width: 800px) 750px, 100vw" class="w-full mb-6" priority />}
       <h1 class="title my-2 text-4xl font-bold">{title}</h1>
       {pubDate && <time datetime={pubDate.toISOString()}>{formatDate(pubDate, lang)}</time>}
       <br />
@@ -44,5 +47,5 @@ const t = useTranslations(lang);
       <div class="divider my-2"></div>
       <slot />
     </article>
-  </main>
+  </div>
 </BaseLayout>

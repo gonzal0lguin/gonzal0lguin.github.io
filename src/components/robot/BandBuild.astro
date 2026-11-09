@@ -1,0 +1,54 @@
+---
+// From rays to a horizon: the view from La Cruz towards Aconcagua at true proportions, in the same
+// depth bands the summit pages paint, with a slider for how far the rays are allowed to go. Each
+// band is the skyline of everything within that distance, so moving it only adds what's behind.
+import PANORAMA from "../../data/panoramas/la-cruz.json";
+import FIGURES from "../../data/robot-figures.json";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const PX = 16;
+const W = 768;
+const H = 250;
+const center = FIGURES.ray.azimuth;
+const half = W / PX / 2;
+const relative = (azimuth: number) => ((azimuth - center + 540) % 360) - 180;
+const inArc = (points: number[][]) => points.map(([az, a]) => [relative(az), a]).filter(([o]) => Math.abs(o) <= half + 0.5).sort((p, q) => p[0] - q[0]);
+
+const bands = PANORAMA.bandSkylines.map(inArc);
+const top = Math.max(...bands.at(-1)!.map(([, a]) => a));
+const x = (offset: number) => (offset + half) * PX;
+const y = (angle: number) => 54 + (top - angle) * PX;
+const f = (value: number) => value.toFixed(1);
+const trace = (points: number[][]) => points.map(([o, a]) => `${f(x(o))} ${f(y(a))}`).join("L");
+
+const layers = bands.map((points, depth) => ({ depth, line: `M${trace(points)}`, fill: `M${f(x(points[0][0]))} ${H}L${trace(points)}L${f(x(points.at(-1)![0]))} ${H}Z` })).reverse();
+const reach = PANORAMA.bands;
+const LAST = reach.length - 1;
+const START = 4;
+const aconcagua = PANORAMA.peaks.find((peak) => peak.name === "Cerro Aconcagua")!;
+const number = (km: number) => km.toLocaleString(locale);
+---
+
+<Init />
+<figure class="rf summit-ui not-prose" data-rf-bands data-reach={JSON.stringify(reach)} data-template={t("rf.bands.reading")}>
+  <svg class="rf-plot rf-band-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("rf.bands.alt")}>
+    {layers.map((layer) => <path class="rf-band" style={`--depth:${layer.depth}`} data-rf-band={layer.depth} d={layer.fill} />)}
+    {layers.map((layer) => <path class="rf-band-line" data-rf-line={layer.depth} d={layer.line} />)}
+    <g data-rf-from={LAST}>
+      <line class="rf-cross" x1={f(x(0))} x2={f(x(0))} y1={f(y(aconcagua.angle) - 30)} y2={f(y(aconcagua.angle) - 5)} />
+      <text class="rf-text rf-text--ink" x={f(x(0))} y={f(y(aconcagua.angle) - 36)} text-anchor="middle">Aconcagua</text>
+    </g>
+  </svg>
+  <label class="rf-slider">
+    <span class="sr-only">{t("rf.bands.label")}</span>
+    <input type="range" class="range range-primary range-sm" min="0" max={LAST} step="1" value={START} />
+  </label>
+  <div class="rf-ticks iv-num" aria-hidden="true">{reach.map((km) => <span>{number(km)}</span>)}</div>
+  <p class="rf-readout iv-num" data-rf-readout aria-live="polite"></p>
+  <figcaption class="iv-note">{t("rf.bands.caption")}</figcaption>
+</figure>

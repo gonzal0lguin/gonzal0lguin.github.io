@@ -1,0 +1,14 @@
+---
+// Each figure of the robot post includes this; Astro keeps one copy of the script on the page.
+import "../../styles/inventory.css";
+import "../../styles/summits.css";
+import "../../styles/robot-figures.css";
+---
+
+<script>
+  document.addEventListener("astro:page-load", async () => {
+    if (!document.querySelector("[data-rf-chart], [data-rf-bands], [data-rf-photo]")) return;
+    const { initRobotFigures } = await import("../../scripts/robot-figures");
+    initRobotFigures();
+  });
+</script>

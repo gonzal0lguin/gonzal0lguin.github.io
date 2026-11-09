@@ -1,3 +1,10 @@
+/* The filters hide things with the attribute, which any `display` set on a list's items would
+   otherwise override without a word. */
+[data-filter-item][hidden],
+[data-filter-group][hidden] {
+    display: none !important;
+}
+
 .time-line-container>div:last-child .education__time>.education__line {
     display: none;
 }
@@ -29,4 +36,16 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0.25rem 0;
+}
+
+/* An ascent's route and panorama have the screen to themselves; its story keeps the width of a
+   column of text. The panels are centred on that column and grow past it on both sides, up to
+   what's left beside the sidebar. */
+@media (min-width: 1024px) {
+    .ascent-wide {
+        --ascent-wide: min(1180px, calc(100vw - 16rem - 5.5rem));
+        width: var(--ascent-wide);
+        max-width: none;
+        margin-inline: calc((100% - var(--ascent-wide)) / 2);
+    }
 }

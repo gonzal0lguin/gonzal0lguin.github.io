@@ -1,0 +1,25 @@
+---
+// How my summits are doing right now: the live table and the freezing level (Conditions.astro).
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../../components/AscentsHeader.astro";
+import Conditions from "../../../../components/Conditions.astro";
+import { getSummits } from "../../../../lib/summits";
+import { langStaticPaths } from "../../../../lib/paths";
+import { getLang, useTranslations } from "../../../../i18n/ui";
+import "../../../../styles/inventory.css";
+import "../../../../styles/summits.css";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const summits = (await getSummits(lang)).filter((summit) => summit.ascents.length);
+---
+
+<BaseLayout title={`${t("cond.title")} · ${t("ascents.title")}`} description={t("cond.intro")} sideBarActiveItemID="ascents" width="wide">
+  <AscentsHeader active="tools" />
+  <p class="mb-6 max-w-[62ch] text-lg">{t("cond.intro")}</p>
+  <Conditions summits={summits} />
+</BaseLayout>

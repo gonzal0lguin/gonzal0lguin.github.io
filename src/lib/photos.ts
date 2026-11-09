@@ -19,7 +19,10 @@ export interface PostPhoto {
 }
 
 export interface RoutePhoto {
+  /** The same URL as the photo in the post, which is how the map finds it there. */
   src: string;
+  /** A small copy for the round marker on the map. */
+  thumb?: string;
   alt: string;
   caption: string;
   lat: number;

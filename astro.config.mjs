@@ -17,11 +17,18 @@ const { PUBLIC_MEDIA_BASE_URL } = loadEnv(process.env.NODE_ENV ?? 'production', 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://gonzal0lguin.github.io',
+  // The route analyzer moved into the tools section; old links keep working.
+  redirects: {
+    '/ascents/route-tool': '/ascents/tools/route-analyzer/',
+    '/en/ascents/route-tool': '/en/ascents/tools/route-analyzer/',
+  },
   integrations: [
     mdx(),
     tailwind(),
     // Spanish pages live at the root, English ones under /en/ (see src/i18n/ui.ts).
     sitemap({
+      // /hero/<summit>/ are fragments of the home page, not pages.
+      filter: (page) => !page.includes('/hero/'),
       i18n: { defaultLocale: 'es', locales: { es: 'es-CL', en: 'en-GB' } },
     }),
   ],
@@ -29,6 +36,10 @@ export default defineConfig({
     // The editor at /edit: a development-only tool (see editing.md). The plugin declares
     // `apply: "serve"`, so it does nothing during a build.
     plugins: [editor()],
+    // Astro scans all of src/ for browser dependencies, which reaches sharp through src/lib/og.ts
+    // even though only the share-card endpoint runs it. Its native .node binary can't be bundled,
+    // and that one failure aborts pre-bundling for the real browser dependencies too.
+    optimizeDeps: { exclude: ['sharp'] },
   },
     markdown: {
     remarkPlugins: [remarkMath, remarkDirective, [remarkMedia, { baseUrl: PUBLIC_MEDIA_BASE_URL }]],

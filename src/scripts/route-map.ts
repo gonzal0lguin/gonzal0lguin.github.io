@@ -537,7 +537,7 @@ function createRouteMap(root: HTMLElement) {
   const photoMarkers = data.photos.map((photo, k) => {
     const icon = L.divIcon({
       className: "",
-      html: `<div class="route-photo" style="background-image:url('${encodeURI(photo.src)}')"></div>`,
+      html: `<div class="route-photo" style="background-image:url('${encodeURI(photo.thumb ?? photo.src)}')"></div>`,
       iconSize: [38, 38],
       iconAnchor: [19, 19],
       popupAnchor: [0, -18],

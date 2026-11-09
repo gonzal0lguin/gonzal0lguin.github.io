@@ -8,3 +8,6 @@ export const PROJECT_CATEGORY_IMAGES: Record<ProjectCategory, string> = {
   "hobby-projects": "/assets/img/posts/route-tool/3d-en.jpg",
   personal: "/assets/img/headers/cayutue.jpg",
 };
+
+// The ones that open the home page, in this order; the first gets the big card.
+export const FEATURED_PROJECTS = ["sem-navae", "procesar-ruta", "cerro-reforestacion", "monocular-2d-semantic-mapping"];

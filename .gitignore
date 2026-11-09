@@ -20,6 +20,8 @@ pnpm-debug.log*
 
 # Astro
 .astro/
+# resized photos (scripts/images.mjs), remade from the originals on every build
+public/assets/opt/
 # editor backups and trash (the /edit tool, see editing.md)
 .editor-local/
 

@@ -135,6 +135,7 @@ export function initRouteTool() {
 
   function renderList(timed: boolean) {
     filesBox.hidden = parts.length === 0;
+    $("[data-sample-row]").hidden = parts.length > 0;
     $("[data-count]").textContent = String(parts.length);
     $("[data-order]").textContent = parts.length > 1 ? t(timed ? "tools.route.ordered" : "tools.route.unordered") : "";
     list.replaceChildren(
@@ -181,6 +182,21 @@ export function initRouteTool() {
     addFiles(files);
   });
   $("[data-add]").addEventListener("click", () => input.click());
+  const sampleButton = $<HTMLButtonElement>("[data-try-sample]");
+  sampleButton.addEventListener("click", async () => {
+    sampleButton.disabled = true;
+    try {
+      const url = root.dataset.sample!;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(String(response.status));
+      await addFiles([new File([await response.blob()], url.split("/").pop()!, { type: "application/gpx+xml" })]);
+    } catch {
+      errorBox.textContent = t("tools.route.errorRoute");
+      errorBox.hidden = false;
+    } finally {
+      sampleButton.disabled = false;
+    }
+  });
   $("[data-clear]").addEventListener("click", () => {
     parts = [];
     render();

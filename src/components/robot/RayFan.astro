@@ -1,0 +1,57 @@
+---
+// The sensor from above: the rays leaving the top of La Cruz over the ground they actually reached
+// (the viewshed scripts/panoramas.mjs painted for that summit), with one of them picked out, the
+// one the next figures follow all the way to Aconcagua.
+import PANORAMA from "../../data/panoramas/la-cruz.json";
+import FIGURES from "../../data/robot-figures.json";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const SIZE = 760;
+const { south, north, west, east, file } = PANORAMA.viewshed;
+const { lat, lon } = PANORAMA.viewpoint;
+const cx = ((lon - west) / (east - west)) * SIZE;
+const cy = ((north - lat) / (north - south)) * SIZE;
+const perKm = SIZE / ((north - south) * 111.2);
+const REACH = 160;
+const end = (azimuth: number, km: number) => ({
+  x: cx + Math.sin((azimuth * Math.PI) / 180) * km * perKm,
+  y: cy - Math.cos((azimuth * Math.PI) / 180) * km * perKm,
+});
+const f = (value: number) => value.toFixed(1);
+
+const EVERY = 5;
+const rays = Array.from({ length: 360 / EVERY }, (_, i) => end(i * EVERY, REACH));
+const { ray } = FIGURES;
+const main = end(ray.azimuth, REACH);
+const target = end(ray.azimuth, ray.peak.km);
+const blocker = end(ray.azimuth, ray.crest.km);
+const rings = [50, 100, 160];
+---
+
+<Init />
+<figure class="rf rf-fan summit-ui not-prose">
+  <svg class="rf-plot" viewBox={`-14 -14 ${SIZE + 28} ${SIZE + 28}`} role="img" aria-label={t("rf.fan.alt")}>
+    <image href={file} x="0" y="0" width={SIZE} height={SIZE} />
+    {rays.map((point) => <line class="rf-ray" x1={f(cx)} y1={f(cy)} x2={f(point.x)} y2={f(point.y)} />)}
+    {rings.map((km) => <circle class="rf-ring" cx={f(cx)} cy={f(cy)} r={f(km * perKm)} />)}
+    {rings.map((km) => <text class="rf-text rf-minor" x={f(cx + km * perKm - 6)} y={f(cy - 6)} text-anchor="end">{km} km</text>)}
+    <line class="rf-ray rf-ray--main" x1={f(cx)} y1={f(cy)} x2={f(main.x)} y2={f(main.y)} />
+    <circle class="rf-mark" cx={f(blocker.x)} cy={f(blocker.y)} r="4.5" />
+    <circle class="rf-mark" cx={f(target.x)} cy={f(target.y)} r="6.5" />
+    <circle class="rf-mark" cx={f(cx)} cy={f(cy)} r="6.5" />
+    <text class="rf-text rf-text--ink" x={f(target.x + 12)} y={f(target.y + 5)}>Aconcagua</text>
+    <text class="rf-text rf-text--ink" x={f(blocker.x + 11)} y={f(blocker.y + 5)}>La Fortuna</text>
+    <text class="rf-text rf-text--ink" x={f(cx - 12)} y={f(cy + 5)} text-anchor="end">La Cruz</text>
+    <text class="rf-text rf-text--ink" x={f(cx)} y="16" text-anchor="middle">N</text>
+  </svg>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><span class="rf-swatch" style="background:#e0a020"></span>{t("rf.fan.ground")}</span>
+    <span class="iv-legend__item"><span class="rf-swatch" style="background:#4f76b8"></span>{t("rf.fan.ice")}</span>
+  </div>
+  <figcaption class="iv-note">{t("rf.fan.caption", { step: EVERY, n: (EVERY / 0.05).toLocaleString(locale) })}</figcaption>
+</figure>

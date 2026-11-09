@@ -7,6 +7,7 @@ import SectionTitle from "../../components/cv/SectionTitle.astro";
 import Columns from "../../components/cv/Columns.astro";
 import { getLocalizedEntry } from "../../i18n/content";
 import { langStaticPaths } from "../../lib/paths";
+import { LINKS } from "../../config";
 import { getLang, useTranslations } from "../../i18n/ui";
 
 export function getStaticPaths() {
@@ -23,14 +24,18 @@ const { Content } = await entry.render();
 
 <BaseLayout title={entry.data.title} description={entry.data.description} sideBarActiveItemID="cv">
   {fallback && <UntranslatedNotice />}
-  <div lang={fallback ? "es" : undefined} class="[&>p]:mb-10 [&>p]:text-left sm:[&>p]:text-justify [&_ul]:list-disc [&_ul]:mx-6">
+  <header class="mb-10">
+    <h1 class="text-4xl font-bold sm:text-5xl">Gonzalo Olguín Moncada</h1>
+    <p class="mt-2 text-lg">{t("cv.role")}</p>
+    <p class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+      <a class="link" href={LINKS.linkedin} target="_blank" rel="noopener">LinkedIn</a>
+      <a class="link" href={LINKS.scholar} target="_blank" rel="noopener">Google Scholar</a>
+      <a class="link" href={LINKS.github} target="_blank" rel="noopener">GitHub</a>
+      <a class="link" href={`mailto:${LINKS.email}`}>{LINKS.email}</a>
+      <a href="/assets/pdf/cv.pdf" download="cv_gonzalo_olguin.pdf" class="btn btn-outline btn-sm">{t("cv.download")}</a>
+    </p>
+  </header>
+  <div lang={fallback ? "es" : undefined} class="[&>p]:mb-10 [&_ul]:list-disc [&_ul]:mx-6 [&_a]:link">
     <Content components={{ TimeLine, TimeLineGroup, Columns, h2: SectionTitle }} />
-  </div>
-
-  <div class="mt-12 mb-8 flex justify-center">
-    <a href="/assets/pdf/cv.pdf" download="cv_gonzalo_olguin.pdf" class="btn btn-outline">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-      {t("cv.download")}
-    </a>
   </div>
 </BaseLayout>

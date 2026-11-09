@@ -3,6 +3,8 @@ import { type AscentsSchema } from "../content/config";
 import BaseLayout from "./BaseLayout.astro";
 import UntranslatedNotice from "../components/UntranslatedNotice.astro";
 import RouteMap from "../components/RouteMap.astro";
+import Img from "../components/Img.astro";
+import { ogImagePath, articleJsonLd } from "../lib/seo";
 import { routeDownloadPath } from "../lib/gpx";
 import type { PostPhoto } from "../lib/photos";
 import { ascentSummitIds, getSummits } from "../lib/summits";
@@ -35,11 +37,13 @@ const TABS = [
   ...(route ? [{ id: "route", label: t("ascent.tab.route"), icon: "M4 19c3-1 3-5 6-6s6 1 8-3M4 19h.01M18 10V4m0 0-2.5 2.5M18 4l2.5 2.5" }] : []),
   ...(withPanorama.length ? [{ id: "panorama", label: t("ascent.tab.panorama"), icon: "M2 18l5-7 3 4 4-7 8 10zM2 21h20" }] : []),
 ];
+const image = ogImagePath(Astro.url);
+const jsonLd = articleJsonLd({ title, description, published: pubDate, image, url: Astro.url, site: Astro.site, lang });
 const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
 ---
 
-<BaseLayout title={title} description={description} image={heroImage} ogType="article" sideBarActiveItemID="ascents">
-  <main class="md:flex md:justify-center">
+<BaseLayout title={title} description={description} image={image} ogType="article" published={pubDate} fallback={fallback} jsonLd={jsonLd} sideBarActiveItemID="ascents" width="wide">
+  <div class="md:flex md:justify-center">
     {/* A definite width, not just a max: the page column is sized by its content, and with the
         story tab hidden the route and panorama tabs have none of their own (contain: inline-size),
         so the whole post would shrink to the width of the tab bar. */}
@@ -101,7 +105,7 @@ const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
       <div id="panel-story" role="tabpanel" aria-labelledby="tab-story" data-tab-panel="story">
         {
           heroImage && (
-            <img src={heroImage} alt="" class="w-full mb-6 rounded-xl" />
+            <Img src={heroImage} sizes="(min-width: 800px) 750px, 100vw" class="w-full mb-6 rounded-xl" priority />
           )
         }
         <slot />
@@ -109,7 +113,7 @@ const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
 
       {
         route && (
-          <div id="panel-route" role="tabpanel" aria-labelledby="tab-route" data-tab-panel="route" hidden>
+          <div id="panel-route" role="tabpanel" aria-labelledby="tab-route" data-tab-panel="route" class="ascent-wide" hidden>
             <RouteMap
               files={route}
               waypoints={waypoints}
@@ -125,7 +129,7 @@ const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
 
       {
         withPanorama.length > 0 && (
-          <div id="panel-panorama" role="tabpanel" aria-labelledby="tab-panorama" data-tab-panel="panorama" class="not-prose summit-ui" hidden>
+          <div id="panel-panorama" role="tabpanel" aria-labelledby="tab-panorama" data-tab-panel="panorama" class="ascent-wide not-prose summit-ui" hidden>
             {withPanorama.length > 1 && (
               <div class="summit-picker" role="group" aria-label={t("ascent.pickSummit")}>
                 {withPanorama.map((summit, i) => (
@@ -152,7 +156,7 @@ const summitUrl = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
         )
       }
     </article>
-  </main>
+  </div>
 </BaseLayout>
 
 <script>

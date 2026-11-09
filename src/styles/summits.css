@@ -903,3 +903,102 @@ th[aria-sort="ascending"] .routes-sort::after {
 .routes-note {
   margin-top: 0.5rem;
 }
+
+/* ------------------------------------------------------------------ the horizon section */
+
+.hz-map { display: grid; gap: 1rem; }
+@media (min-width: 900px) {
+  .hz-map { grid-template-columns: minmax(0, 1fr) 19rem; align-items: start; }
+}
+.hz-map__canvas { height: 30rem; border-radius: 0.75rem; overflow: hidden; z-index: 0; }
+@media (max-width: 640px) {
+  .hz-map__canvas { height: 22rem; }
+}
+.hz-rank { margin: 0; padding: 0; list-style: none; }
+.hz-rank__row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) 1.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  text-align: left;
+}
+.hz-rank__row:hover { background: var(--iv-card); }
+.hz-rank__row[aria-pressed="true"] { background: var(--iv-sunken); font-weight: 700; }
+.hz-rank__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hz-rank__bar { display: block; height: 0.5rem; }
+.hz-rank__bar span { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--iv-series); }
+.hz-rank__n { text-align: right; color: var(--iv-muted); }
+.hz-detail { margin-top: 0.75rem; }
+.hz-key { stroke: #2a78d6; stroke-width: 2; }
+.hz-key--dash { stroke-dasharray: 4 5; }
+
+.hz-scroll { overflow-x: auto; }
+/* Room for the last slanted column names, which lean out past the table. */
+.hz-scroll:has(.hz-matrix) { padding-right: 4.5rem; }
+.hz-matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+.hz-matrix th, .hz-matrix td { padding: 0.25rem 0.5rem; white-space: nowrap; }
+.hz-matrix thead th { position: relative; vertical-align: bottom; font-size: 0.75rem; font-weight: 600; color: var(--iv-muted); text-align: left; border-bottom: 1px solid var(--iv-ring); }
+.hz-matrix tbody tr:hover > * { background: var(--iv-card); }
+.hz-matrix tbody td { border-bottom: 1px solid var(--iv-grid); }
+.hz-matrix tbody th { font-weight: 600; text-align: left; border-bottom: 1px solid var(--iv-grid); }
+.hz-matrix tbody th a:hover { text-decoration: underline; }
+.hz-matrix__peak { position: sticky; left: 0; z-index: 1; background: oklch(var(--b1)); }
+.hz-matrix__view { height: 6.5rem; width: 1.75rem; min-width: 1.75rem; padding: 0 !important; }
+.hz-matrix__view a { position: absolute; bottom: 0.5rem; left: 50%; transform: rotate(-58deg); transform-origin: left center; white-space: nowrap; }
+.hz-matrix__view a:hover { color: var(--iv-ink); text-decoration: underline; }
+.hz-cell { text-align: center; padding: 0.25rem 0 !important; }
+.hz-dot { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 999px; vertical-align: middle; }
+.hz-dot[data-status="visible"] { background: var(--iv-series); }
+.hz-dot[data-status="borderline"] { border: 2px solid var(--iv-series); }
+
+/* ------------------------------------------------------------------ tools */
+
+.tool-grid { display: grid; gap: 0.875rem; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+.tool-card { display: flex; flex-direction: column; gap: 0.4rem; height: 100%; padding: 1.25rem; border: 1px solid var(--iv-ring); border-radius: 0.875rem; background: var(--iv-card); }
+.tool-card:hover { border-color: oklch(var(--p)); }
+.tool-card svg { width: 1.75rem; height: 1.75rem; fill: none; stroke: oklch(var(--p)); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.tool-card__title { font-size: 1.125rem; font-weight: 700; }
+.tool-card__text { color: var(--iv-muted); }
+
+/* ------------------------------------------------------------------ live conditions */
+
+.cond-chart { position: relative; }
+.cond-chart svg { display: block; touch-action: pan-y; }
+.cond-grid { stroke: var(--iv-grid); }
+.cond-tick { fill: var(--iv-muted); font-size: 11px; }
+.cond-ref { stroke: var(--iv-ring); stroke-dasharray: 2 4; }
+.cond-now { stroke: var(--iv-muted); stroke-dasharray: 3 3; }
+.cond-line { fill: none; stroke: var(--iv-series); stroke-width: 2; stroke-linejoin: round; }
+.cond-cross { stroke: var(--iv-muted); }
+.cond-dot { fill: var(--iv-series); stroke: oklch(var(--b1)); stroke-width: 2; }
+.cond-tip { position: absolute; padding: 0.2rem 0.5rem; border: 1px solid var(--iv-ring); border-radius: 0.375rem; background: oklch(var(--b1)); font-size: 0.8125rem; white-space: nowrap; pointer-events: none; }
+.cond-table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.cond-table th, .cond-table td { padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--iv-grid); text-align: left; white-space: nowrap; }
+.cond-table thead th { font-size: 0.75rem; color: var(--iv-muted); }
+.cond-table tbody th { font-weight: 600; }
+.cond-table tbody th a:hover { text-decoration: underline; }
+.cond-table tbody th span { margin-left: 0.25rem; font-weight: 400; color: var(--iv-muted); font-size: 0.8125rem; }
+.cond-source { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--iv-muted); }
+.cond-source a { text-decoration: underline; }
+.cond-card__grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); margin: 0; }
+.cond-card__grid dt { font-size: 0.8125rem; color: var(--iv-muted); }
+.cond-card__grid dd { margin: 0; font-size: 1.0625rem; font-weight: 700; }
+.cond--compact { margin: 1.5rem 0; }
+
+/* ------------------------------------------------------------------ overview map insets */
+
+.map-insets { position: absolute; right: 10px; bottom: 26px; z-index: 500; display: flex; gap: 8px; }
+.map-inset { position: relative; width: 130px; height: 96px; overflow: hidden; border: 2px solid #fff; border-radius: 6px; box-shadow: 0 1px 6px rgb(0 0 0 / 0.45); cursor: pointer; background: #ddd; }
+.map-inset__map { position: absolute; inset: 0; pointer-events: none; }
+.map-inset__name { position: absolute; left: 0; right: 0; bottom: 0; z-index: 500; padding: 1px 4px; background: rgb(0 0 0 / 0.62); color: #fff; font-size: 11px; text-align: center; }
+.map-reset { position: absolute; left: 10px; bottom: 26px; z-index: 500; padding: 3px 10px; border-radius: 999px; background: #fff; color: #111827; font-size: 12px; font-weight: 600; box-shadow: 0 1px 4px rgb(0 0 0 / 0.45); }
+@media (max-width: 640px) {
+  .map-inset { width: 96px; height: 72px; }
+}
+@media (min-width: 1280px) {
+  .log-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

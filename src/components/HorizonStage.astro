@@ -1,0 +1,50 @@
+---
+// The drawing inside the home page's horizon: the ridges, the scan that sweeps them and the
+// named summits. Its own component because /hero/<summit>/ serves it alone, so the switcher
+// (src/scripts/home-horizon.ts) can bring in another summit without drawing anything itself.
+import { buildStage, STAGE_H, STAGE_W } from "../lib/home-horizon";
+import type { Summit } from "../lib/summits";
+import { compassPoint, getLangFromUrl, languages, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  summit: Summit;
+}
+
+const { summit } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const stage = buildStage(summit);
+const metres = (value: number) => value.toLocaleString(locale);
+const readout = (peak: (typeof stage.peaks)[number]) =>
+  `${compassPoint(peak.azimuth, lang)} ${Math.round(peak.azimuth).toString().padStart(3, "0")}° · ${peak.distance.toLocaleString(locale, { maximumFractionDigits: 1 })} km · ${peak.name} ${metres(peak.ele)} m`;
+const payload = stage.peaks.map((peak) => [Math.round(peak.x * 100) / 100, readout(peak)]);
+---
+
+<div class="hh-frame" data-hh-frame data-readout={stage.highest ? readout(stage.highest) : ""}>
+  <div class="hh-stage" data-hh-stage>
+    <svg class="hh-art" viewBox={`0 0 ${STAGE_W} ${STAGE_H}`} preserveAspectRatio="none" aria-hidden="true">
+      {stage.layers.map((layer) => <path class="hh-ridge" style={`--depth:${layer.depth}`} d={layer.fill} />)}
+      <g class="hh-scan">
+        {stage.ridges.map((ridge) => <path class="hh-edge" d={ridge} />)}
+        {stage.layers.map((layer) => <path class="hh-returns" style={`--depth:${layer.depth}`} d={layer.line} />)}
+        <path class="hh-returns hh-returns--top" d={stage.skyline} />
+      </g>
+    </svg>
+    <span class="hh-beam" aria-hidden="true"></span>
+    <span class="hh-cursor" data-hh-cursor hidden aria-hidden="true"></span>
+    {
+      stage.labels.map((peak) => (
+        <span class:list={["hh-peak", { "hh-peak--wide": peak.x < 21 || peak.x > 79, "hh-peak--wider": peak.x < 34 || peak.x > 66 }]} data-tier={peak.tier} style={`left:${peak.x.toFixed(2)}%;top:${peak.y.toFixed(2)}%`}>
+          <span class="hh-peak__name">{peak.name.replace(/^(Cerro|Volcán|Nevado) (?=\p{Lu})/u, "")}</span>
+          <span class="hh-peak__ele iv-num">{metres(peak.ele)}</span>
+        </span>
+      ))
+    }
+    <script type="application/json" data-hh-peaks set:html={JSON.stringify(payload).replace(/</g, "\\u003c")} />
+  </div>
+  <p class="hh-caption">
+    {t("hero.caption", { name: summit.data.name, ele: metres(summit.data.elevation), n: metres(summit.panorama!.stats.peaksInView ?? 0) })}
+    {" "}<a href={localizePath(lang, "/projects/mirar-como-un-robot/")}>{t("hero.how")} →</a>
+  </p>
+</div>

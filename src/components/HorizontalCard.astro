@@ -1,5 +1,5 @@
 ---
-import { Image } from "astro:assets";
+import Img from "./Img.astro";
 
 // The whole card is clickable through the title link's ::after overlay, so the tag
 // links can sit on top of it (links can't be nested inside each other in HTML).
@@ -10,14 +10,7 @@ const { title, img, desc, url, badge, tags, tagBaseUrl, target = "_self" } = Ast
   <div class="hero-content flex-col md:flex-row">
     {
       img && (
-        <Image
-          src={img}
-          width={750}
-          height={422}
-          format="webp"
-          alt=""
-          class="max-w-full md:max-w-[13rem] rounded-lg"
-        />
+        <Img src={img} sizes="(min-width: 768px) 13rem, 100vw" class="max-w-full md:max-w-[13rem] rounded-lg" />
       )
     }
     <div class="grow w-full">

@@ -1,0 +1,38 @@
+---
+// The tools of the mountaineering section: things to use, as opposed to things to read.
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../../components/AscentsHeader.astro";
+import { langStaticPaths } from "../../../../lib/paths";
+import { getLang, localizePath, useTranslations } from "../../../../i18n/ui";
+import "../../../../styles/inventory.css";
+import "../../../../styles/summits.css";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const tools = [
+  { href: "/ascents/tools/route-analyzer/", title: t("ascents.tabRouteTool"), text: t("tools.hub.route"), icon: "M4 19c3-1 3-5 6-6s6 1 8-3M4 19h.01M18 10V4m0 0-2.5 2.5M18 4l2.5 2.5" },
+  { href: "/ascents/tools/conditions/", title: t("cond.title"), text: t("tools.hub.conditions"), icon: "M12 2v3M4.9 4.9 7 7M2 12h3M17 7l2.1-2.1M7 16h10a3 3 0 0 0 0-6 5 5 0 0 0-9.6-1A4 4 0 0 0 7 16zM8 20l1-2M12 21l1-2M16 20l1-2" },
+];
+---
+
+<BaseLayout title={`${t("ascents.tabTools")} · ${t("ascents.title")}`} description={t("tools.hub.intro")} sideBarActiveItemID="ascents" width="wide">
+  <AscentsHeader active="tools" />
+  <div class="summit-ui">
+    <p class="summits-intro">{t("tools.hub.intro")}</p>
+    <ul class="tool-grid">
+      {tools.map((tool) => (
+        <li>
+          <a class="tool-card" href={localizePath(lang, tool.href)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={tool.icon} /></svg>
+            <span class="tool-card__title">{tool.title}</span>
+            <span class="tool-card__text">{tool.text}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>

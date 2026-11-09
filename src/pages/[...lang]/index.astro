@@ -1,9 +1,24 @@
 ---
+// The front door. It opens on the real horizon from one of my summits, drawn the way a robot's
+// sensor would see it, because that overlap is the one thing this site has that no other does;
+// then the work, the mountains, and last the news, which only matters to whoever already knows me.
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import HorizontalCard from "../../components/HorizontalCard.astro";
+import HorizonStage from "../../components/HorizonStage.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import Img from "../../components/Img.astro";
+import SummitSkyline from "../../components/SummitSkyline.astro";
 import { getLocalizedCollection, getLocalizedEntry } from "../../i18n/content";
+import { HOME_SUMMITS } from "../../lib/home-horizon";
+import { getOutings, logTotals } from "../../lib/log";
 import { langStaticPaths } from "../../lib/paths";
-import { getLang, localizePath, useTranslations } from "../../i18n/ui";
+import { FEATURED_PROJECTS } from "../../lib/projects";
+import { formatDistance, formatElevation } from "../../lib/route-format";
+import { personJsonLd } from "../../lib/seo";
+import { getSummits } from "../../lib/summits";
+import { LINKS } from "../../config";
+import { formatDate, getLang, languages, localizePath, useTranslations } from "../../i18n/ui";
+import "../../styles/inventory.css";
+import "../../styles/home.css";
 
 export function getStaticPaths() {
   return langStaticPaths();
@@ -11,51 +26,205 @@ export function getStaticPaths() {
 
 const lang = getLang(Astro.params.lang);
 const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const path = (to: string) => localizePath(lang, to);
 
 // Intro text: src/content/pages/home.md (and en/home.md)
 const { entry: home } = await getLocalizedEntry("pages", lang, "home");
 const { Content: Intro } = await home.render();
 
-const sections = [
-  { title: t("home.latestNews"), basePath: "/blog", items: await getLocalizedCollection("blog", lang) },
-  { title: t("home.latestProjects"), basePath: "/projects", items: await getLocalizedCollection("projects", lang) },
-  { title: t("home.latestAscents"), basePath: "/ascents", items: await getLocalizedCollection("ascents", lang) },
+const summits = await getSummits(lang);
+const offered = HOME_SUMMITS.flatMap((id) => summits.filter((summit) => summit.id === id && summit.panorama));
+const first = offered[0];
+
+const projects = await getLocalizedCollection("projects", lang);
+const featured = FEATURED_PROJECTS.flatMap((key) => projects.filter((item) => item.key === key));
+
+const outings = await getOutings(lang);
+const totals = logTotals(outings, summits.filter((summit) => summit.ascents.length));
+const [latest, ...earlier] = outings;
+const recent = earlier.slice(0, 3);
+const news = (await getLocalizedCollection("blog", lang)).slice(0, 3);
+
+// The latest outing's elevation profile, on its own scale: it's the only one on the page.
+const SPARK_W = 520;
+const SPARK_H = 96;
+const spark = (() => {
+  const profile = latest?.route?.profile ?? [];
+  if (profile.length < 2) return null;
+  const elevations = profile.map(([, ele]) => ele);
+  const low = Math.min(...elevations);
+  const high = Math.max(...elevations);
+  const longest = profile.at(-1)![0] || 1;
+  const line = profile.map(([d, ele]) => `${((d / longest) * SPARK_W).toFixed(1)} ${(SPARK_H - 6 - ((ele - low) / (high - low || 1)) * (SPARK_H - 14)).toFixed(1)}`).join("L");
+  return { line: `M${line}`, area: `M0 ${SPARK_H}L${line}L${SPARK_W} ${SPARK_H}Z` };
+})();
+
+const stats = [
+  { value: String(totals.summits), label: t("home.statSummits") },
+  { value: totals.highest ? `${totals.highest.data.elevation.toLocaleString(locale)} m` : "—", label: t("home.statHighest") },
+  { value: formatElevation(totals.gain, locale), label: t("home.statGain") },
+  { value: formatDistance(totals.distance, locale), label: t("home.statDistance") },
 ];
+
+const jsonLd = personJsonLd({
+  jobTitle: t("home.jobTitle"),
+  description: t("site.description"),
+  image: path("/og/site/home.jpg"),
+  site: Astro.site,
+  url: Astro.url,
+});
 ---
 
-<BaseLayout sideBarActiveItemID="home">
-  <div class="pb-12 mt-5">
-    {home.data.greeting && <div class="text-xl py-1">{home.data.greeting}</div>}
-    <h1 class="text-5xl font-bold">{home.data.title}</h1>
-    {home.data.subtitle && <div class="text-3xl py-3 font-bold">{home.data.subtitle}</div>}
-    <div class="py-2 text-lg [&_a]:link">
-      <Intro />
-    </div>
-    <div class="mt-8">
-      <a class="btn" href="mailto:golguinm@gmail.com">{t("home.connect")}</a>
-      <a href={localizePath(lang, "/cv")} class="btn btn-outline ml-5">{t("home.viewCv")}</a>
-    </div>
+<BaseLayout sideBarActiveItemID="home" width="wide" jsonLd={jsonLd}>
+  <div class="home">
+    <section class="hh" data-hh aria-labelledby="home-name">
+      <div class="hh-text">
+        {home.data.greeting && <p class="hh-greeting">{home.data.greeting}</p>}
+        <h1 class="hh-name" id="home-name">{home.data.title}</h1>
+        {home.data.subtitle && <p class="hh-role">{home.data.subtitle}</p>}
+        <div class="hh-intro"><Intro /></div>
+        <div class="hh-actions">
+          <a class="btn btn-primary" href={path("/projects/")}>{t("home.seeProjects")}</a>
+          <a class="btn btn-outline" href={path("/ascents/")}>{t("home.seeLog")}</a>
+          <a class="btn btn-ghost" href={path("/cv/")}>{t("home.viewCv")}</a>
+          <a class="btn btn-ghost" href={`mailto:${LINKS.email}`}>{t("home.connect")}</a>
+        </div>
+      </div>
+
+      {
+        first && (
+          <div class="hh-horizon">
+            <div class="hh-bar">
+              <p class="hh-readout iv-num" data-hh-readout aria-live="off" />
+              <div class="hh-picks" role="group" aria-label={t("hero.pick")}>
+                {offered.map((summit, i) => (
+                  <button type="button" class="hh-pick" aria-pressed={i === 0 ? "true" : "false"} data-hh-initial={i === 0 ? "true" : "false"} data-hh-pick={path(`/hero/${summit.id}/`)}>
+                    {summit.data.name.replace(/^(Cerro|Volcán) /, "")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div data-hh-slot><HorizonStage summit={first} /></div>
+          </div>
+        )
+      }
+    </section>
+
+    <section class="home-section" aria-labelledby="home-projects">
+      <header class="home-head">
+        <h2 id="home-projects">{t("home.projects")}</h2>
+        <a href={path("/projects/")}>{t("home.allProjects")} →</a>
+      </header>
+      <div class="home-bento">
+        {featured.map((item, i) => <ProjectCard item={item} lead={i === 0} sizes={i === 0 ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 1024px) 28vw, (min-width: 640px) 50vw, 100vw"} />)}
+      </div>
+    </section>
+
+    <section class="home-section" aria-labelledby="home-mountains">
+      <header class="home-head">
+        <h2 id="home-mountains">{t("home.mountains")}</h2>
+        <a href={path("/ascents/")}>{t("home.allTrips")} →</a>
+      </header>
+      <div class="home-mountains">
+        {
+          latest && (
+            <article class="trip-card">
+              <div class="trip-card__media">
+                {latest.item.entry.data.heroImage ? (
+                  <Img src={latest.item.entry.data.heroImage} sizes="(min-width: 1024px) 55vw, 100vw" />
+                ) : (
+                  <SummitSkyline panorama={latest.summits.find((summit) => summit.panorama)?.panorama ?? null} class="project-card__skyline" />
+                )}
+              </div>
+              <div class="trip-card__body">
+                <p class="project-card__date iv-num">
+                  {t("home.latestTrip")} · <time datetime={latest.item.entry.data.pubDate.toISOString()}>{formatDate(latest.item.entry.data.pubDate, lang)}</time>
+                  {latest.attempt && <span class="badge badge-outline badge-sm">{t("ascent.attempt")}</span>}
+                </p>
+                <h3 class="project-card__title"><a href={path(`/ascents/${latest.key}/`)}>{latest.item.entry.data.title}</a></h3>
+                {
+                  latest.route && (
+                    <p class="trip-card__numbers iv-num">
+                      <span>{formatDistance(latest.route.distance, locale)}</span>
+                      {latest.route.gain != null && <span>+{formatElevation(latest.route.gain, locale)}</span>}
+                      {latest.route.maxEle != null && <span>{t("home.reached", { ele: formatElevation(latest.route.maxEle, locale) })}</span>}
+                    </p>
+                  )
+                }
+                {
+                  spark && (
+                    <svg class="trip-card__spark" viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none" role="img" aria-label={t("routes.profileOf", { name: latest.item.entry.data.title })}>
+                      <path class="trip-card__area" d={spark.area} />
+                      <path class="trip-card__line" d={spark.line} />
+                    </svg>
+                  )
+                }
+              </div>
+            </article>
+          )
+        }
+        <div class="home-side">
+          <dl class="home-stats">
+            {stats.map((stat) => (
+              <div>
+                <dd class="iv-num">{stat.value}</dd>
+                <dt>{stat.label}</dt>
+              </div>
+            ))}
+          </dl>
+          <ol class="home-recent">
+            {recent.map(({ key, item, route }) => (
+              <li>
+                <a href={path(`/ascents/${key}/`)}>{item.entry.data.title}</a>
+                <span class="iv-num">{route ? `${formatDistance(route.distance, locale)} · +${formatElevation(route.gain ?? 0, locale)}` : formatDate(item.entry.data.pubDate, lang)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-bridge" aria-labelledby="home-bridge">
+      <div>
+        <p class="home-bridge__kicker">{t("bridge.kicker")}</p>
+        <h2 id="home-bridge">{t("bridge.title")}</h2>
+        <p>{t("bridge.text")}</p>
+        <a class="btn btn-sm btn-primary" href={path("/projects/mirar-como-un-robot/")}>{t("bridge.link")} →</a>
+      </div>
+      <table class="home-bridge__table">
+        <thead><tr><th scope="col">{t("bridge.robot")}</th><th scope="col">{t("bridge.hill")}</th></tr></thead>
+        <tbody>
+          <tr><td>{t("bridge.row1a")}</td><td>{t("bridge.row1b")}</td></tr>
+          <tr><td>{t("bridge.row2a")}</td><td>{t("bridge.row2b")}</td></tr>
+          <tr><td>{t("bridge.row3a")}</td><td>{t("bridge.row3b")}</td></tr>
+          <tr><td>{t("bridge.row4a")}</td><td>{t("bridge.row4b")}</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="home-section" aria-labelledby="home-news">
+      <header class="home-head">
+        <h2 id="home-news">{t("home.news")}</h2>
+        <a href={path("/blog/")}>{t("home.allNews")} →</a>
+      </header>
+      <ol class="home-news">
+        {news.map(({ key, entry }) => (
+          <li>
+            <time class="iv-num" datetime={entry.data.pubDate.toISOString()}>{formatDate(entry.data.pubDate, lang)}</time>
+            <a href={path(`/blog/${key}/`)}>{entry.data.title}</a>
+            <p>{entry.data.description}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
   </div>
 
-  {
-    sections.map((section) => (
-      <>
-        <h2 class="text-3xl w-full font-bold mb-5 mt-10">{section.title}</h2>
-        {section.items.slice(0, 3).map(({ key, entry }) => (
-          <>
-            <HorizontalCard
-              title={entry.data.title}
-              img={entry.data.heroImage}
-              desc={entry.data.description}
-              url={localizePath(lang, `${section.basePath}/${key}`)}
-              badge={entry.data.badge}
-              tags={entry.data.tags}
-              tagBaseUrl={localizePath(lang, `${section.basePath}/tag`)}
-            />
-            <div class="divider my-0" />
-          </>
-        ))}
-      </>
-    ))
-  }
+  <script>
+    document.addEventListener("astro:page-load", async () => {
+      if (!document.querySelector("[data-hh]")) return;
+      const { initHomeHorizon } = await import("../../scripts/home-horizon");
+      initHomeHorizon();
+    });
+  </script>
 </BaseLayout>

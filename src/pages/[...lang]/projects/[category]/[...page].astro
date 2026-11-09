@@ -27,7 +27,7 @@ const t = useTranslations(getLangFromUrl(Astro.url));
 const title = t(`projects.cat.${category}` as const);
 ---
 
-<BaseLayout title={title} sideBarActiveItemID="projects">
+<BaseLayout title={title} sideBarActiveItemID="projects" width="wide">
   <div class="mb-5">
     <h1 class="text-3xl w-full font-bold">{title}</h1>
   </div>

@@ -1,0 +1,107 @@
+---
+// One sight line of a summit panorama, drawn over the real terrain: a slice of the ground going
+// down from the top of Cerro Cortadera (src/data/profiles.json), at true scale. It applies the same
+// rule as scripts/lib/viewshed.mjs, a point is in view only if its elevation angle beats every
+// point before it, so what comes out green is what the panorama actually counts as seen.
+import PROFILES from "../data/profiles.json";
+import { getLangFromUrl, useTranslations } from "../i18n/ui";
+import "../styles/inventory.css";
+import "../styles/summits.css";
+
+const t = useTranslations(getLangFromUrl(Astro.url));
+const SUMMIT = "cortadera";
+const EYE = 1.7;
+const EFFECTIVE = 6371008.8 / (1 - 0.13);
+const W = 760;
+const H = 300;
+const PAD = 14;
+
+const { points } = (PROFILES as unknown as Record<string, { points: [number, number][] }>)[SUMMIT];
+const top = points.reduce((a, b) => (b[1] > a[1] ? b : a));
+// The side that makes the point best: the one where the ground disappears behind a ridge for the
+// longest stretch and then comes back into view.
+const sides = [points.filter(([u]) => u >= top[0]), points.filter(([u]) => u <= top[0]).reverse()];
+const walk = (side: [number, number][]) => {
+  let best = -Infinity;
+  return side.map(([u, h]) => {
+    const d = Math.abs(u - top[0]);
+    if (d === 0) return { d, h, seen: true };
+    const angle = Math.atan((h - top[1] - EYE - (d * d) / (2 * EFFECTIVE)) / d);
+    const seen = angle > best;
+    if (seen) best = angle;
+    return { d, h, seen };
+  });
+};
+const shadow = (run: ReturnType<typeof walk>) => {
+  let best = 0;
+  run.forEach((point, i) => {
+    if (point.seen || run[i - 1]?.seen === false) return;
+    let end = i;
+    while (run[end + 1] && !run[end + 1].seen) end++;
+    if (run[end + 1]) best = Math.max(best, run[end].d - point.d);
+  });
+  return best;
+};
+const ground = [walk(sides[0]), walk(sides[1])].sort((a, b) => shadow(b) - shadow(a))[0];
+
+const far = ground.at(-1)!.d;
+const low = Math.min(...ground.map((p) => p.h));
+// One metre is one metre in both directions: the shape is the argument.
+const scale = Math.min((W - 2 * PAD) / far, (H - 2 * PAD) / (top[1] - low + 30));
+const x = (d: number) => PAD + d * scale;
+const y = (h: number) => H - PAD - (h - low) * scale;
+const eye = { x: x(0), y: y(top[1] + EYE) };
+
+const line = (run: typeof ground) => run.map((p, i) => `${i ? "L" : "M"}${x(p.d).toFixed(1)} ${y(p.h).toFixed(1)}`).join("");
+const fill = `${line(ground)}L${x(far)} ${H}L${x(0)} ${H}Z`;
+
+// Each stretch of ground, in or out of view, sharing its end point with the next.
+const stretches: { seen: boolean; run: typeof ground }[] = [];
+ground.forEach((point, i) => {
+  const last = stretches.at(-1);
+  if (last && last.seen === point.seen) last.run.push(point);
+  else stretches.push({ seen: point.seen, run: i ? [ground[i - 1], point] : [point] });
+});
+
+// The sight line that grazes the crest of the longest shadow and lands where the ground comes back.
+const widest = stretches
+  .map((stretch, i) => ({ stretch, i }))
+  .filter(({ stretch, i }) => !stretch.seen && i > 0 && i < stretches.length - 1)
+  .sort((a, b) => b.stretch.run.at(-1)!.d - b.stretch.run[0].d - (a.stretch.run.at(-1)!.d - a.stretch.run[0].d))[0];
+const rays = widest
+  ? [(() => {
+      const crest = widest.stretch.run[0];
+      const end = widest.stretch.run.at(-1)!;
+      const slope = (y(crest.h) - eye.y) / (x(crest.d) - eye.x);
+      return { x2: x(end.d), y2: eye.y + slope * (x(end.d) - eye.x) };
+    })()]
+  : [];
+---
+
+<figure class="ray-figure summit-ui not-prose">
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("ray.alt")}>
+    <path class="ray-ground" d={fill} />
+    {rays.map((ray) => <line class="ray-sight" x1={eye.x} y1={eye.y} x2={ray.x2} y2={ray.y2} />)}
+    {stretches.map((stretch) => <path class:list={["ray-surface", { "ray-surface--seen": stretch.seen }]} d={line(stretch.run)} />)}
+    <circle class="ray-eye" cx={eye.x} cy={eye.y} r="5" />
+  </svg>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><span class="ray-key ray-key--seen"></span>{t("ray.seen")}</span>
+    <span class="iv-legend__item"><span class="ray-key"></span>{t("ray.hidden")}</span>
+    <span class="iv-legend__item"><span class="ray-key ray-key--sight"></span>{t("ray.sight")}</span>
+  </div>
+  <figcaption class="iv-note">{t("ray.caption", { km: (far / 1000).toFixed(1) })}</figcaption>
+</figure>
+
+<style>
+  .ray-figure { margin: 2rem 0; }
+  .ray-figure svg { display: block; width: 100%; height: auto; border-radius: 0.5rem; background: var(--iv-card); }
+  .ray-ground { fill: var(--iv-sunken); }
+  .ray-surface { fill: none; stroke: var(--iv-muted); stroke-width: 2.5; stroke-linejoin: round; }
+  .ray-surface--seen { stroke: oklch(var(--p)); stroke-width: 4; }
+  .ray-sight { stroke: oklch(var(--p)); stroke-width: 1.25; stroke-dasharray: 5 5; }
+  .ray-eye { fill: oklch(var(--bc)); stroke: oklch(var(--b1)); stroke-width: 2; }
+  .ray-key { display: inline-block; width: 1.5rem; height: 0; border-top: 3px solid var(--iv-muted); }
+  .ray-key--seen { border-top-color: oklch(var(--p)); }
+  .ray-key--sight { border-top: 2px dashed oklch(var(--p)); }
+</style>

@@ -1,0 +1,69 @@
+/* The figures of the post about looking at a hill like a robot. Surfaces and ink come from
+   inventory.css (--iv-*). Whatever the sensor produced wears the theme's primary colour.
+
+   Text inside the drawings is set in viewBox units, so a label that reads well on a laptop would
+   be half that size on a phone. These drawings are about 760 units wide: on a phone the same
+   class just asks for more units. */
+
+.rf { margin: 2rem 0; }
+.rf svg { display: block; width: 100%; height: auto; }
+.rf figcaption { max-width: none; margin-top: 0.4rem; }
+.rf .iv-stats { margin-bottom: 0.5rem; }
+.rf-plot { border-radius: 0.5rem; background: var(--iv-card); touch-action: pan-y; }
+.rf-text { fill: var(--iv-muted); font-size: 13px; }
+.rf-text--ink { fill: oklch(var(--bc)); font-weight: 600; }
+.rf-grid { stroke: oklch(var(--bc) / 0.12); }
+.rf-ground { fill: var(--iv-sunken); }
+.rf-hidden { fill: none; stroke: var(--iv-muted); stroke-width: 1.5; }
+.rf-seen { fill: none; stroke: oklch(var(--p)); stroke-width: 3; stroke-linejoin: round; }
+.rf-sight { stroke: oklch(var(--p)); stroke-width: 1.25; stroke-dasharray: 5 5; }
+.rf-raw { fill: none; stroke: var(--iv-muted); stroke-width: 1.25; }
+.rf-max { fill: none; stroke: oklch(var(--p)); stroke-width: 2.5; stroke-linejoin: round; }
+.rf-dashed { stroke-dasharray: 6 5; }
+.rf-mark { fill: oklch(var(--bc)); stroke: var(--iv-card); stroke-width: 2; }
+.rf-cross { stroke: oklch(var(--bc) / 0.55); stroke-width: 1; pointer-events: none; }
+.rf-readout {
+  min-height: 1.4em;
+  margin: 0.5rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: oklch(var(--bc));
+}
+.rf-key { display: inline-block; width: 1.5rem; height: 0; border-top: 3px solid oklch(var(--p)); }
+.rf-key--muted { border-top: 2px solid var(--iv-muted); }
+.rf-key--dashed { border-top: 2px dashed var(--iv-muted); }
+.rf-swatch { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; }
+
+@media (max-width: 640px) {
+  .rf-text { font-size: 24px; }
+  .rf-minor { display: none; }
+}
+
+/* From above: the rays over what they reached. */
+.rf-fan { max-width: 560px; margin-inline: auto; }
+.rf-ray { stroke: oklch(var(--p) / 0.28); stroke-width: 0.75; }
+.rf-ray--main { stroke: oklch(var(--p)); stroke-width: 2.5; }
+.rf-ring { fill: none; stroke: oklch(var(--bc) / 0.3); stroke-dasharray: 3 6; }
+
+/* The horizon growing as the rays reach further. */
+.rf-band { fill: color-mix(in oklab, var(--rf-near), var(--rf-far) calc(var(--depth) / 7 * 100%)); }
+.rf-band-plot { --rf-near: oklch(0.3 0.03 258); --rf-far: oklch(0.72 0.05 240); background: linear-gradient(180deg, var(--iv-card), oklch(0.56 0.06 245 / 0.45)); }
+[data-theme="light"] .rf-band-plot { --rf-near: oklch(0.42 0.03 255); --rf-far: oklch(0.82 0.03 240); }
+.rf-band-line { fill: none; stroke: oklch(var(--p)); stroke-width: 2; stroke-linejoin: round; }
+.rf-slider { display: block; margin-top: 0.75rem; }
+.rf-ticks { display: flex; justify-content: space-between; margin-top: 0.15rem; font-size: 0.75rem; color: var(--iv-muted); }
+
+/* The photo with the model on top of it. */
+.rf-photo { position: relative; overflow: hidden; border-radius: 0.5rem; }
+.rf-photo img { display: block; width: 100%; height: auto; margin: 0; border-radius: 0; }
+.rf-photo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rf-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
+.rf-skyline { fill: none; stroke: #fff; stroke-width: 6; stroke-linejoin: round; }
+.rf-track { fill: none; stroke: #b6f36b; stroke-width: 8; stroke-linejoin: round; stroke-linecap: round; }
+.rf-track--hidden { stroke-width: 5; stroke-dasharray: 2 18; }
+.rf-scan { fill: none; stroke-width: 6.5; stroke-linecap: round; }
+.rf-photo-label { fill: #fff; font-size: 40px; font-weight: 700; paint-order: stroke; stroke: rgb(0 0 0 / 0.65); stroke-width: 8px; stroke-linejoin: round; }
+@media (max-width: 640px) {
+  .rf-photo-label { font-size: 72px; stroke-width: 14px; }
+  .rf-scan { stroke-width: 9; }
+}

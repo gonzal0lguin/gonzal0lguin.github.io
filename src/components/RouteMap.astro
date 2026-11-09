@@ -6,6 +6,7 @@
 import { loadRoute, routeFileList, withPostWaypoints, type PostWaypoint, type RouteFiles } from "../lib/gpx";
 import { renderRouteCard } from "../lib/route-card";
 import { placePhotos, type PostPhoto } from "../lib/photos";
+import { thumbOf, variantsOf } from "../lib/image-variants.mjs";
 import { getLangFromUrl } from "../i18n/ui";
 
 export interface Props {
@@ -33,7 +34,7 @@ const html = renderRouteCard(route, {
   download,
   kml,
   kmlName: kml?.split("/").pop(),
-  photos: placePhotos(photos, route, timezone),
+  photos: placePhotos(photos, route, timezone).map((photo) => ({ ...photo, src: variantsOf(photo.src)?.src ?? photo.src, thumb: thumbOf(photo.src, 320) })),
 });
 ---
 

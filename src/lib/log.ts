@@ -50,3 +50,16 @@ export async function getOutings(lang: Lang): Promise<Outing[]> {
     }),
   );
 }
+
+/** The running totals. Distance and gain only exist for the outings with a GPS route. */
+export function logTotals(outings: Outing[], summits: Summit[]) {
+  const withRoutes = outings.filter((outing) => outing.route);
+  const reached = summits.filter((summit) => summit.ascents.some((ascent) => !ascent.attempt));
+  return {
+    summits: reached.length,
+    highest: reached[0] ?? null,
+    routes: withRoutes.length,
+    distance: withRoutes.reduce((acc, { route }) => acc + route!.distance, 0),
+    gain: withRoutes.reduce((acc, { route }) => acc + (route!.gain ?? 0), 0),
+  };
+}

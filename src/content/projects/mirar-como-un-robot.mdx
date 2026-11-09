@@ -1,0 +1,111 @@
+---
+title: "Mirar un cerro como lo miraría un robot"
+category: "hobby-projects"
+description: "Cómo calculo lo que se ve desde cada cumbre lanzando rayos sobre un modelo de elevación, igual que un LiDAR simulado, y por qué la robótica y la montaña terminaron pareciéndose tanto."
+pubDate: 2026-11-09
+heroImage: /assets/img/headers/mirar-como-robot.jpg
+author: Gonzalo Olguin
+tags: [robótica, lidar, montaña, mapas]
+---
+
+import RayDiagram from "../../components/RayDiagram.astro";
+import RayFan from "../../components/robot/RayFan.astro";
+import RayWalk from "../../components/robot/RayWalk.astro";
+import BandBuild from "../../components/robot/BandBuild.astro";
+import PhotoFusion from "../../components/robot/PhotoFusion.astro";
+import CurvatureChart from "../../components/robot/CurvatureChart.astro";
+import GpsNoise from "../../components/robot/GpsNoise.astro";
+
+Trabajo en robótica. Mi magíster fue sobre cómo hacer que un robot navegue al aire libre sin tener un mapa, y hoy en el AMTC sigo metido en navegación y percepción. Cuando puedo, me voy a la montaña. Parecen dos cosas sin ninguna relación, pero cuando empecé a programar las herramientas de este sitio me encontré usando exactamente lo mismo que uso en el trabajo.
+
+Este post es sobre eso: cómo calculo lo que se ve desde cada cumbre, y qué tiene que ver con un robot.
+
+## Un LiDAR de 160 kilómetros
+
+Un LiDAR es un sensor que lanza rayos láser en muchas direcciones y mide cuánto demoran en volver. Con eso sabe a qué distancia está lo primero que tiene al frente. Los que se usan en robots llegan a unos cien metros.
+
+En simulación no hay láser. En Gazebo o MuJoCo hay un mundo 3D conocido y el computador calcula dónde chocaría cada rayo. El panorama de cada cumbre es exactamente eso. El mundo es el Copernicus GLO-30, un modelo de elevación de la Agencia Espacial Europea con celdas de 30 metros, y el sensor lo pongo parado en la cumbre, a 1,7 metros del suelo, más o menos donde van los ojos.
+
+Lanzo un rayo cada 0,05 grados, 7.200 en total, y cada uno lo recorro en pasos de 30 metros hasta los 160 kilómetros. Son unos 38 millones de puntos por cumbre y demora como medio minuto.
+
+<RayFan />
+
+Lo amarillo es lo que se alcanza a ver desde el cerro La Cruz, apenas un 6% del círculo: el terreno cercano y algunos pedazos sueltos allá lejos, y entremedio nada. Casi todo lo que hay alrededor de un cerro queda escondido detrás de otro. Los flecos que salen hacia la izquierda son la vista al poniente, donde ya no hay nada que tape.
+
+## Un rayo, paso por paso
+
+La diferencia con un LiDAR de verdad es que no me quedo con el primer choque. Por cada punto del rayo calculo el ángulo con que se ve desde arriba, y ese punto se ve sólo si su ángulo le gana al mayor que llevo hasta ahí. Por eso un filo tapa lo que tiene justo detrás, pero un cerro más alto detrás de ese filo vuelve a aparecer. Es como tener un LiDAR con infinitos haces verticales.
+
+<RayDiagram />
+
+El mejor ejemplo que tengo es el Aconcagua visto desde La Cruz. Son 101 kilómetros y el Aconcagua mide casi tres veces lo que mide el cerro donde estoy parado, así que uno pensaría que se ve de todas maneras. Por eso vale la pena seguir ese rayo punto por punto.
+
+<RayWalk />
+
+Al principio el ángulo es muy negativo, porque estoy mirando hacia abajo mi propio cerro. A medida que avanzo va subiendo, y cada vez que un punto le gana al máximo que llevo, ese punto se ve. A los 36 kilómetros aparece el cerro La Fortuna con 2,075 grados, y desde ahí todo lo demás queda tapado durante 65 kilómetros. Recién el Aconcagua vuelve a acercarse y llega a 2,069 grados. Seis milésimas de grado menos que el filo que tiene adelante.
+
+Eso es mucho menos de lo que el modelo puede resolver, así que queda marcado como "al filo", ni visible ni tapado. Y lo que más me gusta es el por qué: si la Tierra fuera plana, el Aconcagua quedaría 0,25 grados por sobre La Fortuna y se vería clarito. Lo que lo esconde son los casi 700 metros que ya bajó el suelo a esa distancia.
+
+## De los rayos al horizonte
+
+Con un rayo tengo un punto del horizonte. Si lanzo los 7.200 y me quedo con el ángulo más alto de cada uno, tengo el horizonte completo, el mismo dibujo que está en la [página de inicio](/). Además voy guardando el máximo por tramos de distancia, y de ahí sale el dibujo por capas de los panoramas. Lo que queda marcado como visible, puesto sobre un mapa, es lo amarillo de más arriba y lo que aparece en la [página de cada cumbre](/ascents/summits/provincia/).
+
+<BandBuild />
+
+## Comprobarlo con una foto
+
+Todo esto es muy bonito en el computador, pero un robot que cree cosas que no son se estrella, así que quería probarlo contra algo real. En Sem-NaVAE hay un paso que es justo eso: la trayectoria está en el mundo, y para saber por dónde pasa hay que proyectarla a la imagen de la cámara.
+
+![Proyección de una trayectoria a la imagen de la cámara de un robot](sem-navae/camera-projection.png "Del paper de Sem-NaVAE: la trayectoria del robot proyectada al plano de la imagen")
+
+Para eso hay que saber dónde está la cámara y hacia dónde apunta. En el robot se calibra una vez y listo. Acá lo que tenía era una foto del San Gabriel al amanecer, sin GPS y sin nada que dijera hacia dónde apuntaba el teléfono.
+
+Así que hice una calibración de extrínsecos, pero contra un cerro. Saqué el filo de la foto columna por columna, porque el cielo es más cálido que la nieve. Después calculé el horizonte desde un punto candidato y fui moviendo la posición, el rumbo, la inclinación, el giro y la distancia focal hasta que el filo calculado calzara con el de la foto.
+
+No resultó a la primera. Buscando por toda la ruta encontraba varios lugares donde otro pedazo de filo calzaba bastante bien, y tuve que comparar los dibujos a ojo y darle un punto de partida, cerca de los 2.060 metros. Desde ahí se resolvió solo: 6,5 pixeles de error promedio en una foto de 2.100 de ancho.
+
+Lo que me convenció son las cosas que no le pedí. La cámara quedó a 44 metros del track que grabó el reloj, sin nada de giro, y con una focal que corresponde justo a los 26 mm del teléfono. Nada de eso estaba en lo que se optimizó.
+
+<PhotoFusion />
+
+Con la cámara encontrada se puede dibujar cualquier cosa encima. Los puntos son lo que vería un LiDAR parado ahí: anillos de rayos que acá sí se quedan con el primer choque, y el color dice qué tan lejos cayó cada uno. La línea verde es mi track de GPS, proyectado igual que la trayectoria del robot. La línea azul ya venía en la foto, marcada a mano. Arriba en el filo va casi pegada al GPS, pero abajo en la nieve no coinciden: el GPS se va bastante más a la derecha.
+
+## El ruido del sensor
+
+Con los sensores el dato nunca es limpio, y acá pasa lo mismo aunque el sensor sea imaginario. Hay tres cosas que hay que corregir o por lo menos admitir:
+
+- **La Tierra es curva.** A 160 kilómetros el suelo ya bajó unos 2 kilómetros respecto a una línea recta. Sin eso, desde cualquier cerro se vería medio país.
+- **La luz se dobla.** La atmósfera curva los rayos más o menos un séptimo de lo que se curva la Tierra, y cambia de un día a otro.
+- **El modelo es gruñón.** Con celdas de 30 metros un cerro puntudo queda medio achatado.
+
+<CurvatureChart />
+
+Por todo eso, si una cumbre queda a menos de 0,06 grados de lo que tiene adelante, no digo que se vea ni que no se vea. La marco como "al filo" y que decida el ojo. Es lo mismo que hacer con un detector que entrega poca confianza: mejor reportar la duda que inventar una certeza.
+
+Hay otro detalle que viene directo de la robótica: un robot se ve a sí mismo. Los primeros puntos de un LiDAR a veces caen sobre el propio chasis y hay que filtrarlos. En una cumbre ancha, como la de un volcán, pasa algo parecido, porque el borde de la propia cumbre tapa toda la vista hacia abajo. Nadie parado ahí se conformaría con eso, uno camina hasta la orilla. Así que el terreno muy cercano no puede tapar nada.
+
+## El GPS tampoco es de fiar
+
+El [analizador de rutas](/ascents/tools/route-analyzer/) tiene el mismo problema con otro sensor. Si sumas cada subidita de la altura que marca el reloj, el total te sale inflado, porque el ruido también cuenta como subida. Por eso sólo cuento una subida cuando de verdad subí 3 metros desde la última referencia. Es el mismo tipo de problema que limpiar una odometría, y se arregla con las mismas ideas.
+
+<GpsNoise />
+
+No es tanto, los relojes de ahora ya filtran bastante. Pero son 66 metros de desnivel que no hice, y de todas formas me los estaba contando.
+
+Lo mismo con el movimiento: si el reloj dice que avancé a menos de 20 centímetros por segundo, estoy detenido. Y si estoy detenido más de tres horas, asume que acampé y parte un día nuevo.
+
+## Planificar con las piernas
+
+Lo que más me gusta de la comparación va por otro lado. Sem-NaVAE, el trabajo que salió de mi tesis, genera muchas trayectorias posibles y después un modelo de visión y lenguaje elige cuál tiene sentido según lo que está viendo. El robot no tiene mapa: mira, propone y elige.
+
+Cuando hice la [travesía del Algarrobo](/ascents/algarrobo-traverse/) pasé por lo mismo sin ningún modelo. Antes de ir usé Google Earth para estimar una ruta y las distancias, que resultaron bastante cercanas a lo real. Ese es el planificador global. Después, en la parte difícil del Guanaco, me costó mucho decidir por dónde pasar. Trepé por un lado, era muy expuesto, y decidí rodear el cerro y subir por un acarreo infinito. Eso es un planificador local replanificando. La diferencia es que un robot no se cansa, y que el costo de equivocarse lo pago yo.
+
+## Cómo está hecho este sitio
+
+Ya que estamos, para quien le interese lo técnico. Es un sitio estático hecho en Astro y hospedado en GitHub Pages, así que no hay ningún servidor. Los GPX se leen con un parser escrito a mano y se analizan al compilar, y el navegador recibe el resultado ya calculado. Los panoramas salen de scripts en Node sobre el modelo de Copernicus, y los nombres de los cerros vienen de OpenStreetMap.
+
+Lo único que ocurre en vivo es el analizador de rutas, que corre entero en tu navegador, y las [condiciones en la cumbre](/ascents/tools/conditions/), que le pregunta directo a Open-Meteo. Las traducciones al inglés las hago con Claude. Todo el código está en [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
+
+## ¿Y para qué sirve?
+
+Técnicamente, para nada. Pero ahora puedo ver en la [página del horizonte](/ascents/horizon/) qué cerros llevo años mirando sin haberlos subido, y cuáles de los míos se ven entre sí. Y cuando voy por la autopista, elijo la ventana que favorece la vista de esas tres cumbres y sigo pensando lo mismo de siempre: esa ruta es mía.

@@ -8,3 +8,12 @@ export const TRANSITION_API = true
 export const DARK_THEME = 'dim'
 export const LIGHT_THEME = 'light'
 export const THEME_STORAGE_KEY = 'theme'
+
+// Where to find me. `scholar` is an author search until the profile URL is known: replace it
+// with the https://scholar.google.com/citations?user=... link.
+export const LINKS = {
+  email: 'golguinm@gmail.com',
+  github: 'https://github.com/gonzal0lguin',
+  linkedin: 'https://www.linkedin.com/in/gonzalo-olguin',
+  scholar: 'https://scholar.google.com/citations?view_op=search_authors&mauthors=Gonzalo+Olguin',
+}

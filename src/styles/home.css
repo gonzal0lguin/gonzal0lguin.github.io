@@ -1,0 +1,335 @@
+/* The home page: the horizon that opens it and the sections below. Surfaces and ink come from
+   the daisyUI theme; the only fixed choice is that everything the "sensor" draws (the returns,
+   the beam, the readout) wears the theme's primary colour, and nothing else does. */
+
+.home {
+  --sidebar: 0px;
+  --home-muted: oklch(var(--bc) / 0.66);
+  --home-line: oklch(var(--bc) / 0.14);
+  --home-card: oklch(var(--b2));
+  /* Without this the full-width horizon adds a scrollbar's width of sideways scroll. */
+  overflow-x: clip;
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+  margin-top: -1.25rem;
+}
+@media (min-width: 640px) {
+  .home { margin-inline: -1.5rem; padding-inline: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .home { --sidebar: 16rem; margin-inline: -2.5rem; padding-inline: 2.5rem; margin-top: -2.5rem; }
+}
+
+/* ------------------------------------------------------------------ the horizon */
+
+.hh {
+  /* Colours of the landscape, nearest to farthest: atmosphere makes distance paler. */
+  --sky-top: oklch(var(--b1));
+  --sky-low: oklch(0.5 0.07 245);
+  --ridge-near: oklch(0.19 0.02 262);
+  --ridge-far: oklch(0.6 0.06 245);
+  --hh-ink: oklch(var(--bc));
+  position: relative;
+  width: calc(100vw - var(--sidebar));
+  margin-left: calc(50% - (100vw - var(--sidebar)) / 2);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-top) 22%, var(--sky-low) 100%);
+}
+[data-theme="light"] .hh {
+  --sky-low: oklch(0.86 0.05 235);
+  --ridge-near: oklch(0.42 0.03 255);
+  --ridge-far: oklch(0.8 0.035 240);
+}
+
+.hh-text {
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding: 2.25rem 1rem 1.25rem;
+}
+@media (min-width: 640px) {
+  .hh-text { padding-inline: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .hh-text { padding: 3.5rem 2.5rem 1.5rem; }
+}
+.hh-greeting { font-size: 1.125rem; color: var(--home-muted); }
+.hh-name {
+  margin-top: 0.15rem;
+  font-size: clamp(2.5rem, 1.5rem + 4.4vw, 5.25rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+.hh-role {
+  margin-top: 0.6rem;
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.875rem);
+  font-weight: 700;
+  color: oklch(var(--p));
+}
+.hh-intro { max-width: 62ch; margin-top: 1rem; font-size: 1.125rem; line-height: 1.55; }
+.hh-intro a { text-decoration: underline; }
+.hh-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.4rem; }
+
+.hh-horizon { position: relative; z-index: 1; }
+.hh-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding: 0.5rem 1rem 0;
+}
+@media (min-width: 640px) {
+  .hh-bar { padding-inline: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .hh-bar { padding-inline: 2.5rem; }
+}
+.hh-readout {
+  min-height: 1.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: oklch(var(--p));
+}
+.hh-picks { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.hh-pick {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--home-muted);
+}
+.hh-pick:hover { color: var(--hh-ink); }
+.hh-pick[aria-pressed="true"] { border-color: oklch(var(--p)); color: var(--hh-ink); }
+[data-hh-slot][aria-busy="true"] { opacity: 0.55; transition: opacity 0.2s; }
+
+/* The stage is wider than a phone on purpose: the arc keeps its proportions and the middle shows. */
+.hh-frame { overflow: hidden; }
+.hh-stage {
+  position: relative;
+  width: 240%;
+  margin-left: -70%;
+  aspect-ratio: 1600 / 540;
+  touch-action: pan-y;
+}
+@media (min-width: 640px) {
+  .hh-stage { width: 150%; margin-left: -25%; }
+}
+@media (min-width: 1024px) {
+  .hh-stage { width: 100%; margin-left: 0; }
+}
+.hh-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hh-ridge { fill: color-mix(in oklab, var(--ridge-near), var(--ridge-far) calc(var(--depth) / 7 * 100%)); }
+.hh-returns {
+  fill: none;
+  stroke: oklch(var(--p));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 0 calc(3px + var(--depth) * 0.4px);
+  opacity: calc(1 - var(--depth) * 0.05);
+  vector-effect: non-scaling-stroke;
+}
+.hh-returns--top { stroke-width: 2.2; stroke-dasharray: 0 3px; opacity: 1; }
+/* Where one ridge passes in front of another: the summit pages draw them too. */
+.hh-edge {
+  fill: none;
+  stroke: oklch(var(--bc) / 0.28);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* One pass when the view arrives, then the returns stay: a scan, not a screensaver. */
+.hh-scan { animation: hh-reveal 3.4s cubic-bezier(0.3, 0, 0.5, 1) both; }
+.hh-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, oklch(var(--p)) 45%, oklch(var(--p)));
+  box-shadow: 0 0 22px 3px oklch(var(--p) / 0.55);
+  opacity: 0;
+  pointer-events: none;
+  animation: hh-sweep 3.4s cubic-bezier(0.3, 0, 0.5, 1) both;
+}
+@keyframes hh-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes hh-sweep {
+  0% { left: 0; opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hh-scan, .hh-beam { animation: none; }
+}
+
+.hh-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: oklch(var(--p));
+  pointer-events: none;
+}
+.hh-peak {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, calc(-100% - 22px));
+  color: var(--hh-ink);
+  font-size: 0.75rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hh-peak::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 20px;
+  background: oklch(var(--bc) / 0.55);
+}
+.hh-peak[data-tier="1"] { transform: translate(-50%, calc(-100% - 50px)); }
+.hh-peak[data-tier="1"]::after { height: 48px; }
+/* The stage is wider than the screen below 1024 px: a name near its edges would be cut in half. */
+@media (max-width: 1023px) {
+  .hh-peak--wide { display: none; }
+}
+@media (max-width: 639px) {
+  .hh-peak--wider { display: none; }
+}
+.hh-peak__name { font-weight: 700; }
+.hh-peak__ele { color: oklch(var(--bc) / 0.72); }
+
+.hh-caption {
+  max-width: 1400px;
+  margin-inline: auto;
+  padding: 0.75rem 1rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--home-muted);
+  background: var(--ridge-near);
+}
+.hh-caption { color: oklch(0.86 0.02 250); }
+.hh-caption a { color: #fff; text-decoration: underline; }
+@media (min-width: 640px) {
+  .hh-caption { padding-inline: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .hh-caption { padding-inline: 2.5rem; }
+}
+
+/* ------------------------------------------------------------------ sections */
+
+.home-section { margin-top: 3.25rem; }
+.home-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+.home-head h2 { font-size: 1.75rem; font-weight: 800; }
+.home-head a { font-size: 0.9375rem; color: var(--home-muted); white-space: nowrap; }
+.home-head a:hover { color: oklch(var(--bc)); }
+
+.home-bento { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 640px) {
+  .home-bento { grid-template-columns: repeat(2, 1fr); }
+  .home-bento > .project-card--lead { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) {
+  .home-bento { grid-template-columns: repeat(3, 1fr); }
+}
+
+.home-mountains { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 1024px) {
+  .home-mountains { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+}
+.trip-card {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid oklch(var(--bc) / 0.12);
+  border-radius: 0.875rem;
+  background: oklch(var(--b2));
+}
+@media (min-width: 640px) {
+  .trip-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+}
+.trip-card:hover { border-color: oklch(var(--p)); }
+.trip-card__media { min-height: 13rem; overflow: hidden; background: oklch(var(--b3)); }
+.trip-card__media img { width: 100%; height: 100%; object-fit: cover; }
+.trip-card__body { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; padding: 1rem; }
+.trip-card__numbers { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 1rem; font-weight: 600; }
+.trip-card__spark { width: 100%; height: 5.5rem; margin-top: auto; }
+.trip-card__area { fill: oklch(var(--p) / 0.2); }
+.trip-card__line { fill: none; stroke: oklch(var(--p)); stroke-width: 2; vector-effect: non-scaling-stroke; }
+
+.home-side { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.home-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid oklch(var(--bc) / 0.12);
+  border-radius: 0.875rem;
+  background: oklch(var(--bc) / 0.12);
+}
+.home-stats > div { display: flex; flex-direction: column; padding: 0.75rem 1rem; background: oklch(var(--b2)); }
+.home-stats dd { font-size: 1.5rem; font-weight: 800; }
+.home-stats dt { font-size: 0.8125rem; color: var(--home-muted); }
+.home-recent li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--home-line);
+}
+.home-recent a { font-weight: 600; }
+.home-recent a:hover { text-decoration: underline; }
+.home-recent span { font-size: 0.875rem; color: var(--home-muted); }
+
+.home-bridge {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 3.25rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: oklch(var(--b3));
+}
+@media (min-width: 1024px) {
+  .home-bridge { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 2.25rem; }
+}
+.home-bridge__kicker { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; color: oklch(var(--p)); }
+.home-bridge h2 { margin: 0.25rem 0 0.5rem; font-size: 1.75rem; font-weight: 800; line-height: 1.15; }
+.home-bridge .btn { margin-top: 0.875rem; }
+.home-bridge__table { width: 100%; font-size: 0.9375rem; border-collapse: collapse; }
+.home-bridge__table th { padding: 0 0.75rem 0.4rem 0; text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--home-muted); }
+.home-bridge__table td { padding: 0.45rem 0.75rem 0.45rem 0; border-top: 1px solid var(--home-line); vertical-align: top; }
+
+.home-news li {
+  position: relative;
+  display: grid;
+  gap: 0 1.25rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--home-line);
+}
+@media (min-width: 640px) {
+  .home-news li { grid-template-columns: 7rem minmax(0, 1fr); }
+  .home-news p { grid-column: 2; }
+}
+.home-news time { font-size: 0.875rem; color: var(--home-muted); }
+.home-news a { font-weight: 700; }
+.home-news a::after { content: ""; position: absolute; inset: 0; }
+.home-news li:hover a { text-decoration: underline; }
+.home-news p { font-size: 0.9375rem; color: oklch(var(--bc) / 0.8); }

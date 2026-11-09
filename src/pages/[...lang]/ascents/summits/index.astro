@@ -23,7 +23,7 @@ const summits = await getSummits(lang);
 const panoramas = summits.filter((summit) => summit.panorama).length;
 ---
 
-<BaseLayout title={`${t("summits.title")} · ${t("ascents.title")}`} description={t("summits.intro")} sideBarActiveItemID="ascents">
+<BaseLayout title={`${t("summits.title")} · ${t("ascents.title")}`} description={t("summits.intro")} sideBarActiveItemID="ascents" width="wide">
   <AscentsHeader active="summits" />
 
   <div class="summit-ui" data-filter-root>

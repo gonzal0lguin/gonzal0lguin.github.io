@@ -144,9 +144,9 @@ The GPX files are analyzed when the site is built (`src/lib/gpx.ts`, `src/lib/gp
 
 #### Route analyzer ("Procesar ruta")
 
-`/ascents/route-tool` gives visitors the same card for their own GPX files, processed entirely in the browser. Several files are stitched like above. In the tool, points can be **marked** (camp, summit, viewpoint, water, hut, crux, danger, parking, note) by clicking the map or the profile, dragged, edited and deleted, and placed anywhere by typing their coordinates in the editor; stops can be marked from the Stops tab. Marks are saved in the downloaded GPX as standard waypoints (`<sym>` for Garmin and most apps, `<type>` for this site), and remembered in the browser for the same files. A GPX exported from the tool can be used as a post's `route`, with its marks.
+`/ascents/tools/route-analyzer/` gives visitors the same card for their own GPX files, processed entirely in the browser. Several files are stitched like above. In the tool, points can be **marked** (camp, summit, viewpoint, water, hut, crux, danger, parking, note) by clicking the map or the profile, dragged, edited and deleted, and placed anywhere by typing their coordinates in the editor; stops can be marked from the Stops tab. Marks are saved in the downloaded GPX as standard waypoints (`<sym>` for Garmin and most apps, `<type>` for this site), and remembered in the browser for the same files. A GPX exported from the tool can be used as a post's `route`, with its marks.
 
-The tool is a self-contained component (`src/components/RouteTool.astro`, `src/scripts/route-tool.ts`), ready to move to a future tools section.
+The tool is a self-contained component (`src/components/RouteTool.astro`, `src/scripts/route-tool.ts`) in the **Tools** tab of the Mountaineering section, next to the live summit conditions (`src/components/Conditions.astro`, data from Open-Meteo, fetched by the browser). A "try it with one of my routes" button loads the GPX named in the component's `data-sample`.
 
 #### Summits and summit panoramas
 
@@ -175,7 +175,7 @@ Every summit gets a page at `/ascents/summits/<file name>/` with all the outings
 
 `npm run profiles` computes the outline of every summit for the **my summits to scale** chart (`scripts/profiles.mjs` → `src/data/profiles.json`): a slice of the terrain through the top, from the bearing where it stands out most, seen from the side its GPS track starts on. A second or two per summit; run it after adding one, or the chart draws a plain cone until you do.
 
-The Mountaineering section has four tabs: **Log** (totals, map, my summits to scale, a month-by-year calendar of outings, and every outing grouped by year with search and filters), **Summits** (a card per summit with the horizon from its top, sortable and searchable), **Routes** (every GPS route in one sortable table with elevation profiles at a shared scale) and the route analyzer.
+The Mountaineering section has five tabs: **Log** (totals, map, my summits to scale, a month-by-year calendar of outings, and every outing grouped by year with search and filters), **Summits** (a card per summit with the horizon from its top, sortable and searchable), **Routes** (every GPS route in one sortable table with elevation profiles at a shared scale), **Horizon** (all the panoramas read together, `src/lib/horizon.ts`: which of my summits see each other and which mountains I keep seeing and have not climbed) and **Tools**.
 
 ### 3. Blog
 Located in `src/content/blog/`.
@@ -226,6 +226,8 @@ Good options for the library, roughly in order of how well they fit this site:
 | **A separate git repo** on a CDN (jsDelivr) | Free, no account; still a git repo, so history still grows. Fine up to a few hundred MB. |
 
 Google Drive and Dropbox are *not* suitable: their share links are not stable image URLs, they rate-limit hotlinking and they block hosting a site's assets.
+
+Photos under `public/assets/img/` get resized WebP copies automatically before every `npm run dev` and `npm run build` (`scripts/images.mjs`, written to the gitignored `public/assets/opt/`), and pages and Markdown use them through a `srcset`. In a component, use `src/components/Img.astro` instead of `<img>` or `<Image>`. Photos on a CDN are served as they are.
 
 Whatever the host, downscale before uploading — a 6000 px phone photo is wasted on a 750 px column. ~1600 px wide at JPEG quality ~78 is a good compromise:
 
@@ -301,7 +303,7 @@ The syntax is handled by `src/plugins/remark-media.mjs` (markup), `src/styles/me
 Global site configuration is managed in three places:
 
 1. **`src/i18n/ui.ts`**: Site title and description (used for Open Graph tags and SEO) and all UI text, per language.
-2. **`src/config.ts`**: View transitions and the light/dark theme names.
+2. **`src/config.ts`**: View transitions, the light/dark theme names and my links (GitHub, LinkedIn, Google Scholar, email).
 3. **`astro.config.mjs`**: The `site` URL and integrations (Tailwind, MDX, sitemap, math rendering).
 
 ## UI & Theming
@@ -309,6 +311,12 @@ Global site configuration is managed in three places:
 - The sidebar, header, and footer components are located in `src/components/`. 
 - To edit links in the sidebar, modify `src/components/SideBarMenu.astro` (labels are in `src/i18n/ui.ts`).
 - The sun/moon button next to the language flags switches between a dark and a light theme; the choice is remembered in the browser. The themes are DaisyUI themes set in `src/config.ts` (`DARK_THEME = 'dim'`, `LIGHT_THEME = 'light'`). To use different ones, change them there and in the `themes` list in `tailwind.config.cjs`.
+
+## Home page and share pictures
+
+The home page opens on a real summit horizon (`src/lib/home-horizon.ts`; `HOME_SUMMITS` sets which ones are offered, the first one opens). The projects it features, in order, are `FEATURED_PROJECTS` in `src/lib/projects.ts`.
+
+Every entry and summit gets a 1200×630 picture for link previews, drawn at build time (`src/lib/og.ts`, served from `/og/<kind>/<key>.jpg`). Nothing to do when adding content.
 
 ## Customizing the Favicon
 

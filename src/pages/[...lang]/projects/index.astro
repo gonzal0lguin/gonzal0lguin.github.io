@@ -1,8 +1,19 @@
 ---
+// Every project on one page, in the groups they have always been in. The picture doors at the top
+// are the categories again, only now they filter the list below instead of leading to a page of
+// two projects. Each project keeps a row of its own with its own picture, so the page still reads
+// as a list of separate things when there's nothing selected.
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Img from "../../../components/Img.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { getLocalizedCollection } from "../../../i18n/content";
 import { langStaticPaths } from "../../../lib/paths";
 import { PROJECT_CATEGORIES, PROJECT_CATEGORY_IMAGES } from "../../../lib/projects";
-import { getLangFromUrl, localizePath, useTranslations } from "../../../i18n/ui";
+import { searchText } from "../../../lib/search";
+import { getLangFromUrl, useTranslations } from "../../../i18n/ui";
+import "../../../styles/inventory.css";
+import "../../../styles/summits.css";
+import "../../../styles/projects.css";
 
 export function getStaticPaths() {
   return langStaticPaths();
@@ -10,35 +21,67 @@ export function getStaticPaths() {
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
+const projects = await getLocalizedCollection("projects", lang);
 const categories = PROJECT_CATEGORIES.map((category) => ({
+  category,
   title: t(`projects.cat.${category}`),
   desc: t(`projects.cat.${category}.desc`),
-  url: localizePath(lang, `/projects/${category}`),
-  img: PROJECT_CATEGORY_IMAGES[category],
-}));
+  image: PROJECT_CATEGORY_IMAGES[category],
+  items: projects.filter(({ entry }) => entry.data.category === category),
+})).filter(({ items }) => items.length > 0);
+const countLabel = (n: number) => t(n === 1 ? "projects.countOne" : "projects.countMany", { n });
 ---
 
-<BaseLayout title={t("projects.title")} sideBarActiveItemID="projects">
-  <div class="mb-5">
-    <h1 class="text-3xl w-full font-bold">{t("projects.title")}</h1>
-  </div>
+<BaseLayout title={t("projects.title")} description={t("projects.intro")} sideBarActiveItemID="projects" width="wide">
+  <h1 class="text-3xl font-bold">{t("projects.title")}</h1>
+  <p class="mt-2 mb-5 max-w-[62ch] text-lg">{t("projects.intro")}</p>
 
-  <div class="mb-10 text-left sm:text-justify">
-    <img src="/assets/img/headers/about.JPG" class="w-full max-h-[300px] object-cover rounded-xl mb-6 shadow-md" alt="" />
-    <p class="text-lg">{t("projects.intro")}</p>
-  </div>
+  <section class="summit-ui" data-filter-root data-filter-single>
+    <div class="project-doors" role="group" aria-label={t("log.filters")}>
+      {
+        categories.map(({ category, title, desc, image, items }, i) => (
+          <button type="button" class="project-door" aria-pressed="false" data-filter-chip={category}>
+            <Img src={image} sizes="(min-width: 1024px) 30vw, 33vw" class="project-door__img" priority={i < 3} />
+            <span class="project-door__body">
+              <span class="project-door__title">{title}</span>
+              <span class="project-door__desc">{desc}</span>
+              <span class="project-door__count iv-num">{countLabel(items.length)}</span>
+            </span>
+          </button>
+        ))
+      }
+    </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="project-tools">
+      <label class="log-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" placeholder={t("projects.search")} aria-label={t("projects.search")} data-filter-search />
+      </label>
+      <p class="log-count iv-num" data-filter-count data-label-one={t("projects.countOne")} data-label-many={t("projects.countMany")} aria-live="polite"></p>
+    </div>
+
     {
-      categories.map((cat) => (
-        <a href={cat.url} class="card bg-base-100 shadow-xl image-full hover:scale-[102%] transition-all cursor-pointer">
-          <figure><img src={cat.img} alt="" class="object-cover" /></figure>
-          <div class="card-body justify-end bg-black bg-opacity-40 rounded-xl">
-            <h2 class="card-title text-white text-2xl">{cat.title}</h2>
-            <p class="text-gray-200 flex-grow-0">{cat.desc}</p>
-          </div>
-        </a>
+      categories.map(({ category, title, items }) => (
+        <section class="project-group" data-filter-group>
+          <h2 class="project-group__title">{title}</h2>
+          <ul class="project-list" data-filter-list>
+            {items.map((item) => (
+              <li data-filter-item data-flags={category} data-text={searchText([item.entry.data.title, item.entry.data.description, ...(item.entry.data.tags ?? [])])}>
+                <ProjectCard item={item} sizes="(min-width: 1280px) 22vw, (min-width: 640px) 38vw, 100vw" row />
+              </li>
+            ))}
+          </ul>
+        </section>
       ))
     }
-  </div>
+    <p class="log-empty" data-filter-empty hidden>{t("log.empty")}</p>
+  </section>
+
+  <script>
+    document.addEventListener("astro:page-load", async () => {
+      if (!document.querySelector("[data-filter-root]")) return;
+      const { initLogFilter } = await import("../../../scripts/log-filter");
+      initLogFilter();
+    });
+  </script>
 </BaseLayout>

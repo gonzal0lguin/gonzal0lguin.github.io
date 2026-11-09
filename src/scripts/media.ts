@@ -181,7 +181,7 @@ function show(to: number) {
   const t = useTranslations(lightbox.lang);
   current = Math.max(0, Math.min(to, photos.length - 1));
   const photo = photos[current];
-  lightbox.image.src = photo.currentSrc || photo.src;
+  lightbox.image.src = photo.dataset.full || photo.currentSrc || photo.src;
   lightbox.image.alt = photo.alt;
   lightbox.caption.textContent = photo.closest("figure")?.querySelector("figcaption")?.textContent ?? "";
   lightbox.count.textContent = photos.length > 1 ? t("media.count", { i: current + 1, n: photos.length }) : "";

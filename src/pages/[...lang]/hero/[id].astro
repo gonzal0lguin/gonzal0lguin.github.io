@@ -1,0 +1,22 @@
+---
+// One summit's horizon alone, for the home page's switcher to fetch.
+import HorizonStage from "../../../components/HorizonStage.astro";
+import { HOME_SUMMITS } from "../../../lib/home-horizon";
+import { getSummits, type Summit } from "../../../lib/summits";
+import { getLang, langParams } from "../../../i18n/ui";
+
+export const partial = true;
+
+export async function getStaticPaths() {
+  const perLang = await Promise.all(
+    langParams.map(async (lang) =>
+      (await getSummits(getLang(lang))).filter((summit) => HOME_SUMMITS.includes(summit.id) && summit.panorama).map((summit) => ({ params: { lang, id: summit.id }, props: { summit } })),
+    ),
+  );
+  return perLang.flat();
+}
+
+const { summit } = Astro.props as { summit: Summit };
+---
+
+<HorizonStage summit={summit} />

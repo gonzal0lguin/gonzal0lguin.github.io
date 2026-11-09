@@ -4,6 +4,7 @@
 // Markup, inside [data-filter-root]:
 //   [data-filter-search]          text input; matched against each item's data-text
 //   [data-filter-chip="flag"]     toggle buttons; an item needs every pressed flag in data-flags
+//   [data-filter-single]          on the root, when only one chip can be pressed at a time
 //   [data-filter-sort]            <select> with "key:asc|desc" values, sorting by data-<key>
 //   [data-filter-item]            the items, inside [data-filter-list] (or [data-filter-group]s,
 //                                 which hide when nothing in them is left)
@@ -62,7 +63,10 @@ function setUp(root: HTMLElement) {
   sort?.addEventListener("change", reorder);
   for (const chip of chips) {
     chip.addEventListener("click", () => {
-      chip.setAttribute("aria-pressed", String(chip.getAttribute("aria-pressed") !== "true"));
+      const on = chip.getAttribute("aria-pressed") !== "true";
+      // data-filter-single: the chips are alternatives (an item is in only one category).
+      if (root.hasAttribute("data-filter-single")) for (const other of chips) other.setAttribute("aria-pressed", "false");
+      chip.setAttribute("aria-pressed", String(on));
       apply();
     });
   }

@@ -1,0 +1,114 @@
+---
+// The elevation the watch recorded against the one the route analyzer keeps, on the stretch of the
+// Algarrobo traverse where they disagree the most. The rule is the same as ELEVATION_HYSTERESIS_M
+// in src/lib/gpx-core.ts: the reference only moves once the watch has changed by 3 m.
+import { loadTrack } from "../../lib/gpx";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const THRESHOLD = 3;
+const WINDOW_KM = 1.2;
+const points = loadTrack("/assets/lib/travesia-algarrobo-11-10-2025.gpx").points.filter((p) => p.ele != null);
+
+const distance: number[] = [0];
+for (let i = 1; i < points.length; i++) {
+  const a = points[i - 1];
+  const b = points[i];
+  const dy = (a.lat - b.lat) * 111.2;
+  const dx = (a.lon - b.lon) * 111.2 * Math.cos((a.lat * Math.PI) / 180);
+  distance.push(distance[i - 1] + Math.hypot(dx, dy));
+}
+
+function measure(from: number, to: number) {
+  let raw = 0;
+  let filtered = 0;
+  let reference = points[from].ele!;
+  const line: number[] = [];
+  for (let i = from; i <= to; i++) {
+    const ele = points[i].ele!;
+    if (i > from && ele > points[i - 1].ele!) raw += ele - points[i - 1].ele!;
+    if (ele - reference >= THRESHOLD) {
+      filtered += ele - reference;
+      reference = ele;
+    } else if (reference - ele >= THRESHOLD) reference = ele;
+    line.push(reference);
+  }
+  return { raw, filtered, line };
+}
+
+const whole = measure(0, points.length - 1);
+// The stretch where the wiggles are biggest next to how much the ground really changes: on a
+// steep one the two lines would be drawn on top of each other and there would be nothing to see.
+let window = { from: 0, to: 0, score: -1 };
+for (let from = 0, to = 0; from < points.length; from++) {
+  while (to < points.length - 1 && distance[to] - distance[from] < WINDOW_KM) to++;
+  if (distance[to] - distance[from] < WINDOW_KM) break;
+  const { raw, filtered } = measure(from, to);
+  const heights = points.slice(from, to + 1).map((p) => p.ele!);
+  const score = (raw - filtered) / Math.max(Math.max(...heights) - Math.min(...heights), 10);
+  if (score > window.score) window = { from, to, score };
+}
+const shown = measure(window.from, window.to);
+
+const W = 760;
+const H = 260;
+const LEFT = 84;
+const RIGHT = 16;
+const TOP = 14;
+const BOTTOM = 40;
+const start = distance[window.from];
+const rows = Array.from({ length: window.to - window.from + 1 }, (_, i) => [
+  Math.round((distance[window.from + i] - start) * 1000) / 1000,
+  Math.round(points[window.from + i].ele!),
+  Math.round(shown.line[i]),
+]);
+const span = rows.at(-1)![0];
+const elevations = rows.flatMap((row) => [row[1], row[2]]);
+const low = Math.floor(Math.min(...elevations) / 5) * 5;
+const high = Math.ceil(Math.max(...elevations) / 5) * 5;
+const x = (km: number) => LEFT + (km / span) * (W - LEFT - RIGHT);
+const y = (m: number) => H - BOTTOM - ((m - low) / (high - low)) * (H - TOP - BOTTOM);
+const f = (value: number) => value.toFixed(1);
+
+const rawPath = `M${rows.map(([km, ele]) => `${f(x(km))} ${f(y(ele))}`).join("L")}`;
+let stepped = `M${f(x(rows[0][0]))} ${f(y(rows[0][2]))}`;
+rows.slice(1).forEach(([km, , value], i) => {
+  stepped += `L${f(x(km))} ${f(y(rows[i][2]))}L${f(x(km))} ${f(y(value))}`;
+});
+const yTicks = [low, Math.round((low + high) / 2), high];
+const xTicks = [0, 0.3, 0.6, 0.9, 1.2].filter((km) => km <= span + 0.01);
+const payload = { kind: "gps", from: LEFT, to: W - RIGHT, min: 0, max: span, width: W, rows };
+const metres = (value: number) => Math.round(value).toLocaleString(locale);
+---
+
+<Init />
+<figure class="rf summit-ui not-prose" data-rf-chart data-raw={t("rf.gps.rawShort")} data-filtered={t("rf.gps.filteredShort")}>
+  <div class="iv-stats">
+    <div class="iv-stat"><span class="iv-stat__value iv-num">{metres(whole.raw)} m</span><span class="iv-stat__label">{t("rf.gps.statRaw")}</span></div>
+    <div class="iv-stat"><span class="iv-stat__value iv-num">{metres(whole.filtered)} m</span><span class="iv-stat__label">{t("rf.gps.statFiltered")}</span></div>
+    <div class="iv-stat"><span class="iv-stat__value iv-num">{metres(whole.raw - whole.filtered)} m</span><span class="iv-stat__label">{t("rf.gps.statInvented")}</span></div>
+  </div>
+  <svg class="rf-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("rf.gps.alt")}>
+    {yTicks.map((m) => (
+      <>
+        <line class="rf-grid" x1={LEFT} x2={W - RIGHT} y1={f(y(m))} y2={f(y(m))} />
+        <text class="rf-text" x={LEFT - 8} y={f(y(m) + 4)} text-anchor="end">{m.toLocaleString(locale)}</text>
+      </>
+    ))}
+    {xTicks.map((km, i) => <text class="rf-text" x={f(x(km))} y={H - 14} text-anchor={i === xTicks.length - 1 ? "end" : "middle"}>{km.toLocaleString(locale)} km</text>)}
+    <path class="rf-raw" d={rawPath} />
+    <path class="rf-max" d={stepped} />
+    <line class="rf-cross" data-rf-cross x1="0" x2="0" y1={TOP} y2={H - BOTTOM} style="display:none" />
+  </svg>
+  <script type="application/json" data-rf-data set:html={JSON.stringify(payload)} />
+  <p class="rf-readout iv-num" data-rf-readout>{t("rf.gps.rest", { raw: metres(shown.raw), filtered: metres(shown.filtered) })}</p>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><span class="rf-key rf-key--muted"></span>{t("rf.gps.raw")}</span>
+    <span class="iv-legend__item"><span class="rf-key"></span>{t("rf.gps.filtered")}</span>
+  </div>
+  <figcaption class="iv-note">{t("rf.gps.caption")}</figcaption>
+</figure>

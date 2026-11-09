@@ -1,0 +1,63 @@
+---
+// How far the ground has dropped below a level line of sight, with and without the air bending
+// the light. Both lines are the same formula, h = d²/2R, with the earth's radius or the effective
+// one scripts/lib/viewshed.mjs uses.
+import FIGURES from "../../data/robot-figures.json";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+
+const EARTH = 6371.0088;
+const EFFECTIVE = EARTH / (1 - 0.13);
+const drop = (km: number, radius: number) => ((km * km) / (2 * radius)) * 1000;
+
+const W = 760;
+const H = 290;
+const LEFT = 84;
+const RIGHT = 16;
+const TOP = 16;
+const BOTTOM = 42;
+const MAX_KM = 160;
+const MAX_M = 2100;
+const x = (km: number) => LEFT + (km / MAX_KM) * (W - LEFT - RIGHT);
+const y = (m: number) => H - BOTTOM - (m / MAX_M) * (H - TOP - BOTTOM);
+const f = (value: number) => value.toFixed(1);
+
+const rows = Array.from({ length: MAX_KM / 2 + 1 }, (_, i) => {
+  const km = i * 2;
+  return [km, Math.round(drop(km, EARTH)), Math.round(drop(km, EFFECTIVE))];
+});
+const path = (column: number) => `M${rows.map((row) => `${f(x(row[0]))} ${f(y(row[column]))}`).join("L")}`;
+const peakKm = FIGURES.ray.peak.km;
+const peakDrop = drop(peakKm, EFFECTIVE);
+const payload = { kind: "curve", from: LEFT, to: W - RIGHT, min: 0, max: MAX_KM, width: W, rows };
+const metres = (value: number) => Math.round(value).toLocaleString(locale);
+---
+
+<Init />
+<figure class="rf summit-ui not-prose" data-rf-chart data-plain={t("rf.curve.plainShort")} data-bent={t("rf.curve.bentShort")}>
+  <svg class="rf-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("rf.curve.alt")}>
+    {[0, 500, 1000, 1500, 2000].map((m) => (
+      <>
+        <line class="rf-grid" x1={LEFT} x2={W - RIGHT} y1={f(y(m))} y2={f(y(m))} />
+        <text class="rf-text" x={LEFT - 8} y={f(y(m) + 4)} text-anchor="end">{(m / 1000).toLocaleString(locale)} km</text>
+      </>
+    ))}
+    {[0, 40, 80, 120, 160].map((km) => <text class="rf-text" x={f(x(km))} y={H - 14} text-anchor={km === 160 ? "end" : "middle"}>{km} km</text>)}
+    <path class="rf-raw rf-dashed" d={path(1)} />
+    <path class="rf-max" d={path(2)} />
+    <circle class="rf-mark" cx={f(x(peakKm))} cy={f(y(peakDrop))} r="5" />
+    <text class="rf-text rf-text--ink" x={f(x(peakKm) - 10)} y={f(y(peakDrop) - 10)} text-anchor="end">{t("rf.curve.peak", { m: metres(peakDrop) })}</text>
+    <line class="rf-cross" data-rf-cross x1="0" x2="0" y1={TOP} y2={H - BOTTOM} style="display:none" />
+  </svg>
+  <script type="application/json" data-rf-data set:html={JSON.stringify(payload)} />
+  <p class="rf-readout iv-num" data-rf-readout>{t("rf.curve.rest", { plain: metres(drop(MAX_KM, EARTH)), bent: metres(drop(MAX_KM, EFFECTIVE)) })}</p>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><span class="rf-key"></span>{t("rf.curve.bent")}</span>
+    <span class="iv-legend__item"><span class="rf-key rf-key--dashed"></span>{t("rf.curve.plain")}</span>
+  </div>
+  <figcaption class="iv-note">{t("rf.curve.caption")}</figcaption>
+</figure>

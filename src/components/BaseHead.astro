@@ -5,21 +5,37 @@ import '../styles/global.css';
 import '../styles/media.css';
 import 'katex/dist/katex.min.css';
 import { languages, getLangFromUrl, localizePath, stripLang, defaultLang, type Lang } from '../i18n/ui';
+import { OG_HEIGHT, OG_WIDTH } from '../lib/og-size';
 
 export interface Props {
 	title: string;
 	description: string;
+	/** A share picture from src/pages/[...lang]/og/; the site's own card when there's none. */
 	image?: string;
 	ogType?: string;
+	published?: Date;
+	modified?: Date;
+	/** This English page is showing the Spanish text: the Spanish page is the real one. */
+	fallback?: boolean;
+	/** Structured data for this page (schema.org), one object or several. */
+	jsonLd?: object | object[];
 }
 
-const { title, description, image = '/social_img.webp', ogType = 'website' } = Astro.props;
+const { title, description, ogType = 'website', published, modified, fallback = false, jsonLd } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
+const base = Astro.site ?? Astro.url;
+const image = new URL(Astro.props.image ?? localizePath(lang, '/og/site/home.jpg'), base);
 const neutralPath = stripLang(Astro.url.pathname);
-const alternates = (Object.keys(languages) as Lang[]).map((code) => ({
-	hreflang: languages[code].locale,
-	href: new URL(localizePath(code, neutralPath), Astro.site ?? Astro.url),
-}));
+// GitHub Pages answers /cv with a redirect to /cv/; the canonical URL is the one that stays.
+const slashed = (path: string) => (path.endsWith('/') ? path : `${path}/`);
+const canonical = new URL(slashed(fallback ? localizePath(defaultLang, neutralPath) : Astro.url.pathname), base);
+const alternates = fallback
+	? []
+	: (Object.keys(languages) as Lang[]).map((code) => ({
+			hreflang: languages[code].locale,
+			href: new URL(slashed(localizePath(code, neutralPath)), base),
+		}));
+const structured = JSON.stringify(jsonLd)?.replace(/</g, '\\u003c');
 ---
 
 <!-- Global Metadata -->
@@ -28,10 +44,11 @@ const alternates = (Object.keys(languages) as Lang[]).map((code) => ({
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <meta name="generator" content={Astro.generator} />
 <link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="canonical" href={canonical} />
 
 <!-- Language alternates -->
 {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
-<link rel="alternate" hreflang="x-default" href={new URL(localizePath(defaultLang, neutralPath), Astro.site ?? Astro.url)} />
+{alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={new URL(slashed(localizePath(defaultLang, neutralPath)), base)} />}
 
 <!-- Primary Meta Tags -->
 <title>{title}</title>
@@ -40,15 +57,24 @@ const alternates = (Object.keys(languages) as Lang[]).map((code) => ({
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content={ogType} />
-<meta property="og:url" content={Astro.url} />
+<meta property="og:site_name" content="Gonzalo Olguín" />
+<meta property="og:url" content={canonical} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={new URL(image, Astro.url)} />
+<meta property="og:image" content={image} />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content={String(OG_WIDTH)} />
+<meta property="og:image:height" content={String(OG_HEIGHT)} />
 <meta property="og:locale" content={languages[lang].locale.replace('-', '_')} />
+{published && <meta property="article:published_time" content={published.toISOString()} />}
+{modified && <meta property="article:modified_time" content={modified.toISOString()} />}
+{published && <meta property="article:author" content="Gonzalo Olguín" />}
 
 <!-- Twitter -->
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content={Astro.url} />
+<meta property="twitter:url" content={canonical} />
 <meta property="twitter:title" content={title} />
 <meta property="twitter:description" content={description} />
-<meta property="twitter:image" content={new URL(image, Astro.url)} />
+<meta property="twitter:image" content={image} />
+
+{structured && <script type="application/ld+json" set:html={structured} />}

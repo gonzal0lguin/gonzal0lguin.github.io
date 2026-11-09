@@ -1,0 +1,105 @@
+---
+// Weather on my summits right now, from Open-Meteo, fetched by the visitor's browser
+// (src/scripts/conditions.ts). The page only carries the empty table: a static site can't know
+// today's weather at build time. The numbers are a model downscaled to each summit's height,
+// which is good for a feel of the day and no substitute for a real forecast before going up.
+import type { Summit } from "../lib/summits";
+import { getLangFromUrl, languages, localizePath, useTranslations } from "../i18n/ui";
+
+export interface Props {
+  summits: Summit[];
+  /** A single summit's small card, rather than the whole table with its chart. */
+  compact?: boolean;
+}
+
+const { summits, compact = false } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const labels = {
+  locale,
+  error: t("cond.error"),
+  updated: t("cond.updated"),
+  now: t("cond.now"),
+  chartLevel: t("cond.chart.level"),
+  above: t("cond.above"),
+  below: t("cond.below"),
+  sky: {
+    clear: t("cond.sky.clear"),
+    mostly: t("cond.sky.mostly"),
+    partly: t("cond.sky.partly"),
+    overcast: t("cond.sky.overcast"),
+    fog: t("cond.sky.fog"),
+    drizzle: t("cond.sky.drizzle"),
+    rain: t("cond.sky.rain"),
+    snow: t("cond.sky.snow"),
+    storm: t("cond.sky.storm"),
+  },
+};
+const short = (name: string) => name.replace(/^(Cerro|Volcán|Nevado) /, "");
+const attrs = (summit: Summit) => ({ "data-cond": "", "data-lat": summit.data.lat, "data-lon": summit.data.lon, "data-ele": summit.data.elevation, "data-id": summit.id, "data-name": short(summit.data.name) });
+---
+
+<div class:list={["summit-ui not-prose", compact ? "cond cond--compact" : "cond"]} data-conditions data-labels={JSON.stringify(labels)}>
+  {
+    compact ? (
+      <section class="cond-card" {...attrs(summits[0])}>
+        <h2 class="summit-section-title">{t("cond.card.title")}</h2>
+        <dl class="cond-card__grid">
+          <div><dt>{t("cond.col.sky")}</dt><dd data-f="sky">…</dd></div>
+          <div><dt>{t("cond.col.temp")}</dt><dd class="iv-num" data-f="temp">…</dd></div>
+          <div><dt>{t("cond.col.wind")}</dt><dd class="iv-num" data-f="wind">…</dd></div>
+          <div><dt>{t("cond.col.freezing")}</dt><dd class="iv-num" data-f="freezing">…</dd></div>
+        </dl>
+      </section>
+    ) : (
+      <>
+        <figure class="iv-block" data-cond-chart-host>
+          <figcaption>
+            <h2 class="iv-block__title">{t("cond.chart.title")}</h2>
+            <p class="iv-note">{t("cond.chart.note")}</p>
+          </figcaption>
+          <div class="cond-chart" data-cond-chart role="img" aria-label={t("cond.chart.title")}></div>
+        </figure>
+        <div class="hz-scroll">
+          <table class="cond-table">
+            <thead>
+              <tr>
+                <th scope="col">{t("cond.col.summit")}</th>
+                <th scope="col">{t("cond.col.sky")}</th>
+                <th scope="col">{t("cond.col.temp")}</th>
+                <th scope="col">{t("cond.col.feels")}</th>
+                <th scope="col">{t("cond.col.wind")}</th>
+                <th scope="col">{t("cond.col.freezing")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summits.map((summit) => (
+                <tr {...attrs(summit)}>
+                  <th scope="row"><a href={localizePath(lang, `/ascents/summits/${summit.id}/`)}>{short(summit.data.name)}</a> <span class="iv-num">{summit.data.elevation.toLocaleString(locale)} m</span></th>
+                  <td data-f="sky">…</td>
+                  <td class="iv-num" data-f="temp">…</td>
+                  <td class="iv-num" data-f="feels">…</td>
+                  <td class="iv-num" data-f="wind">…</td>
+                  <td class="iv-num" data-f="freezing">…</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    )
+  }
+  <p class="cond-source" role="status">
+    <span data-cond-status></span>
+    {t("cond.source")} <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). {t("cond.disclaimer")}
+  </p>
+</div>
+
+<script>
+  document.addEventListener("astro:page-load", async () => {
+    if (!document.querySelector("[data-conditions]")) return;
+    const { initConditions } = await import("../scripts/conditions");
+    initConditions();
+  });
+</script>

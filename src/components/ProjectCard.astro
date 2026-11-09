@@ -1,0 +1,44 @@
+---
+// A project as a picture with its name: the home page's featured work and the projects gallery.
+// The whole card is one link through the title's ::after, so the tags can stay links on top.
+import Img from "./Img.astro";
+import SummitSkyline from "./SummitSkyline.astro";
+import type { LocalizedEntry } from "../i18n/content";
+import type { PanoramaData } from "../lib/summits";
+import HILL from "../data/panorama.json";
+import "../styles/projects.css";
+import { formatDate, getLangFromUrl, localizePath } from "../i18n/ui";
+
+export interface Props {
+  item: LocalizedEntry<"projects">;
+  /** How wide the picture is on screen, for the browser to pick a size. */
+  sizes: string;
+  lead?: boolean;
+  /** Picture beside the words, at a fixed width, so that a list of them lines up. */
+  row?: boolean;
+  priority?: boolean;
+  class?: string;
+}
+
+const { item, sizes, lead = false, row = false, priority = false, class: className } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const { key, entry } = item;
+const { title, description, heroImage, tags = [], badge, pubDate } = entry.data;
+const tagBase = localizePath(lang, "/projects/tag");
+---
+
+<article class:list={["project-card", { "project-card--lead": lead, "project-card--row": row }, className]}>
+  <div class="project-card__media">
+    {heroImage ? <Img src={heroImage} sizes={sizes} priority={priority} /> : <SummitSkyline panorama={key === "cerro-reforestacion" ? (HILL as unknown as PanoramaData) : null} class="project-card__skyline" />}
+  </div>
+  <div class="project-card__body">
+    <p class="project-card__date iv-num"><time datetime={pubDate.toISOString()}>{formatDate(pubDate, lang)}</time>{badge && <span class="badge badge-secondary badge-sm">{badge}</span>}</p>
+    <h3 class="project-card__title"><a href={localizePath(lang, `/projects/${key}/`)}>{title}</a></h3>
+    <p class="project-card__desc">{description}</p>
+    {tags.length > 0 && (
+      <p class="project-card__tags">
+        {tags.slice(0, lead ? 6 : 4).map((tag) => <a href={`${tagBase}/${tag}`} class="badge badge-outline badge-sm">{tag}</a>)}
+      </p>
+    )}
+  </div>
+</article>

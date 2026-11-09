@@ -20,7 +20,7 @@ const items = [
     items.map((item) => (
       <li>
         <a
-          class:list={["py-3 text-base", { [activeClass]: item.id === sideBarActiveItemID }]}
+          class:list={["py-2.5 text-base", { [activeClass]: item.id === sideBarActiveItemID }]}
           id={item.id}
           href={localizePath(lang, item.href)}
           aria-current={item.id === sideBarActiveItemID ? "page" : undefined}
@@ -31,6 +31,6 @@ const items = [
     ))
   }
   <li>
-    <a class="py-3 text-base" href="mailto:golguinm@gmail.com">{t("nav.contact")}</a>
+    <a class="py-2.5 text-base" href="mailto:golguinm@gmail.com">{t("nav.contact")}</a>
   </li>
 </ul>

@@ -1,0 +1,112 @@
+---
+translationHash: "15abfe0a39145bab"
+title: "Looking at a mountain the way a robot would"
+category: "hobby-projects"
+description: "How I compute what can be seen from each summit by casting rays over an elevation model, just like a simulated LiDAR, and why robotics and the mountains ended up being so alike."
+pubDate: 2026-11-09
+heroImage: /assets/img/headers/mirar-como-robot.jpg
+author: Gonzalo Olguin
+tags: [robótica, lidar, montaña, mapas]
+---
+
+import RayDiagram from "../../../components/RayDiagram.astro";
+import RayFan from "../../../components/robot/RayFan.astro";
+import RayWalk from "../../../components/robot/RayWalk.astro";
+import BandBuild from "../../../components/robot/BandBuild.astro";
+import PhotoFusion from "../../../components/robot/PhotoFusion.astro";
+import CurvatureChart from "../../../components/robot/CurvatureChart.astro";
+import GpsNoise from "../../../components/robot/GpsNoise.astro";
+
+I work in robotics. My master's was about getting a robot to navigate outdoors without a map, and today at AMTC I'm still deep in navigation and perception. Whenever I can, I go to the mountains. They look like two things with nothing in common, but when I started programming the tools for this site I found myself using exactly what I use at work.
+
+This post is about that: how I compute what can be seen from each summit, and what it has to do with a robot.
+
+## A 160-kilometre LiDAR
+
+A LiDAR is a sensor that fires laser rays in many directions and measures how long they take to come back. With that it knows how far away the first thing in front of it is. The ones used on robots reach about a hundred metres.
+
+In simulation there's no laser. In Gazebo or MuJoCo there's a known 3D world and the computer works out where each ray would hit. The panorama of each summit is exactly that. The world is Copernicus GLO-30, an elevation model from the European Space Agency with 30-metre cells, and I stand the sensor on the summit, 1.7 metres off the ground, more or less where the eyes go.
+
+I cast one ray every 0.05 degrees, 7,200 in total, and walk each one in 30-metre steps out to 160 kilometres. That's about 38 million points per summit and it takes around half a minute.
+
+<RayFan />
+
+The yellow is what can be seen from Cerro La Cruz, barely 6% of the circle: the ground close by and a few loose pieces far away, and nothing in between. Almost everything around a mountain is hidden behind another one. The fringes going off to the left are the view west, where there's nothing left to block it.
+
+## One ray, step by step
+
+The difference from a real LiDAR is that I don't stop at the first hit. For each point along the ray I work out the angle it's seen at from the top, and that point is in view only if its angle beats the largest so far. That's why a ridge hides what's right behind it, but a taller mountain behind that ridge shows up again. It's like having a LiDAR with infinite vertical beams.
+
+<RayDiagram />
+
+The best example I have is Aconcagua seen from La Cruz. It's 101 kilometres away and almost three times as high as the mountain I'm standing on, so you'd think it would be in view no matter what. That's why it's worth following that ray point by point.
+
+<RayWalk />
+
+At first the angle is very negative, because I'm looking down my own mountain. As I move along it rises, and every time a point beats the highest so far, that point is in view. At 36 kilometres Cerro La Fortuna shows up at 2.075 degrees, and from there everything else stays hidden for 65 kilometres. Only Aconcagua comes close again, reaching 2.069 degrees. Six thousandths of a degree short of the ridge in front of it.
+
+That's far less than the model can resolve, so it gets marked "borderline", neither in view nor hidden. And what I like most is the reason: if the Earth were flat, Aconcagua would stand 0.25 degrees above La Fortuna and be plain to see. What hides it is the almost 700 metres the ground has already dropped at that distance.
+
+## From rays to a horizon
+
+One ray gives me one point of the horizon. Cast all 7,200, keep the highest angle of each, and I have the whole horizon, the same drawing that's on the [home page](/en/). I also keep the maximum by stretches of distance, and that's where the layered drawing of the panoramas comes from. What gets marked as visible, placed on a map, is the yellow from further up and what shows on the [page of each summit](/en/ascents/summits/provincia/).
+
+<BandBuild />
+
+## Checking it with a photo
+
+All of this looks very nice on a computer, but a robot that believes things that aren't so crashes, so I wanted to test it against something real. Sem-NaVAE has a step that is exactly that: the trajectory is out in the world, and to know where it goes you have to project it onto the camera image.
+
+![Projecting a trajectory onto a robot's camera image](sem-navae/camera-projection.png "From the Sem-NaVAE paper: the robot's trajectory projected onto the image plane")
+
+For that you need to know where the camera is and where it's pointing. On the robot you calibrate it once and you're done. What I had here was a photo of San Gabriel at dawn, with no GPS and nothing saying which way the phone was pointing.
+
+So I did an extrinsic calibration, but against a mountain. I read the ridge out of the photo column by column, because the sky is warmer than the snow. Then I computed the horizon from a candidate point and kept moving the position, heading, tilt, roll and focal length until the computed ridge matched the one in the photo.
+
+It didn't work the first time. Searching along the whole route it kept finding places where some other piece of ridge fit quite well, and I had to compare the drawings by eye and give it a starting point, around 2,060 metres. From there it solved itself: 6.5 pixels of average error on a photo 2,100 wide.
+
+What convinced me are the things I didn't ask for. The camera ended up 44 metres from the track the watch recorded, with no roll at all, and with a focal length that matches the phone's 26 mm exactly. None of that was part of what got optimised.
+
+<PhotoFusion />
+
+With the camera found you can draw anything on top. The dots are what a LiDAR standing there would see: rings of rays that here do stop at the first hit, and the colour says how far each one landed. The green line is my GPS track, projected just like the robot's trajectory. The blue line was already on the photo, marked by hand. Up on the ridge it runs almost on top of the GPS, but down on the snow they don't match: the GPS goes quite a bit further right.
+
+## Sensor noise
+
+With sensors the data is never clean, and it's the same here even though the sensor is imaginary. There are three things to correct or at least admit:
+
+- **The Earth is curved.** At 160 kilometres the ground has dropped about 2 kilometres from a straight line. Without that, you'd see half the country from any mountain.
+- **Light bends.** The atmosphere curves the rays by about a seventh of what the Earth curves, and it changes from one day to the next.
+- **The model is grumpy.** With 30-metre cells a pointy summit ends up a bit flattened.
+
+<CurvatureChart />
+
+Because of all that, if a summit is less than 0.06 degrees from what's in front of it, I don't say it can be seen and I don't say it can't. I mark it "borderline" and let the eye decide. It's what you'd do with a low-confidence detector: better to report the doubt than to make up a certainty.
+
+There's another detail straight from robotics: a robot sees itself. The first points of a LiDAR sometimes land on its own chassis and have to be filtered out. On a broad summit, like a volcano's, something similar happens, because the edge of the summit itself hides the whole view downwards. Nobody standing there would settle for that, you walk to the edge. So the ground very close by can't hide anything.
+
+## GPS can't be trusted either
+
+The [route analyzer](/en/ascents/tools/route-analyzer/) has the same problem with another sensor. Add up every little rise in the altitude your watch records and the total comes out inflated, because the noise counts as climbing too. So I only count a climb when I've really gone up 3 metres since the last reference. It's the same kind of problem as cleaning up odometry, and it's fixed with the same ideas.
+
+<GpsNoise />
+
+It's not that much, watches filter quite a bit these days. But that's 66 metres of climbing I never did, and I was being credited for them anyway.
+
+Same with movement: if the watch says I'm going under 20 centimetres per second, I'm stopped. And if I'm stopped for more than three hours, it assumes I camped and starts a new day.
+
+## Planning with your legs
+
+What I like most about the comparison goes another way. Sem-NaVAE, the work that came out of my thesis, generates many possible trajectories and then a vision-language model picks the one that makes sense given what it's seeing. The robot has no map: it looks, proposes and chooses.
+
+When I did the [Algarrobo traverse](/en/ascents/algarrobo-traverse/) I went through the same thing without any model. Before going I used Google Earth to estimate a route and the distances, which turned out pretty close to the real thing. That's the global planner. Later, on the hard part of Guanaco, it took me a long time to decide where to go. I climbed up one side, it was too exposed, and I decided to go around the mountain and up an endless scree. That's a local planner replanning. The difference is that a robot doesn't get tired, and that the cost of getting it wrong is mine to pay.
+
+## How this site is built
+
+While we're at it, for anyone interested in the technical side. It's a static site made with Astro and hosted on GitHub Pages, so there's no server at all. GPX files are read by a hand-written parser and analyzed at build time, and the browser gets the result already computed. The panoramas come from Node scripts over the Copernicus model, and the names of the mountains from OpenStreetMap.
+
+The only things that happen live are the route analyzer, which runs entirely in your browser, and the [summit conditions](/en/ascents/tools/conditions/), which ask Open-Meteo directly. I do the English translations with Claude. All the code is on [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
+
+## So what's it for?
+
+Technically, nothing. But now I can see on the [horizon page](/en/ascents/horizon/) which mountains I've been looking at for years without climbing them, and which of mine can see each other. And when I'm on the highway, I pick the window that favours the view of those three summits and I still think the same thing as always: that route is mine.

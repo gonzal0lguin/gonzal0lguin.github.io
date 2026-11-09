@@ -1,9 +1,9 @@
 ---
-// Title of the Mountaineering section with its tabs: the log, the summits, the routes and the route tool.
+// Title of the Mountaineering section with its tabs: the log, the summits, the routes, the view from them and the tools.
 import { getLangFromUrl, localizePath, useTranslations } from "../i18n/ui";
 
 export interface Props {
-  active: "log" | "summits" | "routes" | "route-tool";
+  active: "log" | "summits" | "routes" | "horizon" | "tools";
 }
 
 const { active } = Astro.props;
@@ -14,7 +14,8 @@ const tabs = [
   { id: "log", href: localizePath(lang, "/ascents"), label: t("ascents.tabLog"), icon: "M3 20l6.5-11 4 6.5 2.5-4L21 20z" },
   { id: "summits", href: localizePath(lang, "/ascents/summits/"), label: t("ascents.tabSummits"), icon: "M2 20 9 8l3.5 5L15 10l7 10z" },
   { id: "routes", href: localizePath(lang, "/ascents/routes/"), label: t("ascents.tabRoutes"), icon: "M3 17l4-6 4 3 5-8 5 6M3 21h18" },
-  { id: "route-tool", href: localizePath(lang, "/ascents/route-tool"), label: t("ascents.tabRouteTool"), icon: "M4 19c3-1 3-5 6-6s6 1 8-3M4 19h.01M18 10V4m0 0-2.5 2.5M18 4l2.5 2.5" },
+  { id: "horizon", href: localizePath(lang, "/ascents/horizon/"), label: t("ascents.tabHorizon"), icon: "M2 16h20M5 16a7 7 0 0 1 14 0M12 5V3M4.2 8.2 2.8 6.8M19.8 8.2l1.4-1.4M7 20h10" },
+  { id: "tools", href: localizePath(lang, "/ascents/tools/"), label: t("ascents.tabTools"), icon: "M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.8-.7-.7-2.8z" },
 ];
 ---
 

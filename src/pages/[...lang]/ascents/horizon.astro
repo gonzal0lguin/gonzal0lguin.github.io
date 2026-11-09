@@ -1,0 +1,161 @@
+---
+// The summit views read together: the mountains I keep seeing from the top of others and have
+// never climbed, and which of my summits can see each other (src/lib/horizon.ts).
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../components/AscentsHeader.astro";
+import { seenNotClimbed, summitSightlines } from "../../../lib/horizon";
+import { getSummits } from "../../../lib/summits";
+import { langStaticPaths } from "../../../lib/paths";
+import { searchText } from "../../../lib/search";
+import { getLang, languages, localizePath, useTranslations } from "../../../i18n/ui";
+import "../../../styles/inventory.css";
+import "../../../styles/summits.css";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const summits = (await getSummits(lang)).filter((summit) => summit.ascents.length);
+const short = (name: string) => name.replace(/^(Cerro|Volcán|Nevado) /, "");
+const url = (id: string) => localizePath(lang, `/ascents/summits/${id}/`);
+const n = (value: number) => value.toLocaleString(locale);
+
+const { viewpoints, distinct, notClimbed, rows } = seenNotClimbed(summits);
+const { edges, connected, alone } = summitSightlines(summits);
+const viewName = Object.fromEntries(viewpoints.map((summit) => [summit.id, short(summit.data.name)]));
+const statusLabel = { visible: t("horizon.status.visible"), borderline: t("horizon.status.borderline") };
+const topDegree = connected[0]?.degree ?? 1;
+
+const mapData = {
+  nodes: connected.map(({ summit, degree }) => ({ id: summit.id, name: short(summit.data.name), ele: summit.data.elevation, lat: summit.data.lat, lon: summit.data.lon, url: url(summit.id), degree })),
+  edges,
+  labels: { detail: t("horizon.map.detail"), rest: t("horizon.map.rest"), line: t("horizon.map.line") },
+};
+---
+
+<BaseLayout title={`${t("ascents.tabHorizon")} · ${t("ascents.title")}`} description={t("horizon.intro")} sideBarActiveItemID="ascents" width="wide">
+  <AscentsHeader active="horizon" />
+
+  <div class="summit-ui">
+    <p class="summits-intro">{t("horizon.intro")}</p>
+
+    <div class="iv-stats">
+      <div class="iv-stat"><span class="iv-stat__value iv-num">{n(viewpoints.length)}</span><span class="iv-stat__label">{t("horizon.stat.views")}</span></div>
+      <div class="iv-stat"><span class="iv-stat__value iv-num">{n(distinct)}</span><span class="iv-stat__label">{t("horizon.stat.distinct")}</span></div>
+      <div class="iv-stat"><span class="iv-stat__value iv-num">{n(notClimbed)}</span><span class="iv-stat__label">{t("horizon.stat.missing")}</span></div>
+      <div class="iv-stat"><span class="iv-stat__value iv-num">{n(edges.length)}</span><span class="iv-stat__label">{t("horizon.stat.lines")}</span></div>
+    </div>
+
+    <section class="iv-block" aria-labelledby="hz-map-title">
+      <h2 class="iv-block__title" id="hz-map-title">{t("horizon.map.title")}</h2>
+      <p class="iv-note">{t("horizon.map.note")}</p>
+      <div class="hz-map" data-horizon-map>
+        <div class="hz-map__canvas" id="horizon-map"></div>
+        <div class="hz-map__side">
+          <ol class="hz-rank">
+            {connected.map(({ summit, degree }) => (
+              <li>
+                <button type="button" class="hz-rank__row" aria-pressed="false" data-node={summit.id}>
+                  <span class="hz-rank__name">{short(summit.data.name)}</span>
+                  <span class="hz-rank__bar"><span style={`width:${(degree / topDegree) * 100}%`}></span></span>
+                  <span class="hz-rank__n iv-num">{degree}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          <p class="iv-note hz-detail" data-hz-detail aria-live="polite">{t("horizon.map.rest")}</p>
+        </div>
+        <script type="application/json" id="horizon-map-data" set:html={JSON.stringify(mapData).replace(/</g, "\\u003c")} />
+      </div>
+      <div class="iv-legend">
+        <span class="iv-legend__item"><svg width="28" height="8" aria-hidden="true"><line class="hz-key" x1="0" x2="28" y1="4" y2="4" /></svg>{t("horizon.status.visible")}</span>
+        <span class="iv-legend__item"><svg width="28" height="8" aria-hidden="true"><line class="hz-key hz-key--dash" x1="0" x2="28" y1="4" y2="4" /></svg>{t("horizon.status.borderline")}</span>
+      </div>
+      {alone.length > 0 && <p class="iv-note">{t("horizon.map.alone", { list: alone.map(({ summit }) => short(summit.data.name)).join(", ") })}</p>}
+    </section>
+
+    <section class="iv-block" data-filter-root data-chart aria-labelledby="hz-wish-title">
+      <h2 class="iv-block__title" id="hz-wish-title">{t("horizon.wish.title")}</h2>
+      <p class="iv-note">{t("horizon.wish.note")}</p>
+
+      <div class="log-controls" role="search">
+        <label class="log-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+          <input type="search" placeholder={t("horizon.wish.search")} aria-label={t("horizon.wish.search")} data-filter-search />
+        </label>
+        <label class="log-sort">
+          <span>{t("log.sort")}</span>
+          <select class="select select-sm select-bordered" data-filter-sort>
+            <option value="seen:desc">{t("horizon.sort.seen")}</option>
+            <option value="ele:desc">{t("horizon.sort.ele")}</option>
+            <option value="near:asc">{t("horizon.sort.near")}</option>
+          </select>
+        </label>
+        <div class="log-chips" role="group" aria-label={t("log.filters")}>
+          <button type="button" class="log-chip" aria-pressed="true" data-filter-chip="over3000">≥ 3.000 m</button>
+          <button type="button" class="log-chip" aria-pressed="false" data-filter-chip="over4000">≥ 4.000 m</button>
+        </div>
+      </div>
+      <p class="log-count iv-num" data-filter-count data-label-one={t("horizon.countOne")} data-label-many={t("horizon.countMany")} aria-live="polite"></p>
+
+      <div class="hz-scroll">
+        <table class="hz-matrix">
+          <thead>
+            <tr>
+              <th scope="col" class="hz-matrix__peak">{t("horizon.col.peak")}</th>
+              <th scope="col">{t("horizon.col.ele")}</th>
+              <th scope="col">{t("horizon.col.seen")}</th>
+              <th scope="col">{t("horizon.col.near")}</th>
+              {viewpoints.map((summit) => <th scope="col" class="hz-matrix__view"><a href={url(summit.id)}><span>{short(summit.data.name)}</span></a></th>)}
+            </tr>
+          </thead>
+          <tbody data-filter-list>
+            {
+              rows.map((peak) => (
+                <tr
+                  data-filter-item
+                  data-text={searchText([peak.name])}
+                  data-flags={[peak.ele >= 3000 && "over3000", peak.ele >= 4000 && "over4000"].filter(Boolean).join(" ")}
+                  data-seen={peak.seen}
+                  data-ele={peak.ele}
+                  data-near={peak.nearest}
+                >
+                  <th scope="row" class="hz-matrix__peak"><a href={`https://www.openstreetmap.org/node/${peak.osm}`} target="_blank" rel="noopener">{peak.name}</a></th>
+                  <td class="iv-num">{n(peak.ele)} m</td>
+                  <td class="iv-num">{peak.seen}</td>
+                  <td class="iv-num" title={viewName[peak.nearestFrom]}>{n(Math.round(peak.nearest))} km</td>
+                  {viewpoints.map((summit) => {
+                    const status = peak.from[summit.id];
+                    return (
+                      <td class="hz-cell">
+                        {status && status !== "hidden" && <span class="hz-dot" data-status={status} tabindex="0" data-tip={`${peak.name}\n${t("horizon.tip", { from: viewName[summit.id] })}: ${statusLabel[status]}`} aria-label={`${viewName[summit.id]}: ${statusLabel[status]}`} />}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="log-empty" data-filter-empty hidden>{t("log.empty")}</p>
+      <div class="iv-legend">
+        <span class="iv-legend__item"><span class="hz-dot" data-status="visible"></span>{t("horizon.status.visible")}</span>
+        <span class="iv-legend__item"><span class="hz-dot" data-status="borderline"></span>{t("horizon.status.borderline")}</span>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.addEventListener("astro:page-load", async () => {
+      if (!document.querySelector("[data-horizon-map]")) return;
+      const [{ initHorizonMap }, { initLogFilter }, { initChartTooltips }] = await Promise.all([import("../../../scripts/horizon-map"), import("../../../scripts/log-filter"), import("../../../scripts/chart-tooltip")]);
+      initHorizonMap();
+      initLogFilter();
+      initChartTooltips();
+    });
+  </script>
+</BaseLayout>

@@ -18,6 +18,13 @@ const {
   includeSidebar = true,
   sideBarActiveItemID,
   ogType,
+  published,
+  modified,
+  fallback,
+  jsonLd,
+  // "wide" for pages of cards, charts and maps, which can use the whole screen; running text
+  // stays at the default, where the lines are still comfortable to read.
+  width = "default",
 } = Astro.props;
 ---
 
@@ -37,7 +44,7 @@ const {
       applyTheme();
       document.addEventListener("astro:after-swap", applyTheme);
     </script>
-    <BaseHead title={title} description={description} image={image} ogType={ogType} />
+    <BaseHead title={title} description={description} image={image} ogType={ogType} published={published} modified={modified} fallback={fallback} jsonLd={jsonLd} />
     {TRANSITION_API && <ViewTransitions />}
   </head>
   <body>
@@ -46,7 +53,7 @@ const {
       <div class="drawer-content bg-base-100">
         <Header />
         <div class="md:flex md:justify-center">
-          <main class="p-6 pt-10 lg:max-w-[900px] max-w-[100vw]">
+          <main class:list={["w-full max-w-[100vw] px-4 pt-5 pb-8 sm:px-6 lg:px-10 lg:pt-10", width === "wide" ? "lg:max-w-[1400px]" : "lg:max-w-[980px]"]}>
             <slot />
           </main>
         </div>

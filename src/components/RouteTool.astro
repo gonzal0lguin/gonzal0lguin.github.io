@@ -1,14 +1,14 @@
 ---
 // Route analyzer: visitors drop one or more GPX files and get the same route card as the posts,
 // plus the stitched GPX. Everything runs in the browser (src/scripts/route-tool.ts); nothing is
-// uploaded. Self-contained so it can move to a future "tools" section as is.
+// uploaded. The sample route is for whoever arrives without a GPX of their own, which is most people.
 import { getLangFromUrl, useTranslations } from "../i18n/ui";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 ---
 
-<section class="route-tool not-prose" data-route-tool data-lang={lang}>
+<section class="route-tool not-prose" data-route-tool data-lang={lang} data-sample="/assets/lib/san-gabriel-26-06-2026.gpx">
   <label
     class="route-tool__drop group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-base-content/20 bg-base-200 px-6 py-12 text-center transition-colors hover:border-primary hover:bg-base-200/70"
     data-dropzone
@@ -28,6 +28,11 @@ const t = useTranslations(lang);
       <rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
     </svg>
     {t("tools.route.privacy")}
+  </p>
+
+  <p class="mt-4 text-center" data-sample-row>
+    <button type="button" class="btn btn-primary btn-sm" data-try-sample>{t("tools.route.sample")}</button>
+    <span class="mt-1 block text-xs text-base-content/60">{t("tools.route.sampleNote")}</span>
   </p>
 
   <div role="alert" class="alert alert-error mt-4 whitespace-pre-line text-sm" data-error hidden></div>

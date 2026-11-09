@@ -1,0 +1,59 @@
+---
+// A real photo with the elevation model projected onto it, through the camera that
+// scripts/robot-figures.mjs fitted: the computed skyline, what a scanner standing there would
+// return, and the GPS track of the climb. Each is a layer the reader can switch off, because the
+// point is being able to compare them with the photo underneath.
+import FIGURES from "../../data/robot-figures.json";
+import Img from "../Img.astro";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const { photo } = FIGURES;
+const { camera } = photo;
+
+const line = (points: number[][]) => `M${points.map(([u, v]) => `${u} ${v}`).join("L")}`;
+const dots = (points: number[][]) => points.map(([u, v]) => `M${u} ${v}h0`).join("");
+/** Sequential, one hue, nearest darkest: distance is a magnitude and this has to read on snow. */
+const INK = ["#0f6b75", "#128a94", "#1fa8ae", "#49c2c3", "#86d9d5"];
+const number = (value: number, digits = 0) => value.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const km = (metres: number) => number(metres / 1000, 1);
+const millimetres = Math.round(camera.lens * 36);
+const LAYERS = [
+  { id: "skyline", label: t("rf.photo.skyline"), on: true },
+  { id: "scan", label: t("rf.photo.scan"), on: true },
+  { id: "track", label: t("rf.photo.track"), on: true },
+];
+---
+
+<Init />
+<figure class="rf summit-ui not-prose" data-rf-photo>
+  <div class="rf-chips" role="group" aria-label={t("rf.photo.layers")}>
+    {LAYERS.map((layer) => <button type="button" class="log-chip" aria-pressed={layer.on ? "true" : "false"} data-rf-layer={layer.id}>{layer.label}</button>)}
+  </div>
+  <div class="rf-photo">
+    <Img src={photo.src} alt={t("rf.photo.alt")} sizes="(min-width: 800px) 750px, 100vw" />
+    <svg viewBox={`0 0 ${photo.width} ${photo.height}`} aria-hidden="true">
+      <g data-rf-group="scan">
+        {photo.scan.map((band, i) => band.length > 0 && <path class="rf-scan" stroke={INK[i]} d={dots(band)} />)}
+      </g>
+      <g data-rf-group="skyline"><path class="rf-skyline" d={line(photo.skyline)} /></g>
+      <g data-rf-group="track">
+        {photo.track.map((run) => <path class:list={["rf-track", { "rf-track--hidden": !run.seen }]} d={line(run.points)} />)}
+      </g>
+      <text class="rf-photo-label" x={photo.summit.at[0]} y={photo.summit.at[1] - 34} text-anchor="middle">{photo.summit.name}</text>
+    </svg>
+  </div>
+  <p class="rf-readout iv-num">{t("rf.photo.reading", { heading: number(camera.heading), tilt: number(camera.tilt, 1), roll: number(camera.roll, 1), mm: millimetres, error: number(camera.error, 1) })}</p>
+  <div class="iv-legend">
+    <span class="iv-legend__item">
+      {t("rf.photo.rangeNear", { km: km(photo.rangeLimits[0]) })}
+      {INK.map((ink) => <span class="rf-swatch" style={`background:${ink}`}></span>)}
+      {t("rf.photo.rangeFar", { km: km(photo.rangeLimits.at(-1)!) })}
+    </span>
+    <span class="iv-legend__item"><span class="rf-key" style="border-top-color:#b6f36b"></span>{t("rf.photo.trackLegend")}</span>
+  </div>
+  <figcaption class="iv-note">{t("rf.photo.caption")}</figcaption>
+</figure>

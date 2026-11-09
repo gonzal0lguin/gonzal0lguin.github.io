@@ -1,0 +1,100 @@
+---
+// One ray walked sample by sample, from La Cruz to Aconcagua (scripts/robot-figures.mjs). Above,
+// the ground with the earth's curve taken off it, so that a sight line is a straight line. Below,
+// the same distance axis with the angle each sample is seen at against the highest one so far.
+// Two panels and not two axes: the rule the post explains is a comparison of those two lines.
+import FIGURES from "../../data/robot-figures.json";
+import Init from "./Init.astro";
+import { getLangFromUrl, languages, useTranslations } from "../../i18n/ui";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const locale = languages[lang].locale;
+const { ray } = FIGURES;
+const bins = ray.bins as [number, number, number, number, number][];
+
+const EFFECTIVE = 6371.0088 / (1 - 0.13);
+const W = 760;
+const LEFT = 56;
+const RIGHT = 12;
+const TOP = [40, 208];
+const LOW = [252, 400];
+const H = 436;
+const LOWEST = -12;
+const HIGHEST = 4;
+
+const maxKm = bins.at(-1)![0];
+const x = (km: number) => LEFT + (km / maxKm) * (W - LEFT - RIGHT);
+const rise = (km: number, h: number) => h - ray.eye - ((km * km) / (2 * EFFECTIVE)) * 1000;
+const heights = bins.map(([km, h]) => rise(km, h));
+const floor = Math.min(...heights);
+const roof = Math.max(...heights);
+const y = (value: number) => TOP[1] - ((value - floor) / (roof - floor)) * (TOP[1] - TOP[0]);
+const yAngle = (value: number) => LOW[1] - ((Math.max(LOWEST, Math.min(HIGHEST, value)) - LOWEST) / (HIGHEST - LOWEST)) * (LOW[1] - LOW[0]);
+const f = (value: number) => value.toFixed(1);
+
+const ground = bins.map(([km, h]) => `${f(x(km))} ${f(y(rise(km, h)))}`).join("L");
+const stretches: { seen: boolean; d: string[] }[] = [];
+bins.forEach(([km, h, , , seen], i) => {
+  const point = `${f(x(km))} ${f(y(rise(km, h)))}`;
+  const last = stretches.at(-1);
+  if (last && last.seen === !!seen) last.d.push(point);
+  else stretches.push({ seen: !!seen, d: i && last ? [last.d.at(-1)!, point] : [point] });
+});
+const angles = bins.map(([km, , angle]) => `${f(x(km))} ${f(yAngle(angle))}`).join("L");
+const highest = bins.map(([km, , , top]) => `${f(x(km))} ${f(yAngle(top))}`).join("L");
+
+const crestY = rise(ray.crest.km, ray.crest.h);
+const eyeY = y(0);
+const slope = (y(crestY) - eyeY) / (x(ray.crest.km) - x(0));
+const sightEnd = { x: x(ray.peak.km), y: eyeY + slope * (x(ray.peak.km) - x(0)) };
+
+// How much taller than true the top panel draws the ground, from its two scales.
+const mPerUnitX = (maxKm * 1000) / (W - LEFT - RIGHT);
+const mPerUnitY = (roof - floor) / (TOP[1] - TOP[0]);
+const exaggeration = Math.round(mPerUnitX / mPerUnitY);
+
+const kmTicks = [0, 25, 50, 75, 100];
+const angleTicks = [4, 0, -4, -8, -12];
+const degrees = (value: number) => value.toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const payload = { kind: "ray", from: LEFT, to: W - RIGHT, min: 0, max: maxKm, width: W, rows: bins };
+---
+
+<Init />
+<figure
+  class="rf summit-ui not-prose"
+  data-rf-chart
+  data-angle={t("rf.walk.angle")}
+  data-highest={t("rf.walk.highest")}
+  data-seen={t("rf.walk.seen")}
+  data-hidden={t("rf.walk.hidden")}
+>
+  <svg class="rf-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("rf.walk.alt")}>
+    <text class="rf-text rf-text--ink" x={LEFT} y="26">{t("rf.walk.top", { n: exaggeration })}</text>
+    <path class="rf-ground" d={`M${ground}L${f(x(maxKm))} ${TOP[1]}L${f(x(bins[0][0]))} ${TOP[1]}Z`} />
+    <line class="rf-sight" x1={f(x(0))} y1={f(eyeY)} x2={f(sightEnd.x)} y2={f(sightEnd.y)} />
+    {stretches.map((stretch) => <path class={stretch.seen ? "rf-seen" : "rf-hidden"} d={`M${stretch.d.join("L")}`} />)}
+    <circle class="rf-mark" cx={f(x(0))} cy={f(eyeY)} r="5" />
+    <text class="rf-text rf-text--ink" x={f(x(ray.crest.km))} y={f(y(crestY) - 10)} text-anchor="middle">La Fortuna</text>
+    <text class="rf-text rf-text--ink" x={f(x(ray.peak.km))} y={TOP[0] - 8} text-anchor="middle">Aconcagua</text>
+
+    <text class="rf-text rf-text--ink" x={LEFT} y={LOW[0] - 12}>{t("rf.walk.bottom")}</text>
+    {angleTicks.map((tick) => (
+      <>
+        <line class="rf-grid" x1={LEFT} x2={W - RIGHT} y1={f(yAngle(tick))} y2={f(yAngle(tick))} />
+        <text class="rf-text" x={LEFT - 8} y={f(yAngle(tick) + 4)} text-anchor="end">{tick > 0 ? "+" : ""}{tick.toLocaleString(locale)}°</text>
+      </>
+    ))}
+    <path class="rf-raw" d={`M${angles}`} />
+    <path class="rf-max" d={`M${highest}`} />
+    {kmTicks.map((km) => <text class="rf-text" x={f(x(km))} y={H - 12} text-anchor="middle">{km} km</text>)}
+    <line class="rf-cross" data-rf-cross x1="0" x2="0" y1="26" y2={LOW[1]} style="display:none" />
+  </svg>
+  <script type="application/json" data-rf-data set:html={JSON.stringify(payload)} />
+  <p class="rf-readout iv-num" data-rf-readout>{t("rf.walk.rest", { a: degrees(ray.crest.angle), b: degrees(ray.peak.angle) })}</p>
+  <div class="iv-legend">
+    <span class="iv-legend__item"><span class="rf-key"></span>{t("rf.walk.legendSeen")}</span>
+    <span class="iv-legend__item"><span class="rf-key rf-key--muted"></span>{t("rf.walk.legendHidden")}</span>
+  </div>
+  <figcaption class="iv-note">{t("rf.walk.caption", { n: exaggeration })}</figcaption>
+</figure>
