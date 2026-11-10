@@ -1,0 +1,75 @@
+/* The photo-topo editor. Every colour is a custom property so a host page can restyle it by
+   setting --pt-* on the root; the defaults follow the reader's light or dark preference. */
+.pt {
+  --pt-bg: #f6f5f1;
+  --pt-panel: #ffffff;
+  --pt-fg: #1d1f1e;
+  --pt-muted: #636a66;
+  --pt-line: #d9d7cf;
+  --pt-accent: #d9480f;
+  --pt-accent-fg: #ffffff;
+  color: var(--pt-fg);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  .pt:not([data-theme="light"]) {
+    --pt-bg: #151716;
+    --pt-panel: #1e211f;
+    --pt-fg: #ecece8;
+    --pt-muted: #a1a8a3;
+    --pt-line: #363b38;
+    --pt-accent: #ff7a3d;
+    --pt-accent-fg: #1a0d05;
+  }
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pt-tabs { display: inline-flex; border: 1px solid var(--pt-line); border-radius: 8px; overflow: hidden; margin-right: auto; }
+.pt-tab { border: 0; background: var(--pt-panel); color: var(--pt-muted); padding: 7px 16px; font: inherit; cursor: pointer; }
+.pt-tab + .pt-tab { border-left: 1px solid var(--pt-line); }
+.pt-tab[aria-selected="true"] { background: var(--pt-accent); color: var(--pt-accent-fg); font-weight: 600; }
+.pt-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.pt-stage { background: #0c0d0c; border-radius: 10px; overflow: hidden; min-height: 240px; display: grid; place-items: center; position: relative; }
+.pt-svg { display: block; width: 100%; height: auto; max-height: 82vh; touch-action: none; user-select: none; cursor: grab; }
+.pt-svg:active { cursor: grabbing; }
+.pt-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #c9cdc9; padding: 24px; gap: 6px; }
+.pt-empty p { margin: 0; }
+.pt-panel { display: flex; flex-direction: column; gap: 12px; max-height: 82vh; overflow-y: auto; padding-right: 2px; }
+.pt-group { border: 1px solid var(--pt-line); border-radius: 10px; background: var(--pt-panel); padding: 10px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pt-group legend { font-weight: 600; padding: 0 6px; font-size: 13px; }
+.pt-field { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.pt-field > span:first-child { color: var(--pt-muted); }
+.pt-value { font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; font-size: 13px; }
+.pt-range { width: 100%; accent-color: var(--pt-accent); min-width: 0; }
+.pt-color { width: 44px; height: 26px; padding: 0; border: 1px solid var(--pt-line); border-radius: 6px; background: none; }
+.pt-input { font: inherit; color: var(--pt-fg); background: var(--pt-panel); border: 1px solid var(--pt-line); border-radius: 6px; padding: 5px 8px; min-width: 0; }
+.pt-input--short { width: 90px; }
+.pt-check { display: flex; gap: 8px; align-items: center; }
+.pt-check input { accent-color: var(--pt-accent); }
+.pt-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pt-label { display: grid; grid-template-columns: auto minmax(0, 1fr) 70px auto; gap: 6px; align-items: center; }
+.pt-label > .pt-input { grid-column: 2; }
+.pt-button { font: inherit; color: var(--pt-fg); background: var(--pt-panel); border: 1px solid var(--pt-line); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+.pt-button:hover { border-color: var(--pt-accent); }
+.pt-button--primary { background: var(--pt-accent); border-color: var(--pt-accent); color: var(--pt-accent-fg); font-weight: 600; }
+.pt-field--half { flex: 1 1 0; min-width: 0; }
+.pt-button--on { border-color: var(--pt-accent); color: var(--pt-accent); font-weight: 600; }
+.pt-peaks { display: grid; gap: 4px; max-height: 240px; overflow-y: auto; padding-right: 4px; }
+.pt-hint { color: var(--pt-muted); margin: 0; font-size: 13px; }
+.pt-hint code, .pt-empty code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; background: color-mix(in srgb, var(--pt-fg) 10%, transparent); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.pt-status { margin: 0; color: var(--pt-muted); font-variant-numeric: tabular-nums; font-size: 13px; min-height: 1.4em; }
+.pt :focus-visible { outline: 2px solid var(--pt-accent); outline-offset: 2px; }
+@media (max-width: 860px) {
+  .pt-main { grid-template-columns: minmax(0, 1fr); }
+  .pt-panel { max-height: none; }
+}
+.pt-item { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--pt-line); }
+.pt-head { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.pt-head > .pt-input { flex: 1 1 0; }
+/* Two fields side by side in the 300px panel: beside its label neither box had room for its
+   number, so each label sits over its box. */
+.pt-field--half { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+.pt-field--half > .pt-input { width: 100%; }

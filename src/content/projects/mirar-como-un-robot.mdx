@@ -1,8 +1,9 @@
 ---
 title: "Mirar un cerro como lo miraría un robot"
 category: "hobby-projects"
-description: "Cómo calculo lo que se ve desde cada cumbre lanzando rayos sobre un modelo de elevación, igual que un LiDAR simulado, y por qué la robótica y la montaña terminaron pareciéndose tanto."
+description: "Cómo calculo lo que se ve desde cada cumbre lanzando rayos sobre un modelo de elevación, igual que un LiDAR simulado, cómo dibujo mis rutas sobre las fotos igual que un robot proyecta su trayectoria a la cámara, y por qué la robótica y la montaña terminaron pareciéndose tanto."
 pubDate: 2026-11-09
+updatedDate: 2026-11-10
 heroImage: /assets/img/headers/mirar-como-robot.jpg
 author: Gonzalo Olguin
 tags: [robótica, lidar, montaña, mapas]
@@ -18,7 +19,7 @@ import GpsNoise from "../../components/robot/GpsNoise.astro";
 
 Trabajo en robótica. Mi magíster fue sobre cómo hacer que un robot navegue al aire libre sin tener un mapa, y hoy en el AMTC sigo metido en navegación y percepción. Cuando puedo, me voy a la montaña. Parecen dos cosas sin ninguna relación, pero cuando empecé a programar las herramientas de este sitio me encontré usando exactamente lo mismo que uso en el trabajo.
 
-Este post es sobre eso: cómo calculo lo que se ve desde cada cumbre, y qué tiene que ver con un robot.
+Este post es sobre eso: cómo calculo lo que se ve desde cada cumbre, cómo terminé dibujando mis rutas sobre las fotos de la misma forma en que un robot proyecta su trayectoria a la cámara, y qué tiene que ver todo eso con mi tesis.
 
 ## Un LiDAR de 160 kilómetros
 
@@ -54,11 +55,13 @@ Con un rayo tengo un punto del horizonte. Si lanzo los 7.200 y me quedo con el �
 
 ## Comprobarlo con una foto
 
-Todo esto es muy bonito en el computador, pero un robot que cree cosas que no son se estrella, así que quería probarlo contra algo real. En Sem-NaVAE hay un paso que es justo eso: la trayectoria está en el mundo, y para saber por dónde pasa hay que proyectarla a la imagen de la cámara.
+Todo esto es muy bonito en el computador, pero un robot que cree cosas que no son se estrella, así que quería probarlo contra algo real. Y para eso volví a la tesis.
+
+En Sem-NaVAE el robot genera más de 200 trayectorias posibles en cada paso, y para elegir una las proyecta a la imagen de su cámara. Sobre esa imagen un modelo de visión y lenguaje ya pintó qué es pasto, qué es vereda y qué es árbol, así que cada punto de cada trayectoria toma el costo del pixel donde cae. La trayectoria vive en el mundo, el costo vive en la imagen, y lo que las une es saber dónde está la cámara y hacia dónde apunta.
 
 ![Proyección de una trayectoria a la imagen de la cámara de un robot](sem-navae/camera-projection.png "Del paper de Sem-NaVAE: la trayectoria del robot proyectada al plano de la imagen")
 
-Para eso hay que saber dónde está la cámara y hacia dónde apunta. En el robot se calibra una vez y listo. Acá lo que tenía era una foto del San Gabriel al amanecer, sin GPS y sin nada que dijera hacia dónde apuntaba el teléfono.
+En el robot eso se calibra una vez y listo, la cámara va atornillada al chasis. Acá lo que tenía era una foto del San Gabriel al amanecer, sin GPS y sin nada que dijera hacia dónde apuntaba el teléfono.
 
 Así que hice una calibración de extrínsecos, pero contra un cerro. Saqué el filo de la foto columna por columna, porque el cielo es más cálido que la nieve. Después calculé el horizonte desde un punto candidato y fui moviendo la posición, el rumbo, la inclinación, el giro y la distancia focal hasta que el filo calculado calzara con el de la foto.
 
@@ -69,6 +72,31 @@ Lo que me convenció son las cosas que no le pedí. La cámara quedó a 44 metro
 <PhotoFusion />
 
 Con la cámara encontrada se puede dibujar cualquier cosa encima. Los puntos son lo que vería un LiDAR parado ahí: anillos de rayos que acá sí se quedan con el primer choque, y el color dice qué tan lejos cayó cada uno. La línea verde es mi track de GPS, proyectado igual que la trayectoria del robot. La línea azul ya venía en la foto, marcada a mano. Arriba en el filo va casi pegada al GPS, pero abajo en la nieve no coinciden: el GPS se va bastante más a la derecha.
+
+## Proyectar mis propias rutas
+
+Esa línea verde me quedó dando vueltas. El robot proyecta a la imagen las trayectorias que *podría* hacer; yo estaba proyectando la que *ya hice*. Es exactamente la misma cuenta, del mundo al marco de la cámara y de ahí al plano de la imagen con el modelo *pinhole*, pero para algo que me importa mucho más: tener la foto del cerro con mi ruta dibujada encima, en el lugar correcto y no a mano alzada en una app.
+
+El experimento del San Gabriel era un script hecho para una sola foto y un punto de partida que le di yo. Para usarlo con cualquier foto tuve que hacerlo de nuevo, bien, y terminó siendo su propio repositorio: [mountain-tools](https://github.com/gonzal0lguin/mountain-tools), en Python. La primera herramienta es *photo topo*: le pasas una foto y un GPX, y te devuelve la foto con la ruta. Escribí un [manual completo](/projects/mountain-tools/) para quien quiera usarla, y se puede [probar acá mismo](/ascents/tools/photo-topo/) con mis fotos.
+
+:::gallery{cols=2 ratio=auto}
+![Foto del cerro Unión desde la ruta](mountain-tools/union-foto.jpg "La foto, tal como salió del teléfono")
+![La misma foto con la ruta de subida dibujada](mountain-tools/union-topo.jpg "La misma foto con la cámara calzada y el track proyectado")
+:::
+
+Rehacerlo bien fue volver a pasar por todos los problemas de la tesis, pero desde el otro lado:
+
+- **La calibración se hace en cada foto.** El robot sabe sus extrínsecos de antemano. Yo los tengo que encontrar cada vez, y el horizonte es mi tablero de ajedrez. El EXIF del teléfono hace de estimación inicial ruidosa, como una odometría: el GPS se equivoca entre 5 y 70 metros y la brújula entre 5 y 20 grados. No sirve como respuesta, pero achica la búsqueda a un vecindario, y eso es lo que la hace confiable.
+- **La oclusión ahora sí se puede resolver.** En la tesis había un problema que nunca cerré del todo: al pasar de 3D a 2D se pierde la profundidad, y una trayectoria que rodea un árbol aparece *detrás* del árbol en la imagen. Como el robot no sabía qué había detrás, a esos puntos les ponía un costo intermedio fijo, que es la forma honesta de decir "no sé". Acá el mundo es conocido: para cada punto de la ruta lanzo un rayo desde la cámara sobre el modelo de elevación, y si un filo lo tapa, ese tramo se dibuja segmentado.
+- **Cerca, confío en mis sensores; lejos, en el mapa.** Con celdas de 30 metros, el terreno a pocos metros de la cámara sale muy mal. Si la foto la saqué durante la salida, el reloj sabe dónde estaba parado en ese segundo, así que los primeros cientos de metros de ruta se dibujan con las posiciones y alturas del track, partiendo en línea recta desde mis pies, y más lejos vuelve el modelo. Es lo mismo que hace un robot cuando mezcla su odometría, buena de cerca, con un mapa que es mejor de lejos. Y en el empalme entre los dos, igual que en un robot, es donde todo se quiebra un poco.
+- **Las nubes son el ruido del sensor.** El primer lector de horizonte seguía la parte de arriba de los cúmulos, porque es el borde más fuerte, y una foto de Punta Canaleta terminaba 60° corrida. Lo que distingue un filo de una nube es lo que hay debajo: bajo un filo hay cerro, bajo una nube vuelve a haber cielo. Así que ahora aprende el color del cielo de cada foto y no acepta un borde con cielo abajo. Y donde no está seguro, deja el hueco en vez de inventar, igual que con las cumbres "al filo".
+- **Una persona en el lazo.** Hay fotos que el ajuste no resuelve solo, como una cara que llena todo el encuadre. Para eso puedes marcar a mano dos o tres cumbres que reconozcas, y esos clics pesan más que el resto. Es lo más parecido a calibrar con puntos de referencia conocidos.
+
+![La ruta de Punta Canaleta dibujada sobre una foto con nubes sobre el filo](mountain-tools/canaleta-topo.jpg "Punta Canaleta, la foto que le enseñó al lector de horizonte a no seguir las nubes")
+
+Lo que más me gusta es que funciona al revés de la tesis. El robot mira la imagen para decidir por dónde ir. Yo miro por dónde fui para entender la imagen. Y cuando veo la travesía del Algarrobo dibujada sobre la foto, cruzando de un lado a otro con todos los cerros con nombre, entiendo mejor que nunca lo que hice ese día.
+
+![El track de la travesía del Algarrobo sobre una foto, con las cumbres nombradas](mountain-tools/algarrobo-topo.jpg "La travesía del Algarrobo, de punta a punta")
 
 ## El ruido del sensor
 
@@ -102,10 +130,10 @@ Cuando hice la [travesía del Algarrobo](/ascents/algarrobo-traverse/) pasé por
 
 ## Cómo está hecho este sitio
 
-Ya que estamos, para quien le interese lo técnico. Es un sitio estático hecho en Astro y hospedado en GitHub Pages, así que no hay ningún servidor. Los GPX se leen con un parser escrito a mano y se analizan al compilar, y el navegador recibe el resultado ya calculado. Los panoramas salen de scripts en Node sobre el modelo de Copernicus, y los nombres de los cerros vienen de OpenStreetMap.
+Ya que estamos, para quien le interese lo técnico. Es un sitio estático hecho en Astro y hospedado en GitHub Pages, así que no hay ningún servidor. Los GPX se leen con un parser escrito a mano y se analizan al compilar, y el navegador recibe el resultado ya calculado. Los panoramas salen de scripts en Node sobre el modelo de Copernicus, y los nombres de los cerros vienen de OpenStreetMap. Lo de las fotos está aparte, en [mountain-tools](https://github.com/gonzal0lguin/mountain-tools), porque necesita Python y porque quiero que crezca como caja de herramientas propia; acá sólo vive una copia de su editor.
 
-Lo único que ocurre en vivo es el analizador de rutas, que corre entero en tu navegador, y las [condiciones en la cumbre](/ascents/tools/conditions/), que le pregunta directo a Open-Meteo. Las traducciones al inglés las hago con Claude. Todo el código está en [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
+Lo único que ocurre en vivo es el analizador de rutas y el [editor de fotos](/ascents/tools/photo-topo/), que corren enteros en tu navegador, y las [condiciones en la cumbre](/ascents/tools/conditions/), que le pregunta directo a Open-Meteo. Las traducciones al inglés las hago con Claude. Todo el código está en [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
 
 ## ¿Y para qué sirve?
 
-Técnicamente, para nada. Pero ahora puedo ver en la [página del horizonte](/ascents/horizon/) qué cerros llevo años mirando sin haberlos subido, y cuáles de los míos se ven entre sí. Y cuando voy por la autopista, elijo la ventana que favorece la vista de esas tres cumbres y sigo pensando lo mismo de siempre: esa ruta es mía.
+Técnicamente, para nada. Pero ahora puedo ver en la [página del horizonte](/ascents/horizon/) qué cerros llevo años mirando sin haberlos subido, y cuáles de los míos se ven entre sí. Y puedo tener la foto de las tres cumbres del Algarrobo con mi ruta dibujada encima. Y cuando voy por la autopista, elijo la ventana que favorece la vista de esas tres cumbres y sigo pensando lo mismo de siempre: esa ruta es mía.

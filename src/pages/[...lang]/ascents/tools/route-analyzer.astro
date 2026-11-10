@@ -3,7 +3,7 @@ import BaseLayout from "../../../../layouts/BaseLayout.astro";
 import AscentsHeader from "../../../../components/AscentsHeader.astro";
 import RouteTool from "../../../../components/RouteTool.astro";
 import { langStaticPaths } from "../../../../lib/paths";
-import { getLang, useTranslations } from "../../../../i18n/ui";
+import { getLang, localizePath, useTranslations } from "../../../../i18n/ui";
 
 export function getStaticPaths() {
   return langStaticPaths();
@@ -11,10 +11,12 @@ export function getStaticPaths() {
 
 const lang = getLang(Astro.params.lang);
 const t = useTranslations(lang);
+const path = (to: string) => localizePath(lang, to);
 ---
 
 <BaseLayout title={t("tools.route.title")} description={t("tools.route.description")} sideBarActiveItemID="ascents" width="wide">
   <AscentsHeader active="tools" />
-  <p class="mb-8 max-w-3xl text-lg">{t("tools.route.intro")}</p>
+  <p class="mb-4 max-w-3xl text-lg">{t("tools.route.intro")}</p>
+  <p class="mb-8 max-w-3xl opacity-80"><a class="link" href={path("/projects/procesar-ruta/")}>{t("tools.route.manual")} →</a></p>
   <RouteTool />
 </BaseLayout>

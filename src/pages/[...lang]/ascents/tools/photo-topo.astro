@@ -1,0 +1,112 @@
+---
+// The photo-topo editor from the mountain-tools repository, hosted as is. The files under
+// /assets/phototopo/ are a copy made by scripts/phototopo-sync.mjs; nothing here is built by
+// Astro, the page only gives the editor a place, the site's colours and its words in Spanish.
+// It runs without a server because a scene file holds the terrain as angles from the camera:
+// re-aiming is arithmetic the browser can do. Moving the camera needs the Python tool.
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import AscentsHeader from "../../../../components/AscentsHeader.astro";
+import { langStaticPaths } from "../../../../lib/paths";
+import { getLang, localizePath, useTranslations } from "../../../../i18n/ui";
+
+export function getStaticPaths() {
+  return langStaticPaths();
+}
+
+const lang = getLang(Astro.params.lang);
+const t = useTranslations(lang);
+const path = (to: string) => localizePath(lang, to);
+const BASE = "/assets/phototopo";
+const demos = [
+  { name: "Cerro Unión", id: "union" },
+  { name: "Cerro San Gabriel", id: "san-gabriel" },
+  { name: lang === "es" ? "Travesía del Algarrobo" : "Algarrobo traverse", id: "algarrobo" },
+].map(({ name, id }) => ({ name, scene: `${BASE}/demos/${id}.scene.json`, photo: `${BASE}/demos/${id}.jpg` }));
+
+/** The editor's interface is English; these are its words here. A missing one stays English. */
+const ES: Record<string, string> = {
+  Example: "Ejemplo",
+  "Open scene + photo…": "Abrir escena + foto…",
+  "Drop a scene file (.scene.json) and its photo here.": "Suelta aquí un archivo de escena (.scene.json) y su foto.",
+  "Make one with:": "Se genera con:",
+  "Loading…": "Cargando…",
+  "Could not load": "No se pudo cargar",
+  "Both are needed: the scene file and its photo.": "Se necesitan los dos: el archivo de escena y su foto.",
+  heading: "rumbo", tilt: "inclinación", roll: "giro", lens: "lente", skylines: "horizontes a", apart: "de distancia",
+  Align: "Alinear", Style: "Estilo", Export: "Exportar",
+  Failed: "Falló",
+  "Drag the picture to move the terrain outline (white) onto the mountains. Scroll to zoom the lens, Shift+scroll to roll. The pink line is the skyline read from the photo.":
+    "Arrastra la imagen para llevar el contorno del terreno (blanco) sobre los cerros. Con la rueda cambias el zoom del lente y con Shift+rueda el giro. La línea rosada es el horizonte leído de la foto.",
+  Camera: "Cámara", Heading: "Rumbo", Tilt: "Inclinación", Roll: "Giro", Lens: "Lente",
+  "Show the photo's skyline": "Mostrar el horizonte de la foto",
+  "Snap to skyline": "Ajustar al horizonte", Reset: "Restablecer",
+  "Photo skyline": "Horizonte de la foto",
+  "If the pink line follows a cloud or a tree instead of the ridge, fix it: draw along the real ridge, or erase the wrong stretch. Then snap or refit.": "Si la línea rosada sigue una nube o un árbol en vez del filo, corrígela: dibuja sobre el filo real o borra el tramo malo. Después ajusta o recalcula.",
+  Draw: "Dibujar", Erase: "Borrar", "Undo edits": "Deshacer cambios", "Fit again from scratch": "Calcular de nuevo desde cero",
+  Summits: "Cumbres",
+  "Names from OpenStreetMap. Tick the ones to show and drag a name to place it: its line follows.": "Nombres de OpenStreetMap. Marca las que quieras mostrar y arrastra un nombre para ubicarlo: su línea lo sigue.",
+  "Show summits": "Mostrar cumbres", "Pointer line": "Línea indicadora", Height: "Altitud", Capitals: "Mayúsculas", "Line width": "Grosor de línea",
+  "No named summit is in sight in this scene.": "No hay ninguna cumbre con nombre a la vista en esta escena.",
+  "Look up summits": "Buscar cumbres",
+  "Fix the route": "Corregir la ruta",
+  "Where the route is drawn off the ground, switch this on and drag the line to where it really goes. Each drag leaves a handle; double-click a handle to remove it.": "Donde la ruta quede dibujada fuera del terreno, activa esto y arrastra la línea hasta donde va de verdad. Cada arrastre deja un punto de control; doble clic sobre un punto para quitarlo.",
+  "Click on the route line to grab it.": "Haz clic sobre la línea de la ruta para tomarla.",
+  "From (km)": "Desde (km)", "To (km)": "Hasta (km)",
+  "Drag any text on the picture to place it. The second tick gives a label a pointer line to its place on the mountain.": "Arrastra cualquier texto sobre la foto para ubicarlo. La segunda casilla le pone a la etiqueta una línea hacia su lugar en el cerro.",
+  "Adjust route": "Ajustar ruta", "Clear adjustments": "Quitar ajustes", "Reach of a drag": "Alcance del arrastre", points: "puntos",
+  Stretches: "Tramos", Stretch: "Tramo", "Select a stretch": "Elegir un tramo", "Now click where the stretch ends.": "Ahora haz clic donde termina el tramo.",
+  "Give a part of the route its own colour and line: press the button, then click on the route where the stretch starts and where it ends.": "Dale a una parte de la ruta su propio color y tipo de línea: aprieta el botón y haz clic sobre la ruta donde empieza el tramo y donde termina.",
+  Symbols: "Símbolos", Symbol: "Símbolo", "Place on the picture": "Poner en la foto", "Name (optional)": "Nombre (opcional)",
+  "Mark a camp, a hut or anything else: pick a symbol, press the button and click on the picture. Dropped on the route line it stays on the route. Drag a symbol to move it.": "Marca un campamento, un refugio o lo que quieras: elige un símbolo, aprieta el botón y haz clic en la foto. Si lo sueltas sobre la línea de la ruta, queda sobre la ruta. Arrastra un símbolo para moverlo.",
+  Camp: "Campamento", Hut: "Refugio", Flag: "Bandera", Peak: "Cumbre", Star: "Estrella", Diamond: "Rombo", Water: "Agua", Cross: "Cruz", Dot: "Punto", Ring: "Anillo",
+  "Control points": "Puntos de control", "Click it on the photo": "Marcarla en la foto",
+  "If you can tell a summit in the photo, tie it down: choose it, press the button and click on it in the photo. The outline snaps to it, and snapping and refitting hold to it. Two or three settle a photo with little skyline.": "Si reconoces una cumbre en la foto, fíjala: elígela, aprieta el botón y haz clic sobre ella en la foto. El contorno salta hasta ahí, y los ajustes y recálculos la respetan. Con dos o tres basta para una foto con poco horizonte.",
+  Position: "Posición",
+  "Moving the camera needs the elevation model. Run the editor locally for that:": "Mover la cámara requiere el modelo de elevación. Para eso corre el editor en tu computador:",
+  Route: "Ruta", Colour: "Color", Width: "Ancho", Line: "Línea", Solid: "Continua", Dashed: "Segmentada", Dotted: "Punteada",
+  Opacity: "Opacidad", Smoothing: "Suavizado", "Behind the mountain": "Detrás del cerro", "Same line": "Igual", Hidden: "Oculta",
+  From: "Desde", To: "Hasta", "Way up only": "Sólo la subida", "Whole track": "Ruta completa",
+  Outline: "Borde", "Dark edge": "Borde oscuro", "Edge colour": "Color del borde", "Edge strength": "Intensidad",
+  Markers: "Marcadores", Start: "Inicio", Summit: "Cumbre", Size: "Tamaño", Fill: "Relleno",
+  Terrain: "Terreno", Skyline: "Horizonte", "Skyline colour": "Color del horizonte", Ridges: "Filos", "Ridge colour": "Color de los filos", "Ridge opacity": "Opacidad de los filos",
+  Text: "Texto", "Drag any text on the picture to place it.": "Arrastra cualquier texto sobre la imagen para ubicarlo.", "Add text": "Agregar texto", "Dark halo": "Halo oscuro",
+  Frame: "Encuadre", Shape: "Formato", Original: "Original", "4:5 portrait": "4:5 vertical", "1:1 square": "1:1 cuadrado", "9:16 story": "9:16 historia", "16:9 wide": "16:9 horizontal",
+  "Drag the picture to move the frame.": "Arrastra la imagen para mover el encuadre.",
+  Picture: "Imagen", "Saved at the photo's full resolution, in the chosen frame.": "Se guarda a la resolución completa de la foto, con el encuadre elegido.",
+  "Download JPG": "Descargar JPG", "Download PNG": "Descargar PNG",
+  Scene: "Escena", "The scene file keeps the camera and the style, to carry on later or to render from the command line.": "El archivo de escena guarda la cámara y el estilo, para seguir después o generar la imagen desde la terminal.",
+  "Download scene": "Descargar escena", "Rendering…": "Generando…", Show: "Mostrar", Delete: "Borrar",
+};
+const config = JSON.stringify({ demos, strings: lang === "es" ? ES : {} });
+---
+
+<BaseLayout title={t("tools.topo.title")} description={t("tools.topo.description")} sideBarActiveItemID="ascents" width="wide">
+  <AscentsHeader active="tools" />
+  <p class="mb-4 max-w-3xl text-lg">{t("tools.topo.intro")}</p>
+  <p class="mb-8 max-w-3xl opacity-80">
+    {t("tools.topo.own")}
+    <a class="link" href="https://github.com/gonzal0lguin/mountain-tools">mountain-tools</a>: <code>mtn topo fit foto.jpg ruta.gpx</code>.
+    <a class="link" href={path("/projects/mountain-tools/")}>{t("tools.topo.manual")} →</a>
+  </p>
+  <link rel="stylesheet" href={`${BASE}/editor.css`} />
+  <div id="photo-topo" class="not-prose" data-theme="site" data-config={config}></div>
+</BaseLayout>
+
+<style is:global>
+  /* The editor takes its colours from --pt-*; here they are the site theme's. */
+  #photo-topo.pt {
+    --pt-bg: oklch(var(--b1));
+    --pt-panel: oklch(var(--b2));
+    --pt-fg: oklch(var(--bc));
+    --pt-muted: oklch(var(--bc) / 0.68);
+    --pt-line: oklch(var(--bc) / 0.2);
+    --pt-accent: #ff7a3d;
+    --pt-accent-fg: #1a0d05;
+  }
+</style>
+
+<script is:inline type="module">
+  import { mountEditor } from "/assets/phototopo/editor.js";
+  const root = document.getElementById("photo-topo");
+  mountEditor(root, JSON.parse(root.dataset.config));
+</script>

@@ -21,6 +21,7 @@
     "climate": "node scripts/climate.mjs",
     "panoramas": "node scripts/panoramas.mjs",
     "profiles": "node scripts/profiles.mjs",
+    "phototopo": "node scripts/phototopo-sync.mjs",
     "shot": "node scripts/shot.mjs"
   },
   "dependencies": {

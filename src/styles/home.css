@@ -313,6 +313,7 @@
 .home-bridge__kicker { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; color: oklch(var(--p)); }
 .home-bridge h2 { margin: 0.25rem 0 0.5rem; font-size: 1.75rem; font-weight: 800; line-height: 1.15; }
 .home-bridge .btn { margin-top: 0.875rem; }
+.home-bridge__links { display: flex; flex-wrap: wrap; gap: 0 0.5rem; }
 .home-bridge__table { width: 100%; font-size: 0.9375rem; border-collapse: collapse; }
 .home-bridge__table th { padding: 0 0.75rem 0.4rem 0; text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--home-muted); }
 .home-bridge__table td { padding: 0.45rem 0.75rem 0.45rem 0; border-top: 1px solid var(--home-line); vertical-align: top; }

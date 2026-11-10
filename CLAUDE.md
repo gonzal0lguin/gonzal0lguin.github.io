@@ -19,6 +19,7 @@ the things that cost an afternoon to find out once.
 | `npm run panoramas` | summit views; `-- provincia` for one, `-- --all` for all (~30 s each) |
 | `npm run figures` | figures of the robot post: fits a photo's camera to the terrain, walks one ray → `src/data/robot-figures.json` (~20 s) |
 | `npm run profiles` | every summit's outline for the to-scale chart → `src/data/profiles.json` (seconds) |
+| `npm run phototopo` | copies the photo-topo editor and its example scenes from `../mountain-tools` → `public/assets/phototopo/` (see below) |
 | `npm run terrain` / `climate` / `inventory` | data for the reforestation post |
 
 Stick to **npm** — the GitHub Actions deploy uses `npm ci`.
@@ -95,6 +96,17 @@ the CSS in `<![CDATA[ ]]>`, and narrow the `viewBox` to crop a slice of the 1920
   panorama pipeline is only proven south and west of 0°, and `scripts/panoramas.mjs` still
   skips the rest: a summit in the Alps gets its outline (`npm run profiles`) but no panorama.
 - Elevation tiles and OSM answers are cached; the first `npm run panoramas` is slow, the rest fast.
+
+## The photo-topo editor comes from another repository
+
+`/ascents/tools/photo-topo/` hosts the editor of [mountain-tools](https://github.com/gonzal0lguin/mountain-tools)
+(Python: fits a photo's camera to the terrain and projects a GPX track onto it). The editor is
+written and tested **there**; `public/assets/phototopo/` is a copy made by `npm run phototopo`
+and committed. Fix editor bugs in mountain-tools and sync, never in the copy. The page itself
+only supplies the site's colours (`--pt-*`) and the Spanish interface text (the `ES` map in
+`photo-topo.astro`, keyed by the editor's English strings: a new string there needs a line here).
+On this static site the editor can re-aim the camera but not move it, since that needs the
+elevation model; it tells the visitor to run `mtn topo edit` for that.
 
 ## Conventions
 

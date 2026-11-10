@@ -1,9 +1,10 @@
 ---
-translationHash: "15abfe0a39145bab"
+translationHash: "4597bfb625394a02"
 title: "Looking at a mountain the way a robot would"
 category: "hobby-projects"
-description: "How I compute what can be seen from each summit by casting rays over an elevation model, just like a simulated LiDAR, and why robotics and the mountains ended up being so alike."
+description: "How I compute what can be seen from each summit by casting rays over an elevation model, just like a simulated LiDAR, how I draw my routes on photos the same way a robot projects its path into its camera, and why robotics and the mountains ended up being so alike."
 pubDate: 2026-11-09
+updatedDate: 2026-11-10
 heroImage: /assets/img/headers/mirar-como-robot.jpg
 author: Gonzalo Olguin
 tags: [robótica, lidar, montaña, mapas]
@@ -19,7 +20,7 @@ import GpsNoise from "../../../components/robot/GpsNoise.astro";
 
 I work in robotics. My master's was about getting a robot to navigate outdoors without a map, and today at AMTC I'm still deep in navigation and perception. Whenever I can, I go to the mountains. They look like two things with nothing in common, but when I started programming the tools for this site I found myself using exactly what I use at work.
 
-This post is about that: how I compute what can be seen from each summit, and what it has to do with a robot.
+This post is about that: how I compute what can be seen from each summit, how I ended up drawing my routes on photos the same way a robot projects its trajectory into its camera, and what all of it has to do with my thesis.
 
 ## A 160-kilometre LiDAR
 
@@ -55,11 +56,13 @@ One ray gives me one point of the horizon. Cast all 7,200, keep the highest angl
 
 ## Checking it with a photo
 
-All of this looks very nice on a computer, but a robot that believes things that aren't so crashes, so I wanted to test it against something real. Sem-NaVAE has a step that is exactly that: the trajectory is out in the world, and to know where it goes you have to project it onto the camera image.
+All of this looks very nice on a computer, but a robot that believes things that aren't so crashes, so I wanted to test it against something real. And for that I went back to the thesis.
+
+In Sem-NaVAE the robot generates more than 200 possible trajectories at every step, and to choose one it projects them onto its camera image. On that image a vision-language model has already painted what is grass, what is pavement and what is a tree, so each point of each trajectory takes the cost of the pixel it lands on. The trajectory lives in the world, the cost lives in the image, and what ties them together is knowing where the camera is and where it's pointing.
 
 ![Projecting a trajectory onto a robot's camera image](sem-navae/camera-projection.png "From the Sem-NaVAE paper: the robot's trajectory projected onto the image plane")
 
-For that you need to know where the camera is and where it's pointing. On the robot you calibrate it once and you're done. What I had here was a photo of San Gabriel at dawn, with no GPS and nothing saying which way the phone was pointing.
+On the robot you calibrate that once and you're done, the camera is bolted to the chassis. What I had here was a photo of San Gabriel at dawn, with no GPS and nothing saying which way the phone was pointing.
 
 So I did an extrinsic calibration, but against a mountain. I read the ridge out of the photo column by column, because the sky is warmer than the snow. Then I computed the horizon from a candidate point and kept moving the position, heading, tilt, roll and focal length until the computed ridge matched the one in the photo.
 
@@ -70,6 +73,31 @@ What convinced me are the things I didn't ask for. The camera ended up 44 metres
 <PhotoFusion />
 
 With the camera found you can draw anything on top. The dots are what a LiDAR standing there would see: rings of rays that here do stop at the first hit, and the colour says how far each one landed. The green line is my GPS track, projected just like the robot's trajectory. The blue line was already on the photo, marked by hand. Up on the ridge it runs almost on top of the GPS, but down on the snow they don't match: the GPS goes quite a bit further right.
+
+## Projecting my own routes
+
+That green line stuck with me. The robot projects into the image the trajectories it *could* take; I was projecting the one I *already took*. It is exactly the same computation, from the world into the camera frame and from there onto the image plane with the *pinhole* model, but for something I care about much more: a photo of the mountain with my route drawn on it, in the right place and not freehand in some app.
+
+The San Gabriel experiment was a script made for one photo and a starting point I gave it. To use it with any photo I had to do it again, properly, and it ended up as its own repository: [mountain-tools](https://github.com/gonzal0lguin/mountain-tools), in Python. The first tool is *photo topo*: you give it a photo and a GPX, and it gives you back the photo with the route. I wrote a [full manual](/en/projects/mountain-tools/) for anyone who wants to use it, and you can [try it right here](/en/ascents/tools/photo-topo/) with my photos.
+
+:::gallery{cols=2 ratio=auto}
+![Photo of Cerro Unión from the route](mountain-tools/union-foto.jpg "The photo, straight off the phone")
+![The same photo with the ascent route drawn on it](mountain-tools/union-topo.jpg "The same photo with the camera fitted and the track projected")
+:::
+
+Doing it properly meant going through every problem of the thesis again, but from the other side:
+
+- **Calibration happens on every photo.** The robot knows its extrinsics in advance. I have to find them every time, and the skyline is my checkerboard. The phone's EXIF is a noisy initial guess, like odometry: the GPS is off by 5 to 70 metres and the compass by 5 to 20 degrees. It's no good as an answer, but it shrinks the search to a neighbourhood, and that's what makes it reliable.
+- **Occlusion can actually be solved now.** In the thesis there was a problem I never fully closed: going from 3D to 2D loses depth, and a trajectory that goes around a tree shows up *behind* the tree in the image. Since the robot didn't know what was back there, those points got a fixed intermediate cost, which is the honest way of saying "I don't know". Here the world is known: for every point of the route I cast a ray from the camera over the elevation model, and if a ridge hides it, that stretch is drawn dashed.
+- **Up close I trust my sensors; far away, the map.** With 30-metre cells, terrain a few metres from the camera comes out very badly. If I took the photo during the outing, the watch knows where I stood at that second, so the first few hundred metres of route are drawn from the track's own positions and heights, starting in a straight line from my feet, and further away the model takes over. It's what a robot does when it blends its odometry, good up close, with a map that is better far away. And at the seam between the two, just like on a robot, is where everything kinks a little.
+- **Clouds are the sensor noise.** The first skyline reader followed the tops of the cumulus, because that's the strongest edge, and a photo of Punta Canaleta came out 60° off. What tells a ridge from a cloud is what's underneath: under a ridge there's mountain, under a cloud there's sky again. So now it learns the colour of each photo's sky and won't accept a boundary with sky below it. And where it isn't sure, it leaves a gap instead of making something up, same as with the "on the edge" summits.
+- **A person in the loop.** Some photos the fit can't solve on its own, like a face that fills the whole frame. For those you can mark by hand two or three summits you recognise, and those clicks weigh more than the rest. It's the closest thing to calibrating with known reference points.
+
+![The Punta Canaleta route drawn on a photo with clouds over the ridge](mountain-tools/canaleta-topo.jpg "Punta Canaleta, the photo that taught the skyline reader not to follow clouds")
+
+What I like most is that it works the other way round from the thesis. The robot looks at the image to decide where to go. I look at where I went to understand the image. And when I see the Algarrobo traverse drawn on the photo, crossing from one side to the other with every mountain named, I understand what I did that day better than ever.
+
+![The Algarrobo traverse track on a photo, with named summits](mountain-tools/algarrobo-topo.jpg "The Algarrobo traverse, end to end")
 
 ## Sensor noise
 
@@ -103,10 +131,10 @@ When I did the [Algarrobo traverse](/en/ascents/algarrobo-traverse/) I went thro
 
 ## How this site is built
 
-While we're at it, for anyone interested in the technical side. It's a static site made with Astro and hosted on GitHub Pages, so there's no server at all. GPX files are read by a hand-written parser and analyzed at build time, and the browser gets the result already computed. The panoramas come from Node scripts over the Copernicus model, and the names of the mountains from OpenStreetMap.
+While we're at it, for anyone interested in the technical side. It's a static site made with Astro and hosted on GitHub Pages, so there's no server at all. GPX files are read by a hand-written parser and analyzed at build time, and the browser gets the result already computed. The panoramas come from Node scripts over the Copernicus model, and the names of the mountains from OpenStreetMap. The photo work lives separately, in [mountain-tools](https://github.com/gonzal0lguin/mountain-tools), because it needs Python and because I want it to grow into its own toolbox; only a copy of its editor lives here.
 
-The only things that happen live are the route analyzer, which runs entirely in your browser, and the [summit conditions](/en/ascents/tools/conditions/), which ask Open-Meteo directly. I do the English translations with Claude. All the code is on [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
+The only things that happen live are the route analyzer and the [photo editor](/en/ascents/tools/photo-topo/), which run entirely in your browser, and the [summit conditions](/en/ascents/tools/conditions/), which ask Open-Meteo directly. I do the English translations with Claude. All the code is on [GitHub](https://github.com/gonzal0lguin/gonzal0lguin.github.io).
 
 ## So what's it for?
 
-Technically, nothing. But now I can see on the [horizon page](/en/ascents/horizon/) which mountains I've been looking at for years without climbing them, and which of mine can see each other. And when I'm on the highway, I pick the window that favours the view of those three summits and I still think the same thing as always: that route is mine.
+Technically, nothing. But now I can see on the [horizon page](/en/ascents/horizon/) which mountains I've been looking at for years without climbing them, and which of mine can see each other. And I can have the photo of the three Algarrobo summits with my route drawn on it. And when I'm on the highway, I pick the window that favours the view of those three summits and I still think the same thing as always: that route is mine.

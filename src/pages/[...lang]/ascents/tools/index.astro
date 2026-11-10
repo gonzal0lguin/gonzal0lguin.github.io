@@ -15,6 +15,7 @@ const lang = getLang(Astro.params.lang);
 const t = useTranslations(lang);
 const tools = [
   { href: "/ascents/tools/route-analyzer/", title: t("ascents.tabRouteTool"), text: t("tools.hub.route"), icon: "M4 19c3-1 3-5 6-6s6 1 8-3M4 19h.01M18 10V4m0 0-2.5 2.5M18 4l2.5 2.5" },
+  { href: "/ascents/tools/photo-topo/", title: t("tools.topo.title"), text: t("tools.hub.topo"), icon: "M3 18l5-8 4 5 3-4 6 7H3zM8 10V5m0 0 3 1.5L8 8" },
   { href: "/ascents/tools/conditions/", title: t("cond.title"), text: t("tools.hub.conditions"), icon: "M12 2v3M4.9 4.9 7 7M2 12h3M17 7l2.1-2.1M7 16h10a3 3 0 0 0 0-6 5 5 0 0 0-9.6-1A4 4 0 0 0 7 16zM8 20l1-2M12 21l1-2M16 20l1-2" },
 ];
 ---
