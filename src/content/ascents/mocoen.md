@@ -10,3 +10,5 @@ route: "/assets/lib/mocoen-30-10-2024.gpx"
 summits: [mocoen]
 tags: ['Mountain']
 ---
+
+Lo siento, aún no escribo este post.

@@ -12,4 +12,4 @@ summits: [union]
 tags: ['Mountain']
 ---
 
-This is a placeholder for the San Gabriel binnacle.
+Lo siento, aún no escribo este post.

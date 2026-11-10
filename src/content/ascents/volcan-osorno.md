@@ -12,4 +12,4 @@ tags: ['Mountain']
 route: "/assets/lib/volcan-osorno.gpx"
 ---
 
-This is a placeholder for the Osorno volcano.
+Lo siento, aún no escribo este post.
